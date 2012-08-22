@@ -27,7 +27,6 @@ public:
         mPhongReflectance   = Vec3f(0);
         mGlossiness         = 1.f;
         mMirrorReflectance  = Vec3f(0);
-        mGlassTransmittance = Vec3f(0);
         mIOR = -1.f;
     }
 
@@ -42,8 +41,7 @@ public:
     // it is not
     Vec3f mMirrorReflectance;
 
-    // transmittance is used only when mIOR >= 0
-    Vec3f mGlassTransmittance;
+    // When mIOR >= 0, we also transmit (just clear glass)
     float mIOR;
 };
 

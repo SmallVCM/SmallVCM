@@ -110,7 +110,6 @@ public:
         // 7) glass ball
         mat.Reset();
         mat.mMirrorReflectance  = Vec3f(1.f);
-        mat.mGlassTransmittance = Vec3f(1.f);
         mat.mIOR                = 1.6f;
         mMaterials.push_back(mat);
 

@@ -407,7 +407,7 @@ private:
 
     float AlbedoRefract(const Material& aMaterial) const
     {
-        return Luminance(aMaterial.mGlassTransmittance);
+        return 1.f;
     }
 
     // returns false when the material is completely black
