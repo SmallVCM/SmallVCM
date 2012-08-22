@@ -44,8 +44,6 @@ int main(int argc, const char *argv[])
     for(int iter=0; iter < iterations; iter++)
     {
         int threadId = omp_get_thread_num();
-        if(threadId < 0 || threadId > 3)
-            printf("Thread id %d\n", threadId);
         renderers[threadId]->RunIteration(scene);
     }
 
