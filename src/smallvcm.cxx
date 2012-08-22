@@ -27,7 +27,7 @@ int main(int argc, const char *argv[])
 
     //EyeLight renderer(scene.mCamera.mResolution);
 
-    int numThreads = omp_get_num_procs();
+    int numThreads = std::max(1, omp_get_num_procs()-1);
     omp_set_num_threads(numThreads);
 
     printf("Using %d threads\n", numThreads);
