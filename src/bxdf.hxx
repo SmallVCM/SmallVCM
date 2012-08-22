@@ -254,7 +254,8 @@ private:
         oPdfW += mProbabilities.reflProb;
         // BRDF is multiplied (outside) by cosine (oLocalOmegaGen.z),
         // for mirror this shouldn't be done, so we pre-divide here instead
-        return aMaterial.mMirrorReflectance / std::abs(oLocalOmegaGen.z);
+        return mReflectCoeff * aMaterial.mMirrorReflectance /
+            std::abs(oLocalOmegaGen.z);
     }
 
     Vec3f SampleRefract(const Material &aMaterial, const Vec2f &aRndTuple,
@@ -294,12 +295,13 @@ private:
 
             oPdfW += mProbabilities.refrProb;
 
+            const float refractCoeff = 1.f - mReflectCoeff;
             // only camera paths are multiplied by this factor, and etas
             // are swapped because radiance flows in the opposite direction
             if(!FixIsLight)
-                return Vec3f(Sqr(etaIncOverEtaTrans) / std::abs(cosT));
+                return Vec3f(refractCoeff * Sqr(etaIncOverEtaTrans) / std::abs(cosT));
             else
-                return Vec3f(1.f / std::abs(cosT));
+                return Vec3f(refractCoeff / std::abs(cosT));
         }
         //else total internal reflection, do nothing
         oPdfW += 0.f;
@@ -414,12 +416,12 @@ private:
     void GetComponentProbabilities(const Material& aMaterial,
         ComponentProbabilities& oProbabilities)
     {
-        const float mirrorCoeff = FresnelDielectric(mLocalOmegaFix.z, aMaterial.mIOR);
+        mReflectCoeff = FresnelDielectric(mLocalOmegaFix.z, aMaterial.mIOR);
 
         const float albedoDiffuse = AlbedoDiffuse(aMaterial);
         const float albedoPhong   = AlbedoPhong(aMaterial);
-        const float albedoReflect = mirrorCoeff         * AlbedoReflect(aMaterial);
-        const float albedoRefract = (1.f - mirrorCoeff) * AlbedoRefract(aMaterial);
+        const float albedoReflect = mReflectCoeff         * AlbedoReflect(aMaterial);
+        const float albedoRefract = (1.f - mReflectCoeff) * AlbedoRefract(aMaterial);
 
         const float totalAlbedo = albedoDiffuse + albedoPhong + albedoReflect + albedoRefract;
 
@@ -448,6 +450,7 @@ private:
     bool  mIsDelta;
     ComponentProbabilities mProbabilities;
     float mTotalAlbedo;
+    float mReflectCoeff;
 };
 
 #endif //__BXDF_HXX__
