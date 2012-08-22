@@ -149,9 +149,18 @@ public:
         geometryList->mGeometry.push_back(new Triangle(p[6], p[2], p[1], 4));
 
         // Ball - central
-        float radius = 0.4f;
+        float radius = 0.5f;
         Vec3f center = (p[0] + p[1] + p[4] + p[5]) * (1.f / 4.f) + Vec3f(0, 0, radius);
-        geometryList->mGeometry.push_back(new Sphere(center, radius, 6));
+        //geometryList->mGeometry.push_back(new Sphere(center, radius, 6));
+
+        // Balls - left and right
+        Vec3f leftWallCenter  = (p[0] + p[4]) * (1.f / 2.f) + Vec3f(0, 0, radius);
+        Vec3f rightWallCenter = (p[1] + p[5]) * (1.f / 2.f) + Vec3f(0, 0, radius);
+        float xlen = rightWallCenter.x - leftWallCenter.x;
+        Vec3f leftBallCenter  = leftWallCenter  + Vec3f(2.f * xlen / 7.f, 0, 0);
+        Vec3f rightBallCenter = rightWallCenter - Vec3f(2.f * xlen / 7.f, 0, 0);
+        geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  radius, 6));
+        geometryList->mGeometry.push_back(new Sphere(rightBallCenter, radius, 7));
 
         // Lights
         mLights.resize(2);

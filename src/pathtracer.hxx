@@ -61,7 +61,7 @@ public:
     {
         mIterations = 0;
         mFramebuffer.Setup(mResolution);
-        mMaxPathLength = 5;
+        mMaxPathLength = 10;
     }
 
     virtual void RunIteration(const Scene& aScene)
