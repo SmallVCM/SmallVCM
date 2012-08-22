@@ -108,6 +108,9 @@ public:
         const Material &mat = aScene.GetMaterial(mMaterialID);
 
         Vec3f result(0);
+        if(oDirectPdfW)  *oDirectPdfW = 0;
+        if(oReversePdfW) *oReversePdfW = 0;
+
         result += EvaluateDiffuse(mat, localOmegaGen,
             oDirectPdfW, oReversePdfW);
         result += EvaluatePhong(mat, localOmegaGen,
