@@ -152,7 +152,7 @@ public:
         // Ball - central
         float radius = 0.4f;
         Vec3f center = (p[0] + p[1] + p[4] + p[5]) * (1.f / 4.f) + Vec3f(0, 0, radius);
-        //geometryList->mGeometry.push_back(new Sphere(center, radius, 6));
+        geometryList->mGeometry.push_back(new Sphere(center, radius, 6));
 
         // Lights
         mLights.resize(2);

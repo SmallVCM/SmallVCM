@@ -50,7 +50,7 @@ float FresnelDielectric(float aCosInc, float mIOR)
 // reflect vector through (0,0,1)
 Vec3f reflect001(const Vec3f& aVector)
 {
-    return Vec3f(aVector.x, aVector.y, -aVector.z);
+    return Vec3f(-aVector.x, -aVector.y, aVector.z);
 }
 
 //////////////////////////////////////////////////////////////////////////
