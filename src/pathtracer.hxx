@@ -90,7 +90,7 @@ public:
             bool  lastSpecular = true;
             float lastPdfW     = 1;
 
-            for(; pathLength < mMaxPathLength; ++pathLength)
+            for(;; ++pathLength)
             {
                 if(!aScene.Intersect(ray, isect))
                     break;
@@ -121,6 +121,9 @@ public:
                     color += pathWeight * misWeight * contrib;
                     break;
                 }
+
+                if(pathLength >= mMaxPathLength)
+                    break;
 
                 if(bxdf.Albedo() == 0)
                     break;
