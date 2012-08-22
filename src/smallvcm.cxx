@@ -60,6 +60,6 @@ int main(int argc, const char *argv[])
 
     fbuffer.Scale(1.f / numThreads);
 
-    fbuffer.SavePPM("cb.ppm");
+    fbuffer.SavePPM("cb.ppm", 2.2f);
     fbuffer.SavePFM("cb.pfm");
 }
