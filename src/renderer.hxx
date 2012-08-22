@@ -13,7 +13,8 @@
 class AbstractRenderer
 {
 public:
-    virtual void RunIteration(const Scene& aScene, Framebuffer& aoFramebuffer) = 0;
+    virtual void RunIteration(const Scene& aScene) = 0;
+    virtual void GetFramebuffer(Framebuffer& oFramebuffer) = 0;
 };
 
 #endif //__RENDERER_HXX__

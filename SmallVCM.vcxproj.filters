@@ -46,5 +46,17 @@
     <ClInclude Include="src\renderer.hxx">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\frame.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bxdf.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pathtracer.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

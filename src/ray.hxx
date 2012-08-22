@@ -20,9 +20,10 @@ struct Ray
 
 struct Isect
 {
-    float dist;   //!< Distance to closest intersection (serves as ray.tmax)
-    int   matID;  //!< ID of intersected material
-    Vec3f normal; //!< Normal at the intersection
+    float dist;    //!< Distance to closest intersection (serves as ray.tmax)
+    int   matID;   //!< ID of intersected material
+    int   lightID; //!< ID of intersected light (if < 0, then none)
+    Vec3f normal;  //!< Normal at the intersection
 };
 
 #endif //__RAY_HXX__

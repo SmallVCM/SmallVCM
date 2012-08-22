@@ -50,6 +50,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -65,6 +66,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -77,6 +79,9 @@
     <ClCompile Include="src\smallvcm.cxx" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\bxdf.hxx" />
+    <ClInclude Include="src\frame.hxx" />
+    <ClInclude Include="src\pathtracer.hxx" />
     <ClInclude Include="src\renderer.hxx" />
     <ClInclude Include="src\eyelight.hxx" />
     <ClInclude Include="src\camera.hxx" />
@@ -87,6 +92,7 @@
     <ClInclude Include="src\math.hxx" />
     <ClInclude Include="src\ray.hxx" />
     <ClInclude Include="src\scene.hxx" />
+    <ClInclude Include="src\utils.hxx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

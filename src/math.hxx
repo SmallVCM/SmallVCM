@@ -7,10 +7,14 @@
 
 #include <cmath>
 // for portability issues
-#define PI_F 3.14159265358979f
+#define PI_F     3.14159265358979f
+#define INV_PI_F (1.f / PI_F)
 
 template<typename T>
 T Sqr(const T& a) { return a*a; }
+
+typedef unsigned uint;
+
 //////////////////////////////////////////////////////////////////////////
 // Math section
 template<typename T>
@@ -21,7 +25,7 @@ public:
     Vec2x(T a):x(a),y(a){}
     Vec2x(T a, T b):x(a),y(b){}
 
-    const T& Get(int a) const { return reinterpret_cast<T*>(this)[a]; }
+    const T& Get(int a) const { return reinterpret_cast<const T*>(this)[a]; }
     T&       Get(int a)       { return reinterpret_cast<T*>(this)[a]; }
 
     // unary minus
@@ -37,6 +41,15 @@ public:
     { Vec2x<T> res; for(int i=0; i<2; i++) res.Get(i) = a.Get(i) * b.Get(i); return res; }
     friend Vec2x<T> operator/(const Vec2x& a, const Vec2x& b)
     { Vec2x<T> res; for(int i=0; i<2; i++) res.Get(i) = a.Get(i) / b.Get(i); return res; }
+
+    Vec2x<T>& operator+=(const Vec2x& a)
+    { for(int i=0; i<2; i++) res.Get(i) += a.Get(i); return *this;}
+    Vec2x<T>& operator-=(const Vec2x& a)
+    { for(int i=0; i<2; i++) res.Get(i) -= a.Get(i); return *this;}
+    Vec2x<T>& operator*=(const Vec2x& a)
+    { for(int i=0; i<2; i++) res.Get(i) *= a.Get(i); return *this;}
+    Vec2x<T>& operator/=(const Vec2x& a)
+    { for(int i=0; i<2; i++) res.Get(i) /= a.Get(i); return *this;}
 
     friend T Dot(const Vec2x& a, const Vec2x& b)
     { T res(0); for(int i=0; i<2; i++) res += a.Get(i) * b.Get(i); return res; }
@@ -58,7 +71,14 @@ public:
 
     const T& Get(int a) const { return reinterpret_cast<const T*>(this)[a]; }
     T&       Get(int a)       { return reinterpret_cast<T*>(this)[a]; }
-
+    Vec2f    GetXY() const    { return Vec2f(x, y); }
+    bool     IsZero() const
+    {
+        for(int i=0; i<3; i++)
+            if(Get(i) != 0)
+                return false;
+        return true;
+    }
 
     // unary minus
     Vec3x<T> operator-() const
@@ -74,8 +94,20 @@ public:
     friend Vec3x<T> operator/(const Vec3x& a, const Vec3x& b)
     { Vec3x<T> res; for(int i=0; i<3; i++) res.Get(i) = a.Get(i) / b.Get(i); return res; }
 
+    Vec3x<T>& operator+=(const Vec3x& a)
+    { for(int i=0; i<3; i++) Get(i) += a.Get(i); return *this;}
+    Vec3x<T>& operator-=(const Vec3x& a)
+    { for(int i=0; i<3; i++) Get(i) -= a.Get(i); return *this;}
+    Vec3x<T>& operator*=(const Vec3x& a)
+    { for(int i=0; i<3; i++) Get(i) *= a.Get(i); return *this;}
+    Vec3x<T>& operator/=(const Vec3x& a)
+    { for(int i=0; i<3; i++) Get(i) /= a.Get(i); return *this;}
+
     friend T Dot(const Vec3x& a, const Vec3x& b)
     { T res(0); for(int i=0; i<3; i++) res += a.Get(i) * b.Get(i); return res; }
+
+    float    LenSqr() const   { return Dot(*this, *this);   }
+    float    Length() const   { return std::sqrt(LenSqr()); }
 public:
     T x, y, z;
 };
@@ -95,7 +127,7 @@ Vec3f Normalize(const Vec3f& a)
 {
     const float lenSqr = Dot(a, a);
     const float len    = std::sqrt(lenSqr);
-    return a / Vec3f(len);
+    return a / len;
 }
 
 class Mat4f
