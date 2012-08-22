@@ -25,9 +25,6 @@ public:
 
         mPosition   = aPosition;
         mResolution = aResolution;
-        const Mat4f fitToView =
-            Mat4f::Scale(Vec3f(2.f / aResolution.x,  2.f / aResolution.y, 1.f)) *
-            Mat4f::Scale(Vec3f(aResolution.x * 0.5f, aResolution.x * 0.5f, 1.f));
 
         const Vec3f pos(
             Dot(up, aPosition),
@@ -39,9 +36,9 @@ public:
         worldToCamera.SetRow(1, left,     -pos.y);
         worldToCamera.SetRow(2, -forward, -pos.z);
 
-        const Mat4f cameraToClip = Mat4f::Perspective(aHorizontalFOV, 0.1f, 10000.f);
+        const Mat4f perspective = Mat4f::Perspective(aHorizontalFOV, 0.1f, 10000.f);
 
-        const Mat4f worldToNScreen = fitToView * cameraToClip * worldToCamera;
+        const Mat4f worldToNScreen = perspective * worldToCamera;
         const Mat4f nscreenToWorld = Invert(worldToNScreen);
 
         mWorldToRaster  =
