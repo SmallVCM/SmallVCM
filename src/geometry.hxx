@@ -128,24 +128,26 @@ public:
         const float B = 2 * Dot(aRay.dir, transformedOrigin);
         const float C = Dot(transformedOrigin, transformedOrigin) - (radius * radius);
 
-        const float disc = B*B - 4*A*C;
+        // Must use doubles, because when B ~ sqrt(B*B - 4*A*C)
+        // the resulting t is imprecise enough to get around ray epsilons
+        const double disc = B*B - 4*A*C;
 
         if(disc < 0)
             return false;
 
-        const float discSqrt = std::sqrt(disc);
-        const float q = (B < 0) ? ((-B - discSqrt) / 2.f) : ((-B + discSqrt) / 2.f);
+        const double discSqrt = std::sqrt(disc);
+        const double q = (B < 0) ? ((-B - discSqrt) / 2.f) : ((-B + discSqrt) / 2.f);
 
-        float t0 = q / A;
-        float t1 = C / q;
+        double t0 = q / A;
+        double t1 = C / q;
 
         if(t0 > t1) std::swap(t0, t1);
 
         float resT;
         if(t0 > aRay.tmin && t0 < oResult.dist)
-            resT = t0;
+            resT = float(t0);
         else if(t1 > aRay.tmin && t1 < oResult.dist)
-            resT = t1;
+            resT = float(t1);
         else return false;
 
         oResult.dist   = resT;

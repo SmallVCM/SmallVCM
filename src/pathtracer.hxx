@@ -194,8 +194,11 @@ public:
                     }
 
                     pathWeight *= factor * (cosThetaOut / pdf);
-                    ray.org    = hitPoint;
-                    ray.tmin   = 1e-3f;
+                    // Due to numerics in sphere intersection,
+                    // we actually want to offset origin from sphere surface,
+                    // instead of using tmin
+                    ray.org    = hitPoint + 1e-3f * ray.dir;
+                    ray.tmin   = 0.f;
                     isect.dist = 1e36f;
                 }
             }
