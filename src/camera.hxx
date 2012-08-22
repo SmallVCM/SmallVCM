@@ -20,7 +20,7 @@ public:
         const Vec2f& aResolution, float aHorizontalFOV)
     {
         const Vec3f forward = Normalize(aForward);
-        const Vec3f up      = -Normalize(Cross(aUp, -forward));
+        const Vec3f up      = Normalize(Cross(aUp, -forward));
         const Vec3f left    = Cross(-forward, up);
 
         mPosition   = aPosition;

@@ -214,7 +214,7 @@ public:
 
         Mat4f r;
         r.m00 = f;    r.m01 = 0.0f; r.m02 = 0.0f;             r.m03 = 0.0f;
-        r.m10 = 0.0f; r.m11 = f;    r.m12 = 0.0f;             r.m13 = 0.0f;
+        r.m10 = 0.0f; r.m11 = -f;   r.m12 = 0.0f;             r.m13 = 0.0f;
         r.m20 = 0.0f; r.m21 = 0.0f; r.m22 = (near + far) * d; r.m23 = 2.0f * near * far * d;
         r.m30 = 0.0f; r.m31 = 0.0f; r.m32 = -1.0f;            r.m33 = 0.0f;
         return r;
