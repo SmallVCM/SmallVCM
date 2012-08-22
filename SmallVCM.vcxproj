@@ -74,6 +74,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\smallvcm.cxx" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\renderer.hxx" />
+    <ClInclude Include="src\eyelight.hxx" />
+    <ClInclude Include="src\camera.hxx" />
+    <ClInclude Include="src\framebuffer.hxx" />
+    <ClInclude Include="src\geometry.hxx" />
+    <ClInclude Include="src\lights.hxx" />
+    <ClInclude Include="src\materials.hxx" />
+    <ClInclude Include="src\math.hxx" />
+    <ClInclude Include="src\ray.hxx" />
+    <ClInclude Include="src\scene.hxx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

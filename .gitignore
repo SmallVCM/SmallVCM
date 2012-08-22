@@ -1,0 +1,9 @@
+*.ppm
+*.pfm
+*.suo
+*.sdf
+*.opensdf
+SmallVCM.vcxproj.user
+/Release/*
+/Debug/*
+/ipch/*
