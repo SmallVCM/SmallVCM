@@ -129,6 +129,7 @@ public:
                     break;
 
                 // next event estimation
+                if(!bxdf.IsDelta())
                 {
                     int lightID = mRng.GetInt() % lightCount;
                     const AbstractLight *l = aScene.GetLightPtr(lightID);
