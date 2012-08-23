@@ -42,7 +42,7 @@ public:
         ray.dir  = aDir;
         ray.tmin = 0;
         Isect isect;
-        isect.dist = aTMax - EPS_RAY;
+        isect.dist = aTMax - 2*EPS_RAY;
 
         return mGeometry->IntersectP(ray, isect);
     }
