@@ -203,10 +203,10 @@ public:
     }
 
 
-    bool         IsValid()  const  { return mMaterialID >= 0; }
-    bool         IsDelta()  const  { return mIsDelta;         }
-    float        CosTheta() const  { return mLocalOmegaFix.z; }
-    float        Albedo()   const  { return mTotalAlbedo;     }
+    bool         IsValid()       const  { return mMaterialID >= 0;               }
+    bool         IsDelta()       const  { return mIsDelta;                       }
+    float        Albedo()        const  { return mTotalAlbedo;                   }
+    float        CosThetaFix()   const  { return mLocalOmegaFix.z;               }
 private:
     //////////////////////////////////////////////////////////////////////////
     // Sampling methods
