@@ -26,14 +26,14 @@ public:
         mInvCellSize = 1.f / mCellSize;
 
         mBBoxMin = Vec3f( 1e36f);
-        mBBoxMin = Vec3f(-1e36f);
+        mBBoxMax = Vec3f(-1e36f);
         for(size_t i=0; i<aParticles.size(); i++)
         {
             const Vec3f &pos = aParticles[i].GetPosition();
             for(int j=0; j<3; j++)
             {
                 mBBoxMax = std::max(mBBoxMax.Get(j), pos.Get(j));
-                mBBoxMin = std::max(mBBoxMin.Get(j), pos.Get(j));
+                mBBoxMin = std::min(mBBoxMin.Get(j), pos.Get(j));
             }
         }
 
