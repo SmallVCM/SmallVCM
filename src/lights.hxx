@@ -99,7 +99,7 @@ public:
         const float cosNormalDir = Dot(mFrame.Normal(), -oDirectionToLight);
 
         // too close to, or under, tangent
-        if(cosNormalDir < 1e-6f)
+        if(cosNormalDir < EPS_COSINE)
         {
             oDirectPdfW  = -1.f;
             return Vec3f(0.f);
@@ -140,7 +140,7 @@ public:
         oEmissionPdfW *= mInvArea;
 
         // cannot really not emit the particle, so just bias it to the correct angle
-        localOmegaOut.z = std::max(localOmegaOut.z, 1e-6f);
+        localOmegaOut.z = std::max(localOmegaOut.z, EPS_COSINE);
         oDirection      = mFrame.ToWorld(localOmegaOut);
 
         if(oDirectPdfA)    *oDirectPdfA    = mInvArea;

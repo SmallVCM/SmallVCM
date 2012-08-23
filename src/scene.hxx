@@ -38,11 +38,11 @@ public:
     bool Occluded(const Vec3f& aPoint, const Vec3f& aDir, float aTMax) const
     {
         Ray ray;
-        ray.org  = aPoint;
+        ray.org  = aPoint + aDir * EPS_RAY;
         ray.dir  = aDir;
-        ray.tmin = 1e-3f;
+        ray.tmin = 0;
         Isect isect;
-        isect.dist = aTMax - 1e-3f;
+        isect.dist = aTMax - EPS_RAY;
 
         return mGeometry->IntersectP(ray, isect);
     }

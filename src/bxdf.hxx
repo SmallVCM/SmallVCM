@@ -36,6 +36,7 @@
 // Adjoint BRDF (except the name is more straightforward).
 // For us this is only used when refracting.
 
+#define EPS_PHONG 1e-3f
 
 template<bool FixIsLight>
 class BXDF
@@ -75,7 +76,7 @@ public:
         mLocalOmegaFix = mFrame.ToLocal(-aRay.dir);
 
         // reject rays that are too parallel with tangent plane
-        if(std::abs(mLocalOmegaFix.z) < 1e-6f)
+        if(std::abs(mLocalOmegaFix.z) < EPS_COSINE)
         {
             return;
         }
@@ -194,7 +195,7 @@ public:
         }
 
         oCosThetaGen   = std::abs(localOmegaGen.z);
-        if(oCosThetaGen < 1e-6f)
+        if(oCosThetaGen < EPS_COSINE)
             return Vec3f(0.f);
 
         oWorldOmegaGen = mFrame.ToWorld(localOmegaGen);
@@ -236,7 +237,7 @@ private:
         }
 
         const float dot_R_Wi = Dot(reflLocalOmegaFixed, oLocalOmegaGen);
-        if(dot_R_Wi <= 1e-3f)
+        if(dot_R_Wi <= EPS_PHONG)
             return Vec3f(0.f);
 
         EvaluatePdfWPhong(aMaterial, oLocalOmegaGen, &oPdfW);
@@ -335,7 +336,7 @@ private:
         const Vec3f reflLocalOmegaIn = reflect001(mLocalOmegaFix);
         const float dot_R_Wi = Dot(reflLocalOmegaIn, aLocalOmegaGen);
 
-        if(dot_R_Wi <= 1e-3f)
+        if(dot_R_Wi <= EPS_PHONG)
             return Vec3f(0.f);
 
         if(oDirectPdfW || oReversePdfW)
@@ -377,7 +378,7 @@ private:
         const Vec3f reflLocalOmegaIn = reflect001(mLocalOmegaFix);
         const float dot_R_Wi = Dot(reflLocalOmegaIn, aLocalOmegaGen);
 
-        if(dot_R_Wi <= 1e-3f)
+        if(dot_R_Wi <= EPS_PHONG)
             return;
 
         if(oDirectPdfW || oReversePdfW)

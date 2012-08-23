@@ -9,6 +9,9 @@
 #include <cmath>
 #include "math.hxx"
 
+#define EPS_COSINE 1e-6f
+#define EPS_RAY    1e-3f
+
 // sRGB luminance
 float Luminance(const Vec3f& aRGB)
 {
