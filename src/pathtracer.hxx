@@ -173,6 +173,16 @@ public:
             oFramebuffer.Scale(1.f / mIterations);
     }
 private:
+    // Mis power (1 for balance heuristic)
+    float Mis(float aPdf) const { return aPdf; }
+
+    // Mis weight for 2 pdfs
+    float Mis2(float aSamplePdf, float aOtherPdf) const
+    {
+        return Mis(aSamplePdf) / (Mis(aSamplePdf) + Mis(aOtherPdf));
+    }
+
+private:
     int         mIterations;
     Framebuffer mFramebuffer;
     int         mMaxPathLength;

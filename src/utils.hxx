@@ -195,13 +195,4 @@ float PdfAtoW(
     return PdfAtoW_dist2(aPdfA, Sqr(aDist), aCosThere);
 }
 
-// Mis power (1 for balance heuristic)
-float Mis(float aPdf) { return aPdf; }
-
-// Mis weight for 2 pdfs
-float Mis2(float aSamplePdf, float aOtherPdf)
-{
-    return Mis(aSamplePdf) / (Mis(aSamplePdf) + Mis(aOtherPdf));
-}
-
 #endif //__UTILS_HXX__
