@@ -19,7 +19,7 @@ public:
         mFramebuffer.Setup(mResolution);
     }
 
-    virtual void RunIteration(const Scene& aScene)
+    virtual void RunIteration(int, const Scene& aScene)
     {
         const int resX = int(aScene.mCamera.mResolution.x);
         const int resY = int(aScene.mCamera.mResolution.y);

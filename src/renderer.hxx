@@ -13,7 +13,7 @@
 class AbstractRenderer
 {
 public:
-    virtual void RunIteration(const Scene& aScene) = 0;
+    virtual void RunIteration(int aIteration, const Scene& aScene) = 0;
     virtual void GetFramebuffer(Framebuffer& oFramebuffer) = 0;
 };
 

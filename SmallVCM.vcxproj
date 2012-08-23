@@ -91,6 +91,7 @@
     <ClInclude Include="src\materials.hxx" />
     <ClInclude Include="src\math.hxx" />
     <ClInclude Include="src\ray.hxx" />
+    <ClInclude Include="src\rng.hxx" />
     <ClInclude Include="src\scene.hxx" />
     <ClInclude Include="src\utils.hxx" />
   </ItemGroup>

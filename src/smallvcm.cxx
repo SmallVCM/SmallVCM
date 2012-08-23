@@ -44,7 +44,7 @@ int main(int argc, const char *argv[])
     for(int iter=0; iter < iterations; iter++)
     {
         int threadId = omp_get_thread_num();
-        renderers[threadId]->RunIteration(scene);
+        renderers[threadId]->RunIteration(iter, scene);
     }
 
     Framebuffer fbuffer;
