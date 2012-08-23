@@ -110,7 +110,7 @@ public:
         if(oCosAtLight) *oCosAtLight = cosNormalDir;
         if(oEmissionPdfW)
         {
-            *oEmissionPdfW = mInvArea * cosNormalDir;
+            *oEmissionPdfW = mInvArea * cosNormalDir * INV_PI_F;
         }
         return mIntensity;
     }
