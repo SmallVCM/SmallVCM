@@ -26,7 +26,6 @@ class VertexCM : public AbstractRenderer
         Vec3f mDirection;  //!< Where to go next
         Vec3f mWeight;     //!< Path weight
         uint  mPathLength    : 20; //!< Number of path segments, including this
-        uint  mIsSpecular    :  1; //!< Last bounce was specular
         uint  mIsFiniteLight :  1; //!< Just generate by finite light
         uint  mSpecularPath  :  1; //!< All bounces so far were specular
 
@@ -138,7 +137,7 @@ public:
         mBaseRadius  = 0.00886823884341192f;
         mPhotonAlpha = 0.75f;
 
-        mLightTraceOnly = true;
+        mLightTraceOnly = false;
 
         if(mUseVC && mUseVM)
             printf("VertexCM set to Vertex Connection and Merging\n");
@@ -161,8 +160,8 @@ public:
         mLightPathCount     = float(resX * resY);
 
         // Setup our radius, 1st iteration has aIteration == 0, thus offset
-        float radius = mBaseRadius / std::pow(
-            float(aIteration + 1), 0.5f * (1 - mPhotonAlpha));
+        float radius = mBaseRadius;
+        radius /= std::pow(float(aIteration + 1), 0.5f * (1 - mPhotonAlpha));
         // Purely for numeric stability
         radius       = std::max(radius, 1e-7f);
         const float radiusSqr = Sqr(radius);
@@ -415,7 +414,6 @@ private:
         oCameraSample.mWeight       = Vec3f(1);
 
         oCameraSample.mPathLength   = 1;
-        oCameraSample.mIsSpecular   = 1;
         oCameraSample.mSpecularPath = 1;
 
         oCameraSample.d0            = Mis(1.f / cameraPdfW);
@@ -448,7 +446,7 @@ private:
         emissionPdfW *= lightPickProb;
 
         // when using only vertex merging, to get reflecting lights
-        if(mUseVM && !mUseVM && aCameraSample.mIsSpecular)
+        if(mUseVM && !mUseVM && aCameraSample.mSpecularPath)
             return radiance;
 
         const float wCamera = Mis(directPdfA) * aCameraSample.d0 +
