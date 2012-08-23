@@ -72,7 +72,7 @@ public:
                     if(pathLength > 1 && !lastSpecular)
                     {
                         const float directPdfW = PdfAtoW(directPdfA, isect.dist,
-                            bxdf.CosTheta());
+                            bxdf.CosThetaFix());
                         misWeight = Mis2(lastPdfW, directPdfW * lightPickProb);
                     }
 
