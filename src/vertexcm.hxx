@@ -777,7 +777,6 @@ private:
 
         aoPathSample.mOrigin  = aHitPoint;
         aoPathSample.mWeight *= brdfFactor * (cosThetaOut / brdfDirPdfW);
-        aoPathSample.mPathLength++;
         return true;
     }
 private:
