@@ -207,6 +207,7 @@ public:
     bool         IsDelta()       const  { return mIsDelta;                       }
     float        Albedo()        const  { return mTotalAlbedo;                   }
     float        CosThetaFix()   const  { return mLocalOmegaFix.z;               }
+    Vec3f        WorldOmegaFix() const  { return mFrame.ToWorld(mLocalOmegaFix); }
 private:
     //////////////////////////////////////////////////////////////////////////
     // Sampling methods
