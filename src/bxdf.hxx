@@ -359,15 +359,16 @@ private:
     void EvaluatePdfWDiffuse(const Material& aMaterial, const Vec3f& aLocalOmegaGen,
         float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
     {
-        if(mProbabilities.diffProb == 0) return Vec3f(0);
+        if(mProbabilities.diffProb == 0)
+            return;
 
         if(oDirectPdfW)
             *oDirectPdfW  += mProbabilities.diffProb *
-            std::max(0, aLocalOmegaGen.z * INV_PI_F);
+            std::max(0.f, aLocalOmegaGen.z * INV_PI_F);
 
         if(oReversePdfW)
             *oReversePdfW += mProbabilities.diffProb *
-            std::max(0, mLocalOmegaFix.z * INV_PI_F);
+            std::max(0.f, mLocalOmegaFix.z * INV_PI_F);
     }
 
     void EvaluatePdfWPhong(const Material& aMaterial, const Vec3f& aLocalOmegaGen,
