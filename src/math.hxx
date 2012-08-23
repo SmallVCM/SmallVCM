@@ -72,7 +72,8 @@ public:
 
     const T& Get(int a) const { return reinterpret_cast<const T*>(this)[a]; }
     T&       Get(int a)       { return reinterpret_cast<T*>(this)[a]; }
-    Vec2f    GetXY() const    { return Vec2f(x, y); }
+    Vec2x<T> GetXY() const    { return Vec2x<T>(x, y); }
+    T        Max()   const    { T res = Get(0); for(int i=1; i<3; i++) res = std::max(res, Get(i)); return res;}
     bool     IsZero() const
     {
         for(int i=0; i<3; i++)
