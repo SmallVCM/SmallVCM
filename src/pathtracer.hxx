@@ -19,7 +19,6 @@ public:
     {
         mIterations = 0;
         mFramebuffer.Setup(mResolution);
-        mMaxPathLength = 10;
     }
 
     virtual void RunIteration(int aIteration, const Scene& aScene)
@@ -44,7 +43,7 @@ public:
 
             Vec3f pathWeight(1.f);
             Vec3f color(0.f);
-            int   pathLength   = 1;
+            uint  pathLength   = 1;
             bool  lastSpecular = true;
             float lastPdfW     = 1;
 
@@ -185,7 +184,6 @@ private:
 private:
     int         mIterations;
     Framebuffer mFramebuffer;
-    int         mMaxPathLength;
     Rng         mRng;
 };
 

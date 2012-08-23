@@ -81,6 +81,7 @@
   <ItemGroup>
     <ClInclude Include="src\bxdf.hxx" />
     <ClInclude Include="src\frame.hxx" />
+    <ClInclude Include="src\hashgrid.hxx" />
     <ClInclude Include="src\pathtracer.hxx" />
     <ClInclude Include="src\renderer.hxx" />
     <ClInclude Include="src\eyelight.hxx" />
@@ -94,6 +95,7 @@
     <ClInclude Include="src\rng.hxx" />
     <ClInclude Include="src\scene.hxx" />
     <ClInclude Include="src\utils.hxx" />
+    <ClInclude Include="src\vertexcm.hxx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

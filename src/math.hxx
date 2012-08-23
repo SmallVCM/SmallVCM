@@ -59,6 +59,7 @@ public:
 };
 
 typedef Vec2x<float> Vec2f;
+typedef Vec2x<int>   Vec2i;
 
 
 template<typename T>
@@ -113,6 +114,7 @@ public:
 };
 
 typedef Vec3x<float> Vec3f;
+typedef Vec3x<int>   Vec3i;
 
 Vec3f Cross(const Vec3f& a, const Vec3f& b)
 {

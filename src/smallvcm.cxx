@@ -13,8 +13,12 @@
 #include "eyelight.hxx"
 #include "pathtracer.hxx"
 #include "bxdf.hxx"
+#include "vertexcm.hxx"
 
 #include <omp.h>
+
+//typedef PathTracer  t_Renderer;
+typedef VertexCM    t_Renderer;
 
 int main(int argc, const char *argv[])
 {
@@ -32,13 +36,13 @@ int main(int argc, const char *argv[])
 
     printf("Using %d threads\n", numThreads);
 
-    PathTracer **renderers;
+    typedef AbstractRenderer* AbstractRendererPtr;
+    AbstractRendererPtr *renderers;
 
-    typedef PathTracer* PathTracerPtr;
-    renderers = new PathTracerPtr[numThreads];
+    renderers = new AbstractRendererPtr[numThreads];
 
     for(int i=0; i<numThreads; i++)
-        renderers[i] = new PathTracer(scene.mCamera.mResolution, 1234 + i);
+        renderers[i] = new t_Renderer(scene.mCamera.mResolution, 1234 + i);
 
 #pragma omp parallel for
     for(int iter=0; iter < iterations; iter++)

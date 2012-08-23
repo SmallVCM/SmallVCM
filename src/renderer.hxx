@@ -13,8 +13,15 @@
 class AbstractRenderer
 {
 public:
+    AbstractRenderer()
+    {
+        mMaxPathLength = 2;
+    }
+
     virtual void RunIteration(int aIteration, const Scene& aScene) = 0;
     virtual void GetFramebuffer(Framebuffer& oFramebuffer) = 0;
+protected:
+    uint mMaxPathLength;
 };
 
 #endif //__RENDERER_HXX__
