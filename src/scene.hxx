@@ -52,8 +52,9 @@ public:
         return mMaterials[aMaterialIdx];
     }
 
-    const AbstractLight* GetLightPtr(const int aLightIdx) const
+    const AbstractLight* GetLightPtr(int aLightIdx) const
     {
+        aLightIdx = std::min<int>(aLightIdx, mLights.size()-1);
         return mLights[aLightIdx];
     }
 
