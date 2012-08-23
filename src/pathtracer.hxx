@@ -89,7 +89,7 @@ public:
                 // next event estimation
                 if(!bxdf.IsDelta())
                 {
-                    int lightID = mRng.GetInt() % lightCount;
+                    int lightID = int(mRng.GetFloat() * lightCount);
                     const AbstractLight *light = aScene.GetLightPtr(lightID);
 
                     Vec3f directionToLight;
