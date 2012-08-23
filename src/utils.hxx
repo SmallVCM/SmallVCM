@@ -130,9 +130,12 @@ Vec2f SampleUniformTriangle(
 }
 
 //////////////////////////////////////////////////////////////////////////
-// Pdf utils using the new naming scheme
-// W - solind angle
-// A - area
+// Utilities for converting PDF between Area (A) and Solid angle (W)
+// The many variants are solely for purpose of adapting the interface
+// to what the algorithm has already available.
+// All it really does is:
+// WtoA = PdfW * cosine / distance_squared
+// AtoW = PdfA * distance_squared / cosine
 float FactorWtoA_dist2(
     const float aDist2,
     const float aCosThere)
