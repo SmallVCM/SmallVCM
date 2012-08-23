@@ -24,6 +24,7 @@ public:
         const Vec3f left    = Cross(-forward, up);
 
         mPosition   = aPosition;
+        mForward    = forward;
         mResolution = aResolution;
 
         const Vec3f pos(
@@ -97,6 +98,7 @@ public:
 
 public:
     Vec3f mPosition;
+    Vec3f mForward;
     Vec2f mResolution;
     Mat4f mRasterToWorld;
     Mat4f mWorldToRaster;
