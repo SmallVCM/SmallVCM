@@ -62,9 +62,9 @@ public:
                 // directly hit some light, lights do not reflect
                 if(isect.lightID >= 0)
                 {
-                    const AbstractLight *l = aScene.GetLightPtr(isect.lightID);
+                    const AbstractLight *light = aScene.GetLightPtr(isect.lightID);
                     float directPdfA;
-                    Vec3f contrib = l->GetRadiance(ray.dir, hitPoint, &directPdfA);
+                    Vec3f contrib = light->GetRadiance(ray.dir, hitPoint, &directPdfA);
                     if(contrib.IsZero())
                         break;
 
@@ -90,11 +90,11 @@ public:
                 if(!bxdf.IsDelta())
                 {
                     int lightID = mRng.GetInt() % lightCount;
-                    const AbstractLight *l = aScene.GetLightPtr(lightID);
+                    const AbstractLight *light = aScene.GetLightPtr(lightID);
 
                     Vec3f directionToLight;
                     float distance, directPdfW;
-                    Vec3f radiance = l->Illuminate(hitPoint,
+                    Vec3f radiance = light->Illuminate(hitPoint,
                         mRng.GetVec2f(), directionToLight, distance, directPdfW);
 
                     if(directPdfW > 0)
@@ -106,7 +106,7 @@ public:
                         if(!factor.IsZero())
                         {
                             float weight = 1.f;
-                            if(!l->IsDelta())
+                            if(!light->IsDelta())
                             {
                                 const float contProb = std::min(1.f, bxdf.Albedo());
                                 brdfPdfW *= contProb;
