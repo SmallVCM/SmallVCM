@@ -45,9 +45,9 @@ public:
         return Vec3f(Dot(a, mX), Dot(a, mY), Dot(a, mZ));
     }
 
-    const Vec3f& Binormal() const {return mX; }
-    const Vec3f& Tangent () const {return mY; }
-    const Vec3f& Normal  () const {return mZ; }
+    const Vec3f& Binormal() const { return mX; }
+    const Vec3f& Tangent () const { return mY; }
+    const Vec3f& Normal  () const { return mZ; }
 public:
     Vec3f mX, mY, mZ;
 };
