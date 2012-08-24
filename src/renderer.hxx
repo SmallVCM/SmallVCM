@@ -20,6 +20,8 @@ public:
 
     virtual void RunIteration(int aIteration, const Scene& aScene) = 0;
     virtual void GetFramebuffer(Framebuffer& oFramebuffer) = 0;
+    //! Whether this renderer was used at all
+    virtual bool WasUsed() const = 0;
 protected:
     uint mMaxPathLength;
 };

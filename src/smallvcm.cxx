@@ -59,15 +59,24 @@ int main(int argc, const char *argv[])
         }
 
         Framebuffer fbuffer;
-        renderers[0]->GetFramebuffer(fbuffer);
-        for(int i=1; i<numThreads; i++)
+        int usedRenderers = 0;
+        for(int i=0; i<numThreads; i++)
         {
-            Framebuffer tmp;
-            renderers[i]->GetFramebuffer(tmp);
-            fbuffer.Add(tmp);
+            if(!renderers[i]->WasUsed()) continue;
+            if(usedRenderers == 0)
+            {
+                renderers[i]->GetFramebuffer(fbuffer);
+            }
+            else
+            {
+                Framebuffer tmp;
+                renderers[i]->GetFramebuffer(tmp);
+                fbuffer.Add(tmp);
+            }
+            usedRenderers++;
         }
 
-        fbuffer.Scale(1.f / numThreads);
+        fbuffer.Scale(1.f / usedRenderers);
 
         fbuffer.SavePPM("cb_pt.ppm", 2.2f);
         //fbuffer.SavePFM("cb.pfm");
@@ -95,15 +104,24 @@ int main(int argc, const char *argv[])
         }
 
         Framebuffer fbuffer;
-        renderers[0]->GetFramebuffer(fbuffer);
-        for(int i=1; i<numThreads; i++)
+        int usedRenderers = 0;
+        for(int i=0; i<numThreads; i++)
         {
-            Framebuffer tmp;
-            renderers[i]->GetFramebuffer(tmp);
-            fbuffer.Add(tmp);
+            if(!renderers[i]->WasUsed()) continue;
+            if(usedRenderers == 0)
+            {
+                renderers[i]->GetFramebuffer(fbuffer);
+            }
+            else
+            {
+                Framebuffer tmp;
+                renderers[i]->GetFramebuffer(tmp);
+                fbuffer.Add(tmp);
+            }
+            usedRenderers++;
         }
 
-        fbuffer.Scale(1.f / numThreads);
+        fbuffer.Scale(1.f / usedRenderers);
 
         fbuffer.SavePPM("cb_vcm.ppm", 2.2f);
         //fbuffer.SavePFM("cb.pfm");

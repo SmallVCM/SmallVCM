@@ -51,6 +51,9 @@ public:
         if(mIterations > 0)
             oFramebuffer.Scale(1.f / mIterations);
     }
+
+    virtual bool WasUsed() const { return mIterations > 0; }
+
 private:
     int         mIterations;
     Framebuffer mFramebuffer;

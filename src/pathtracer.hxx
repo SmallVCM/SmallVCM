@@ -171,6 +171,9 @@ public:
         if(mIterations > 0)
             oFramebuffer.Scale(1.f / mIterations);
     }
+
+    virtual bool WasUsed() const { return mIterations > 0; }
+
 private:
     // Mis power (1 for balance heuristic)
     float Mis(float aPdf) const { return aPdf; }
