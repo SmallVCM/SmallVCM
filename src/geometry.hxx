@@ -23,6 +23,8 @@ public:
     virtual bool IntersectP(const Ray& aRay, Isect& oResult) const
     { return Intersect(aRay, oResult); }
 
+    // Grows given bounding box by this object
+    virtual void GrowBBox(Vec3f &aoBBoxMin, Vec3f &aoBBoxMax) = 0;
 };
 
 class GeometryList : public AbstractGeometry
@@ -56,6 +58,12 @@ public:
         }
 
         return false;
+    }
+
+    virtual void GrowBBox(Vec3f &aoBBoxMin, Vec3f &aoBBoxMax)
+    {
+        for(int i=0; i<(int)mGeometry.size(); i++)
+            mGeometry[i]->GrowBBox(aoBBoxMin, aoBBoxMax);
     }
 public:
     std::vector<AbstractGeometry*> mGeometry;
@@ -101,6 +109,15 @@ public:
         return false;
     }
 
+    virtual void GrowBBox(Vec3f &aoBBoxMin, Vec3f &aoBBoxMax)
+    {
+        for(int i=0; i<3; i++)
+            for(int j=0; j<3; j++)
+            {
+                aoBBoxMin.Get(j) = std::min(aoBBoxMin.Get(j), p[i].Get(j));
+                aoBBoxMax.Get(j) = std::max(aoBBoxMax.Get(j), p[i].Get(j));
+            }
+    }
 public:
     Vec3f p[3];
     int   matID;
@@ -154,6 +171,24 @@ public:
         oResult.matID  = matID;
         oResult.normal = Normalize(transformedOrigin + Vec3f(resT) * aRay.dir);
         return true;
+    }
+
+    virtual void GrowBBox(Vec3f &aoBBoxMin, Vec3f &aoBBoxMax)
+    {
+        for(int i=0; i<8; i++)
+        {
+            Vec3f p = center;
+            Vec3f half(radius);
+            for(int j=0; j<3; j++)
+                if(i & (1 << j)) half.Get(j) = -half.Get(j);
+            p += half;
+
+            for(int j=0; j<3; j++)
+            {
+                aoBBoxMin.Get(j) = std::min(aoBBoxMin.Get(j), p.Get(j));
+                aoBBoxMax.Get(j) = std::max(aoBBoxMax.Get(j), p.Get(j));
+            }
+        }
     }
 public:
     Vec3f center;
