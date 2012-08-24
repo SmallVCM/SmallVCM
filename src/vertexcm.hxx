@@ -474,8 +474,8 @@ private:
         emissionPdfW *= lightPickProb;
 
         // when using only vertex merging, to get reflecting lights
-        if(mUseVM && !mUseVC && aCameraSample.mSpecularPath)
-            return radiance;
+        if(mUseVM && !mUseVC)
+            return aCameraSample.mSpecularPath ? radiance : Vec3f(0.f);
 
         const float wCamera = Mis(directPdfA) * aCameraSample.d0 +
             Mis(emissionPdfW) * aCameraSample.d1vc;
