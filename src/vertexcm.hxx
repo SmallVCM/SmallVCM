@@ -313,7 +313,7 @@ public:
                 }
 
                 // Contribute directly to camera, purely delta bxdf cannot be connected
-                if(!bxdf.IsDelta() && mUseVC && DIR_CON)
+                if(!bxdf.IsDelta() && (mUseVC || mLightTraceOnly) && DIR_CON)
                 {
                     DirectContribution(lightSample, hitPoint, bxdf);
                 }
