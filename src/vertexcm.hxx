@@ -82,12 +82,10 @@ class VertexCM : public AbstractRenderer
     public:
         RangeQuery(
             const VertexCM    &aVertexCM,
-            const Scene       &aScene,
             const Vec3f       &aCameraPosition,
             const CameraBxdf  &aCameraBxdf,
             const PathElement &aCameraSample)
             : mVertexCM(aVertexCM),
-            mScene(aScene),
             mCameraPosition(aCameraPosition),
             mCameraBxdf(aCameraBxdf),
             mCameraSample(aCameraSample),
@@ -108,7 +106,7 @@ class VertexCM : public AbstractRenderer
 
             float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
             const Vec3f cameraBrdfFactor = mCameraBxdf.EvaluateBrdfPdfW(
-                mScene, lightDirection, cosCamera, &cameraBrdfDirPdfW,
+                mVertexCM.mScene, lightDirection, cosCamera, &cameraBrdfDirPdfW,
                 &cameraBrdfRevPdfW);
 
             if(cameraBrdfFactor.IsZero())
@@ -127,20 +125,16 @@ class VertexCM : public AbstractRenderer
         const Vec3f& GetContrib() const { return mContrib; }
     private:
         const VertexCM    &mVertexCM;
-        const Scene       &mScene;
         const Vec3f       &mCameraPosition;
         const CameraBxdf  &mCameraBxdf;
         const PathElement &mCameraSample;
         Vec3f             mContrib;
     };
 public:
-    VertexCM(Vec2f mResolution, int aSeed = 1234) : mRng(aSeed)
+    VertexCM(const Scene& aScene, int aSeed = 1234) : AbstractRenderer(aScene), mRng(aSeed)
     {
-        mIterations = 0;
-        mFramebuffer.Setup(mResolution);
-
         mLightTraceOnly = false;
-        mUseVC          = false;
+        mUseVC          = true;
         mUseVM          = true;
         mBaseRadius  = 0.00886823884341192f;
         mPhotonAlpha = 0.75f;
@@ -160,12 +154,12 @@ public:
             printf("ERROR!! Neither connections nor merging are set\n");
     }
 
-    virtual void RunIteration(int aIteration, const Scene& aScene)
+    virtual void RunIteration(int aIteration)
     {
         // While we have the same number of pixels (camera paths)
         // and light paths, we do keep them separate for clarity reasons
-        const int resX = int(aScene.mCamera.mResolution.x);
-        const int resY = int(aScene.mCamera.mResolution.y);
+        const int resX = int(mScene.mCamera.mResolution.x);
+        const int resY = int(mScene.mCamera.mResolution.y);
         const int pathCount = resX * resY;
         mScreenPixelCount   = float(resX * resY);
         mLightPathCount     = float(resX * resY);
@@ -201,7 +195,7 @@ public:
         {
             //mRng.Reset(1522297579, aIteration+1, pathIdx + pathCount);
             PathElement lightSample;
-            GenerateLightSample(aScene, lightSample);
+            GenerateLightSample(lightSample);
 
             //////////////////////////////////////////////////////////////////////////
             // Trace light path
@@ -211,13 +205,13 @@ public:
                     lightSample.mDirection, 0);
                 Isect isect(1e36f);
 
-                if(!aScene.Intersect(ray, isect))
+                if(!mScene.Intersect(ray, isect))
                     break;
 
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
                 isect.dist += EPS_RAY;
 
-                LightBxdf bxdf(ray, isect, aScene);
+                LightBxdf bxdf(ray, isect, mScene);
                 if(!bxdf.IsValid())
                     break;
 
@@ -252,7 +246,7 @@ public:
                 // Contribute directly to camera, purely delta bxdf cannot be connected
                 if(!bxdf.IsDelta() && mUseVC && DIR_CON)
                 {
-                    DirectContribution(aScene, lightSample, hitPoint, bxdf);
+                    DirectContribution(lightSample, hitPoint, bxdf);
                 }
 
                 // We will now extend by the bounce (1) and then
@@ -261,7 +255,7 @@ public:
                 if(lightSample.mPathLength + 2 > mMaxPathLength)
                     break;
 
-                if(!BounceSample(aScene, bxdf, hitPoint, lightSample))
+                if(!BounceSample(bxdf, hitPoint, lightSample))
                     break;
             }
 
@@ -287,7 +281,7 @@ public:
             //mRng.Reset(1522297579, aIteration+1, pathIdx);
             PathElement cameraSample;
             const Vec2f screenSample =
-                GenerateCameraSample(aScene, pathIdx, cameraSample);
+                GenerateCameraSample(pathIdx, cameraSample);
             Vec3f color(0);
 
             //////////////////////////////////////////////////////////////////////////
@@ -298,7 +292,7 @@ public:
                     cameraSample.mDirection, 0);
                 Isect isect(1e36f);
 
-                if(!aScene.Intersect(ray, isect))
+                if(!mScene.Intersect(ray, isect))
                 {
                     // Hit of background would use d0, d1vc, d1vm as they are now,
                     // because we use solid angle and not area pdfs to determine MIS
@@ -309,7 +303,7 @@ public:
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
                 isect.dist += EPS_RAY;
 
-                CameraBxdf bxdf(ray, isect, aScene);
+                CameraBxdf bxdf(ray, isect, mScene);
                 if(!bxdf.IsValid())
                     break;
 
@@ -325,9 +319,9 @@ public:
                 // lights do not reflect light, so we stop after this
                 if(isect.lightID >= 0 && ON_HIT)
                 {
-                    const AbstractLight *light = aScene.GetLightPtr(isect.lightID);
+                    const AbstractLight *light = mScene.GetLightPtr(isect.lightID);
                     color += cameraSample.mWeight *
-                        AreaLightOnHit(aScene, light, cameraSample, hitPoint, ray.dir);
+                        AreaLightOnHit(light, cameraSample, hitPoint, ray.dir);
                     break;
                 }
 
@@ -339,7 +333,7 @@ public:
                 if(!bxdf.IsDelta() && mUseVC && DIR_LIGHT)
                 {
                     color += cameraSample.mWeight *
-                        DirectIllumination(aScene, cameraSample, hitPoint, bxdf);
+                        DirectIllumination(cameraSample, hitPoint, bxdf);
                 }
 
                 // [Vertex Connection] Connect to light particles
@@ -365,7 +359,7 @@ public:
                             break;
 
                         color += cameraSample.mWeight * lightVertex.mWeight *
-                            ConnectVertices(aScene, lightVertex, bxdf, hitPoint,
+                            ConnectVertices(lightVertex, bxdf, hitPoint,
                             cameraSample);
                     }
                 }
@@ -373,12 +367,12 @@ public:
                 // [Vertex Merging] Merge with light particles
                 if(!bxdf.IsDelta() && mUseVM && VM)
                 {
-                    RangeQuery query(*this, aScene, hitPoint, bxdf, cameraSample);
+                    RangeQuery query(*this, hitPoint, bxdf, cameraSample);
                     mHashGrid.Process(mLightVertices, query);
                     color += cameraSample.mWeight * mVmNormalization * query.GetContrib();
                 }
 
-                if(!BounceSample(aScene, bxdf, hitPoint, cameraSample))
+                if(!BounceSample(bxdf, hitPoint, cameraSample))
                     break;
             }
 
@@ -387,15 +381,6 @@ public:
 
         mIterations++;
     }
-
-    virtual void GetFramebuffer(Framebuffer& oFramebuffer)
-    {
-        oFramebuffer = mFramebuffer;
-        if(mIterations > 0)
-            oFramebuffer.Scale(1.f / mIterations);
-    }
-
-    virtual bool WasUsed() const { return mIterations > 0; }
 
 private:
     // Mis power (1 for balance heuristic)
@@ -411,11 +396,10 @@ private:
     // Methods that handle camera tracing
     //////////////////////////////////////////////////////////////////////////
     Vec2f GenerateCameraSample(
-        const Scene  &aScene,
         const int    aPixelIndex,
         PathElement  &oCameraSample)
     {
-        const Camera &camera    = aScene.mCamera;
+        const Camera &camera    = mScene.mCamera;
 
         const int resX = int(camera.mResolution.x);
         const int resY = int(camera.mResolution.y);
@@ -446,14 +430,13 @@ private:
 
     // has to be called after Updating MIS constants
     Vec3f AreaLightOnHit(
-        const Scene         &aScene,
         const AbstractLight *aLight,
         const PathElement   &aCameraSample,
         const Vec3f         &aHitpoint,
         const Vec3f         &aRayDirection) const
     {
         // We sample lights uniformly
-        const int   lightCount    = aScene.GetLightCount();
+        const int   lightCount    = mScene.GetLightCount();
         const float lightPickProb = 1.f / lightCount;
 
         float directPdfA, emissionPdfW;
@@ -479,19 +462,18 @@ private:
 
     // has to be called after UpdateConstantsOnHit
     Vec3f DirectIllumination(
-        const Scene        &aScene,
         const PathElement  &aCameraSample,
         const Vec3f        &aHitpoint,
         const CameraBxdf   &aBxdf)
     {
         // We sample lights uniformly
-        const int   lightCount    = aScene.GetLightCount();
+        const int   lightCount    = mScene.GetLightCount();
         const float lightPickProb = 1.f / lightCount;
 
         const int   lightID       = int(mRng.GetFloat() * lightCount);
         const Vec2f rndPosSamples = mRng.GetVec2f();
 
-        const AbstractLight *light = aScene.GetLightPtr(lightID);
+        const AbstractLight *light = mScene.GetLightPtr(lightID);
 
 
         Vec3f directionToLight;
@@ -505,7 +487,7 @@ private:
             return Vec3f(0);
 
         float brdfDirPdfW, brdfRevPdfW, cosToLight;
-        const Vec3f brdfFactor = aBxdf.EvaluateBrdfPdfW(aScene,
+        const Vec3f brdfFactor = aBxdf.EvaluateBrdfPdfW(mScene,
             directionToLight, cosToLight, &brdfDirPdfW, &brdfRevPdfW);
 
         if(brdfFactor.IsZero())
@@ -551,7 +533,7 @@ private:
         if(contrib.IsZero())
             return Vec3f(0);
 
-        if(aScene.Occluded(aHitpoint, directionToLight, distance))
+        if(mScene.Occluded(aHitpoint, directionToLight, distance))
             return Vec3f(0);
 
         return contrib;
@@ -559,7 +541,6 @@ private:
 
     // The direction is FROM camera TO light Vertex
     Vec3f ConnectVertices(
-        const Scene         &aScene,
         const LightVertex   &aLightVertex,
         const CameraBxdf    &aCameraBxdf,
         const Vec3f         &aCameraHitpoint,
@@ -574,7 +555,7 @@ private:
         // evaluate brdf at camera vertex
         float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
         const Vec3f cameraBrdfFactor = aCameraBxdf.EvaluateBrdfPdfW(
-            aScene, direction, cosCamera, &cameraBrdfDirPdfW,
+            mScene, direction, cosCamera, &cameraBrdfDirPdfW,
             &cameraBrdfRevPdfW);
 
         if(cameraBrdfFactor.IsZero())
@@ -588,7 +569,7 @@ private:
         // evaluate brdf at light vertex
         float cosLight, lightBrdfDirPdfW, lightBrdfRevPdfW;
         const Vec3f lightBrdfFactor = aLightVertex.mBxdf.EvaluateBrdfPdfW(
-            aScene, -direction, cosLight, &lightBrdfDirPdfW,
+            mScene, -direction, cosLight, &lightBrdfDirPdfW,
             &lightBrdfRevPdfW);
 
         if(lightBrdfFactor.IsZero())
@@ -620,7 +601,7 @@ private:
         if(contrib.IsZero())
             return Vec3f(0);
 
-        if(aScene.Occluded(aCameraHitpoint, direction, distance))
+        if(mScene.Occluded(aCameraHitpoint, direction, distance))
             return Vec3f(0);
 
         return contrib;
@@ -634,17 +615,17 @@ private:
      *
      * Effectively emits particle from light, storing it in oLightSample
      */
-    void GenerateLightSample(const Scene &aScene, PathElement &oLightSample)
+    void GenerateLightSample(PathElement &oLightSample)
     {
         // We sample lights uniformly
-        const int   lightCount    = aScene.GetLightCount();
+        const int   lightCount    = mScene.GetLightCount();
         const float lightPickProb = 1.f / lightCount;
 
         const int   lightID       = int(mRng.GetFloat() * lightCount);
         const Vec2f rndDirSamples = mRng.GetVec2f();
         const Vec2f rndPosSamples = mRng.GetVec2f();
 
-        const AbstractLight *light = aScene.GetLightPtr(lightID);
+        const AbstractLight *light = mScene.GetLightPtr(lightID);
 
         float emissionPdfW, directPdfW, cosLight;
         oLightSample.mWeight = light->Emit(rndDirSamples, rndPosSamples,
@@ -677,12 +658,11 @@ private:
      * It directly splats the sample into framebuffer
      */
     void DirectContribution(
-        const Scene        &aScene,
         const PathElement  &aLightSample,
         const Vec3f        &aHitpoint,
         const LightBxdf    &aBxdf)
     {
-        const Camera &camera    = aScene.mCamera;
+        const Camera &camera    = mScene.mCamera;
         Vec3f directionToCamera = camera.mPosition - aHitpoint;
         // check point is in front of camera
         if(Dot(camera.mForward, -directionToCamera) <= 0.f)
@@ -700,7 +680,7 @@ private:
 
         // get the BRDF
         float cosToCamera, brdfDirPdfW, brdfRevPdfW;
-        const Vec3f brdfFactor = aBxdf.EvaluateBrdfPdfW(aScene,
+        const Vec3f brdfFactor = aBxdf.EvaluateBrdfPdfW(mScene,
             directionToCamera, cosToCamera, &brdfDirPdfW, &brdfRevPdfW);
         if(brdfFactor.IsZero())
             return;
@@ -725,7 +705,7 @@ private:
         const Vec3f contrib = misWeight * fluxToRadianceFactor * brdfFactor;
         if(!contrib.IsZero())
         {
-            if(aScene.Occluded(aHitpoint, directionToCamera, distance))
+            if(mScene.Occluded(aHitpoint, directionToCamera, distance))
                 return;
 
             mFramebuffer.AddColor(imagePos,
@@ -740,7 +720,6 @@ private:
      */
     template<bool tLightSample>
     bool BounceSample(
-        const Scene              &aScene,
         const BXDF<tLightSample> &aBxdf,
         const Vec3f              &aHitPoint,
         PathElement              &aoPathSample)
@@ -753,13 +732,13 @@ private:
         float brdfDirPdfW, cosThetaOut;
         uint  sampledEvent;
 
-        Vec3f brdfFactor = aBxdf.SampleBrdf(aScene, rndTriplet, aoPathSample.mDirection,
+        Vec3f brdfFactor = aBxdf.SampleBrdf(mScene, rndTriplet, aoPathSample.mDirection,
             brdfDirPdfW, cosThetaOut, &sampledEvent);
 
         if(brdfFactor.IsZero())
             return false;
 
-        float brdfRevPdfW = aBxdf.EvaluatePdfW(aScene, aoPathSample.mDirection, true);
+        float brdfRevPdfW = aBxdf.EvaluatePdfW(mScene, aoPathSample.mDirection, true);
         // if we sampled specular event, then the reverese probability cannot be evaluated,
         // but we know it is exactly the same as direct probability, so just set it
         if(sampledEvent & LightBxdf::Specular)
@@ -822,15 +801,12 @@ private:
     float       mVmNormalization;
 
 
-
     std::vector<LightVertex> mLightVertices;
     // for lightpath belonging to pixel index [x] it stores
     // where it's light vertices end (begin is at [x-1])
     std::vector<int>         mPathEnds;
     HashGrid                 mHashGrid;
 
-    int         mIterations;
-    Framebuffer mFramebuffer;
     Rng         mRng;
     //GpuQ2RandomTea mRng;
 };

@@ -15,20 +15,18 @@
 class PathTracer : public AbstractRenderer
 {
 public:
-    PathTracer(Vec2f mResolution, int aSeed = 1234) : mRng(aSeed)
+    PathTracer(const Scene& aScene, int aSeed = 1234) : AbstractRenderer(aScene), mRng(aSeed)
     {
-        mIterations = 0;
-        mFramebuffer.Setup(mResolution);
     }
 
-    virtual void RunIteration(int aIteration, const Scene& aScene)
+    virtual void RunIteration(int aIteration)
     {
         // We sample lights uniformly
-        const int   lightCount    = aScene.GetLightCount();
+        const int   lightCount    = mScene.GetLightCount();
         const float lightPickProb = 1.f / lightCount;
 
-        const int resX = int(aScene.mCamera.mResolution.x);
-        const int resY = int(aScene.mCamera.mResolution.y);
+        const int resX = int(mScene.mCamera.mResolution.x);
+        const int resY = int(mScene.mCamera.mResolution.y);
 
         for(int pixID = 0; pixID < resX * resY; pixID++)
         {
@@ -37,7 +35,7 @@ public:
 
             const Vec2f sample = Vec2f(float(x), float(y)) + mRng.GetVec2f();
 
-            Ray   ray = aScene.mCamera.GenerateRay(sample);
+            Ray   ray = mScene.mCamera.GenerateRay(sample);
             Isect isect;
             isect.dist = 1e36f;
 
@@ -49,19 +47,19 @@ public:
 
             for(;; ++pathLength)
             {
-                if(!aScene.Intersect(ray, isect))
+                if(!mScene.Intersect(ray, isect))
                     break;
 
                 Vec3f hitPoint = ray.org + ray.dir * isect.dist;
 
-                BXDF<false> bxdf(ray, isect, aScene);
+                BXDF<false> bxdf(ray, isect, mScene);
                 if(!bxdf.IsValid())
                     break;
 
                 // directly hit some light, lights do not reflect
                 if(isect.lightID >= 0)
                 {
-                    const AbstractLight *light = aScene.GetLightPtr(isect.lightID);
+                    const AbstractLight *light = mScene.GetLightPtr(isect.lightID);
                     float directPdfA;
                     Vec3f contrib = light->GetRadiance(ray.dir, hitPoint, &directPdfA);
                     if(contrib.IsZero())
@@ -89,7 +87,7 @@ public:
                 if(!bxdf.IsDelta())
                 {
                     int lightID = int(mRng.GetFloat() * lightCount);
-                    const AbstractLight *light = aScene.GetLightPtr(lightID);
+                    const AbstractLight *light = mScene.GetLightPtr(lightID);
 
                     Vec3f directionToLight;
                     float distance, directPdfW;
@@ -99,7 +97,7 @@ public:
                     if(directPdfW > 0)
                     {
                         float brdfPdfW, cosThetaOut;
-                        const Vec3f factor = bxdf.EvaluateBrdfPdfW(aScene,
+                        const Vec3f factor = bxdf.EvaluateBrdfPdfW(mScene,
                             directionToLight, cosThetaOut, &brdfPdfW);
 
                         if(!factor.IsZero())
@@ -115,7 +113,7 @@ public:
                             Vec3f contrib = (weight * cosThetaOut / (lightPickProb * directPdfW)) *
                                 (radiance * factor);
 
-                            if(!aScene.Occluded(hitPoint, directionToLight, distance))
+                            if(!mScene.Occluded(hitPoint, directionToLight, distance))
                             {
                                 color += pathWeight * contrib;
                             }
@@ -129,7 +127,7 @@ public:
                     float pdf, cosThetaOut;
                     uint  sampledEvent;
 
-                    Vec3f factor = bxdf.SampleBrdf(aScene, rndTriplet, ray.dir,
+                    Vec3f factor = bxdf.SampleBrdf(mScene, rndTriplet, ray.dir,
                         pdf, cosThetaOut, &sampledEvent);
 
                     if(factor.IsZero())
@@ -165,15 +163,6 @@ public:
         mIterations++;
     }
 
-    virtual void GetFramebuffer(Framebuffer& oFramebuffer)
-    {
-        oFramebuffer = mFramebuffer;
-        if(mIterations > 0)
-            oFramebuffer.Scale(1.f / mIterations);
-    }
-
-    virtual bool WasUsed() const { return mIterations > 0; }
-
 private:
     // Mis power (1 for balance heuristic)
     float Mis(float aPdf) const { return aPdf; }
@@ -185,8 +174,6 @@ private:
     }
 
 private:
-    int         mIterations;
-    Framebuffer mFramebuffer;
     Rng         mRng;
 };
 

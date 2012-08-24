@@ -13,16 +13,14 @@
 class EyeLight : public AbstractRenderer
 {
 public:
-    EyeLight(Vec2f mResolution)
+    EyeLight(const Scene& aScene) : AbstractRenderer(aScene)
     {
-        mIterations = 0;
-        mFramebuffer.Setup(mResolution);
     }
 
-    virtual void RunIteration(int, const Scene& aScene)
+    virtual void RunIteration(int)
     {
-        const int resX = int(aScene.mCamera.mResolution.x);
-        const int resY = int(aScene.mCamera.mResolution.y);
+        const int resX = int(mScene.mCamera.mResolution.x);
+        const int resY = int(mScene.mCamera.mResolution.y);
 
         for(int pixID = 0; pixID < resX * resY; pixID++)
         {
@@ -33,30 +31,18 @@ public:
 
             const Vec2f sample(x + 0.5f, y + 0.5f);
 
-            Ray   ray = aScene.mCamera.GenerateRay(sample);
+            Ray   ray = mScene.mCamera.GenerateRay(sample);
             Isect isect;
             isect.dist = 1e36f;
 
-            if(aScene.Intersect(ray, isect))
+            if(mScene.Intersect(ray, isect))
             {
                 mFramebuffer.AddColor(sample, Vec3f(Dot(isect.normal, -ray.dir)));
             }
         }
         mIterations++;
     }
-
-    virtual void GetFramebuffer(Framebuffer& oFramebuffer)
-    {
-        oFramebuffer = mFramebuffer;
-        if(mIterations > 0)
-            oFramebuffer.Scale(1.f / mIterations);
-    }
-
-    virtual bool WasUsed() const { return mIterations > 0; }
-
 private:
-    int         mIterations;
-    Framebuffer mFramebuffer;
 };
 
 #endif //__EYELIGHT_HXX__

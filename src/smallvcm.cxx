@@ -25,7 +25,7 @@
 
 int main(int argc, const char *argv[])
 {
-    int base_iterations = 1000;
+    int base_iterations = 10;
     if(argc > 1)
         base_iterations = atoi(argv[1]);
 
@@ -49,13 +49,13 @@ int main(int argc, const char *argv[])
         renderers = new AbstractRendererPtr[numThreads];
 
         for(int i=0; i<numThreads; i++)
-            renderers[i] = new t_Renderer(scene.mCamera.mResolution, 1234 + i);
+            renderers[i] = new t_Renderer(scene, 1234 + i);
 
 #pragma omp parallel for
         for(int iter=0; iter < iterations; iter++)
         {
             int threadId = omp_get_thread_num();
-            renderers[threadId]->RunIteration(iter, scene);
+            renderers[threadId]->RunIteration(iter);
         }
 
         Framebuffer fbuffer;
@@ -94,13 +94,13 @@ int main(int argc, const char *argv[])
         renderers = new AbstractRendererPtr[numThreads];
 
         for(int i=0; i<numThreads; i++)
-            renderers[i] = new t_Renderer(scene.mCamera.mResolution, 1234 + i);
+            renderers[i] = new t_Renderer(scene, 1234 + i);
 
 #pragma omp parallel for
         for(int iter=0; iter < iterations; iter++)
         {
             int threadId = omp_get_thread_num();
-            renderers[threadId]->RunIteration(iter, scene);
+            renderers[threadId]->RunIteration(iter);
         }
 
         Framebuffer fbuffer;

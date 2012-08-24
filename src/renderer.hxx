@@ -13,17 +13,29 @@
 class AbstractRenderer
 {
 public:
-    AbstractRenderer()
+    AbstractRenderer(const Scene& aScene) : mScene(aScene)
     {
-        mMaxPathLength = 4;
+        mMaxPathLength = 10;
+        mIterations = 0;
+        mFramebuffer.Setup(aScene.mCamera.mResolution);
     }
 
-    virtual void RunIteration(int aIteration, const Scene& aScene) = 0;
-    virtual void GetFramebuffer(Framebuffer& oFramebuffer) = 0;
+    virtual void RunIteration(int aIteration) = 0;
+
+    void GetFramebuffer(Framebuffer& oFramebuffer)
+    {
+        oFramebuffer = mFramebuffer;
+        if(mIterations > 0)
+            oFramebuffer.Scale(1.f / mIterations);
+    }
+
     //! Whether this renderer was used at all
-    virtual bool WasUsed() const = 0;
+    bool WasUsed() const { return mIterations > 0; }
 protected:
-    uint mMaxPathLength;
+    int          mIterations;
+    Framebuffer  mFramebuffer;
+    uint         mMaxPathLength;
+    const Scene& mScene;
 };
 
 #endif //__RENDERER_HXX__
