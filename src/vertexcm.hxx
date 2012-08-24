@@ -549,7 +549,7 @@ private:
         return contrib;
     }
 
-
+    // The direction is FROM camera TO light Vertex
     Vec3f ConnectVertices(
         const Scene         &aScene,
         const LightVertex   &aLightVertex,
@@ -580,7 +580,7 @@ private:
         // evaluate brdf at light vertex
         float cosLight, lightBrdfDirPdfW, lightBrdfRevPdfW;
         const Vec3f lightBrdfFactor = aLightVertex.mBxdf.EvaluateBrdfPdfW(
-            aScene, direction, cosLight, &lightBrdfDirPdfW,
+            aScene, -direction, cosLight, &lightBrdfDirPdfW,
             &lightBrdfRevPdfW);
 
         if(lightBrdfFactor.IsZero())
