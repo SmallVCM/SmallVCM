@@ -490,7 +490,7 @@ private:
         if(brdfFactor.IsZero())
             return Vec3f(0);
 
-        const float continuationProbability = aBxdf.Albedo();
+        const float continuationProbability = aBxdf.ContinuationProb();
         // If the light is delta light, we can never hit it
         // by brdf sampling, so the probability of this path is 0
         if(light->IsDelta())
@@ -560,7 +560,7 @@ private:
             return Vec3f(0);
 
         // camera continuation probability (for russian roulette)
-        const float cameraCont = aCameraBxdf.Albedo();
+        const float cameraCont = aCameraBxdf.ContinuationProb();
         cameraBrdfDirPdfW *= cameraCont;
         cameraBrdfRevPdfW *= cameraCont;
 
@@ -574,7 +574,7 @@ private:
             return Vec3f(0);
 
         // light continuation probability (for russian roulette)
-        const float lightCont = aLightVertex.mBxdf.Albedo();
+        const float lightCont = aLightVertex.mBxdf.ContinuationProb();
         lightBrdfDirPdfW *= lightCont;
         lightBrdfRevPdfW *= lightCont;
 
@@ -684,7 +684,7 @@ private:
         if(brdfFactor.IsZero())
             return;
 
-        brdfRevPdfW *= aBxdf.Albedo();
+        brdfRevPdfW *= aBxdf.ContinuationProb();
 
         // PDF of ray from camera hitting here (w.r.t. real resolution)
         const float cosAtCamera = Dot(camera.mForward, -directionToCamera);
@@ -741,7 +741,7 @@ private:
             brdfRevPdfW = brdfDirPdfW;
 
         // russian roulette
-        const float contProb = aBxdf.Albedo();
+        const float contProb = aBxdf.ContinuationProb();
         if(mRng.GetFloat() > contProb)
             return false;
 

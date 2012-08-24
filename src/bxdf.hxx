@@ -208,11 +208,11 @@ public:
     }
 
 
-    bool         IsValid()       const  { return mMaterialID >= 0;               }
-    bool         IsDelta()       const  { return mIsDelta;                       }
-    float        Albedo()        const  { return mTotalAlbedo;                   }
-    float        CosThetaFix()   const  { return mLocalOmegaFix.z;               }
-    Vec3f        WorldOmegaFix() const  { return mFrame.ToWorld(mLocalOmegaFix); }
+    bool         IsValid()          const  { return mMaterialID >= 0;               }
+    bool         IsDelta()          const  { return mIsDelta;                       }
+    float        ContinuationProb() const  { return mContinuationProb;              }
+    float        CosThetaFix()      const  { return mLocalOmegaFix.z;               }
+    Vec3f        WorldOmegaFix()    const  { return mFrame.ToWorld(mLocalOmegaFix); }
 private:
     //////////////////////////////////////////////////////////////////////////
     // Sampling methods
@@ -439,7 +439,7 @@ private:
             oProbabilities.phongProb = 0.f;
             oProbabilities.reflProb  = 0.f;
             oProbabilities.refrProb  = 0.f;
-            mTotalAlbedo = 0.f;
+            mContinuationProb = 0.f;
         }
         else
         {
@@ -447,7 +447,12 @@ private:
             oProbabilities.phongProb = albedoPhong   / totalAlbedo;
             oProbabilities.reflProb  = albedoReflect / totalAlbedo;
             oProbabilities.refrProb  = albedoRefract / totalAlbedo;
-            mTotalAlbedo = totalAlbedo;
+            mContinuationProb =
+                aMaterial.mDiffuseReflectance.Max() +
+                aMaterial.mPhongReflectance.Max() +
+                mReflectCoeff * aMaterial.mMirrorReflectance.Max() +
+                (1.f - mReflectCoeff);
+            mContinuationProb = std::min(1.f, std::max(0.f, mContinuationProb));
         }
     }
 
@@ -457,7 +462,7 @@ private:
     Vec3f mLocalOmegaFix;
     bool  mIsDelta;
     ComponentProbabilities mProbabilities;
-    float mTotalAlbedo;
+    float mContinuationProb;
     float mReflectCoeff;
 };
 

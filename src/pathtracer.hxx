@@ -82,7 +82,7 @@ public:
                 if(pathLength >= mMaxPathLength)
                     break;
 
-                if(bxdf.Albedo() == 0)
+                if(bxdf.ContinuationProb() == 0)
                     break;
 
                 // next event estimation
@@ -107,7 +107,7 @@ public:
                             float weight = 1.f;
                             if(!light->IsDelta())
                             {
-                                const float contProb = std::min(1.f, bxdf.Albedo());
+                                const float contProb = bxdf.ContinuationProb();
                                 brdfPdfW *= contProb;
                                 weight = Mis2(directPdfW * lightPickProb, brdfPdfW);
                             }
@@ -136,7 +136,7 @@ public:
                         break;
 
                     // russian roulette
-                    const float contProb = std::min(1.f, bxdf.Albedo());
+                    const float contProb = bxdf.ContinuationProb();
 
                     lastSpecular = (sampledEvent & BXDF<true>::Specular) != 0;
                     lastPdfW     = pdf * contProb;
