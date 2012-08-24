@@ -138,12 +138,14 @@ public:
         mIterations = 0;
         mFramebuffer.Setup(mResolution);
 
-        mUseVC = true;
-        mUseVM = true;
+        mLightTraceOnly = true;
+        mUseVC          = true;
+        mUseVM          = true;
         mBaseRadius  = 0.00886823884341192f;
         mPhotonAlpha = 0.75f;
 
-        mLightTraceOnly = false;
+        if(mLightTraceOnly)
+            mUseVC = mUseVM = false;
 
         if(mUseVC && mUseVM)
             printf("VertexCM set to Vertex Connection and Merging\n");
@@ -151,6 +153,8 @@ public:
             printf("VertexCM set to Bidirectional Photon Mapping\n");
         else if(mUseVC)
             printf("VertexCM set to Bidirectional Path Tracer\n");
+        else if(mLightTraceOnly)
+            printf("VertexCM set to Light tracer\n");
         else
             printf("ERROR!! Neither connections nor merging are set\n");
     }
@@ -268,7 +272,7 @@ public:
         //////////////////////////////////////////////////////////////////////////
 
         // The number of cells is somewhat arbitrary, but seems to work ok
-        if(VM)
+        if(mUseVM && VM)
         {
             mHashGrid.Reserve(pathCount);
             mHashGrid.Build(mLightVertices, radius);
