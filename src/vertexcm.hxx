@@ -253,7 +253,7 @@ public:
                 }
 
                 // Contribute directly to camera, purely delta bxdf cannot be connected
-                if(!bxdf.IsDelta() && DIR_CON)
+                if(!bxdf.IsDelta() && mUseVC && DIR_CON)
                 {
                     DirectContribution(aScene, lightSample, hitPoint, bxdf);
                 }
@@ -676,7 +676,7 @@ private:
             oLightSample.d1vc = 0.f;
         }
 
-        oLightSample.d1vm = oLightSample.d1vc / mMisVmWeightFactor;
+        oLightSample.d1vm = oLightSample.d1vc * mMisVcWeightFactor;
     }
 
     /* \brief Computes contribution of light sample to camera.
