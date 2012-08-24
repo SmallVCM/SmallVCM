@@ -140,7 +140,6 @@ public:
         mFramebuffer.Setup(mResolution);
 
         mLightTraceOnly = false;
-        mLightTraceComp = true;
         mUseVC          = false;
         mUseVM          = true;
         mBaseRadius  = 0.00886823884341192f;
@@ -148,8 +147,6 @@ public:
 
         if(mLightTraceOnly)
             mUseVC = mUseVM = false;
-        if(!mLightTraceOnly)
-            mLightTraceComp = false;
 
         if(mUseVC && mUseVM)
             printf("VertexCM set to Vertex Connection and Merging\n");
@@ -285,7 +282,7 @@ public:
         //////////////////////////////////////////////////////////////////////////
         // Generate camera paths
         //////////////////////////////////////////////////////////////////////////
-        for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly || mLightTraceComp); pathIdx++)
+        for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly); pathIdx++)
         {
             //mRng.Reset(1522297579, aIteration+1, pathIdx);
             PathElement cameraSample;
@@ -465,10 +462,6 @@ private:
 
         if(aCameraSample.mPathLength == 1)
             return radiance;
-        // If we compensate for light tracing, we contribute along any path
-        // where primary bounce is specular (light tracing cannot connect to camera)
-        if(mLightTraceComp)
-            return aCameraSample.mIsFirstSpec ? radiance : Vec3f(0.f);
 
         directPdfA   *= lightPickProb;
         emissionPdfW *= lightPickProb;
@@ -819,7 +812,6 @@ private:
     bool        mUseVM;
     bool        mUseVC;
     bool        mLightTraceOnly;
-    bool        mLightTraceComp;
 
     float       mPhotonAlpha; //!< Governs reduction rate
     float       mBaseRadius;
