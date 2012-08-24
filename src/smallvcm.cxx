@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <cmath>
+#include <time.h>
 #include "math.hxx"
 #include "ray.hxx"
 #include "geometry.hxx"
@@ -16,9 +17,6 @@
 #include "vertexcm.hxx"
 
 #include <omp.h>
-
-#include <Windows.h>
-#undef max
 
 //typedef PathTracer  t_Renderer;
 //typedef VertexCM    t_Renderer;
@@ -38,8 +36,8 @@ int main(int argc, const char *argv[])
     omp_set_num_threads(numThreads);
 
     printf("Using %d threads\n", numThreads);
-    DWORD startT = GetTickCount();
 
+    clock_t startT = clock();
     {
         int iterations = base_iterations * 2;
         typedef PathTracer  t_Renderer;
@@ -81,10 +79,10 @@ int main(int argc, const char *argv[])
         fbuffer.SavePPM("cb_pt.ppm", 2.2f);
         //fbuffer.SavePFM("cb.pfm");
     }
-    DWORD endT = GetTickCount();
-    printf("Path tracing took %g s\n", float(endT - startT) / 1000.f);
+    clock_t endT = clock();
+    printf("Path tracing took %g s\n", float(endT - startT) / CLOCKS_PER_SEC);
 
-    startT = GetTickCount();
+    startT = clock();
     {
         int iterations = base_iterations;
         typedef VertexCM  t_Renderer;
@@ -127,7 +125,7 @@ int main(int argc, const char *argv[])
         //fbuffer.SavePFM("cb.pfm");
     }
 
-    endT = GetTickCount();
-    printf("VCM took %g s\n", float(endT - startT) / 1000.f);
+    endT = clock();
+    printf("VCM took %g s\n", float(endT - startT) / CLOCKS_PER_SEC);
 
 }
