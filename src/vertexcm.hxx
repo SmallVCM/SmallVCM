@@ -208,9 +208,9 @@ public:
 
                 if(!aScene.Intersect(ray, isect))
                     break;
-                isect.dist += EPS_RAY;
 
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
+                isect.dist += EPS_RAY;
 
                 LightBxdf bxdf(ray, isect, aScene);
                 if(!bxdf.IsValid())
@@ -300,9 +300,9 @@ public:
                     // weights of infinite lights
                     break;
                 }
-                isect.dist += EPS_RAY;
 
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
+                isect.dist += EPS_RAY;
 
                 CameraBxdf bxdf(ray, isect, aScene);
                 if(!bxdf.IsValid())
