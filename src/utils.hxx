@@ -210,63 +210,15 @@ float evalUniformSpherePdfSA()
 
 //////////////////////////////////////////////////////////////////////////
 // Utilities for converting PDF between Area (A) and Solid angle (W)
-// The many variants are solely for purpose of adapting the interface
-// to what the algorithm has already available.
-// All it really does is:
 // WtoA = PdfW * cosine / distance_squared
 // AtoW = PdfA * distance_squared / cosine
-float FactorWtoA_dist2(
-    const float aDist2,
-    const float aCosThere)
-{
-    return std::abs(aCosThere) / aDist2;
-}
-
-float FactorWtoA(
-    const float aDist,
-    const float aCosThere)
-{
-    return FactorWtoA_dist2(Sqr(aDist), aCosThere);
-}
-
-
-float PdfWtoA_dist2(
-    const float aPdfW,
-    const float aDist2,
-    const float aCosThere)
-{
-    return aPdfW * FactorWtoA_dist2(aDist2, aCosThere);
-}
 
 float PdfWtoA(
     const float aPdfW,
     const float aDist,
     const float aCosThere)
 {
-    return PdfWtoA_dist2(aPdfW, Sqr(aDist), aCosThere);
-}
-
-float FactorAtoW_dist2(
-    const float aDist2,
-    const float aCosThere)
-{
-    return aDist2 / std::abs(aCosThere);
-}
-
-float FactorAtoW(
-    const float aDist,
-    const float aCosThere)
-{
-    return FactorAtoW_dist2(Sqr(aDist), aCosThere);
-}
-
-
-float PdfAtoW_dist2(
-    const float aPdfA,
-    const float aDist2,
-    const float aCosThere)
-{
-    return aPdfA * FactorAtoW_dist2(aDist2, aCosThere);
+    return aPdfW * std::abs(aCosThere) / Sqr(aDist);
 }
 
 float PdfAtoW(
@@ -274,7 +226,7 @@ float PdfAtoW(
     const float aDist,
     const float aCosThere)
 {
-    return PdfAtoW_dist2(aPdfA, Sqr(aDist), aCosThere);
+    return aPdfA * Sqr(aDist) / std::abs(aCosThere);
 }
 
 #endif //__UTILS_HXX__
