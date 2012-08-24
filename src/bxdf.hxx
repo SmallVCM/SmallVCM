@@ -103,14 +103,17 @@ public:
     Vec3f EvaluateBrdfPdfW(const Scene &aScene, const Vec3f &aWorldOmegaGen,
         float &oCosThetaGen, float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
     {
-        const Vec3f localOmegaGen = mFrame.ToLocal(aWorldOmegaGen);
-        oCosThetaGen = std::abs(localOmegaGen.z);
-
-        const Material &mat = aScene.GetMaterial(mMaterialID);
-
         Vec3f result(0);
         if(oDirectPdfW)  *oDirectPdfW = 0;
         if(oReversePdfW) *oReversePdfW = 0;
+
+        const Vec3f localOmegaGen = mFrame.ToLocal(aWorldOmegaGen);
+        if(localOmegaGen.z * mLocalOmegaFix.z < 0)
+            return result;
+
+        oCosThetaGen = std::abs(localOmegaGen.z);
+
+        const Material &mat = aScene.GetMaterial(mMaterialID);
 
         result += EvaluateDiffuse(mat, localOmegaGen,
             oDirectPdfW, oReversePdfW);
@@ -130,6 +133,8 @@ public:
         const bool aEvalRevPdf = false) const
     {
         const Vec3f localOmegaGen = mFrame.ToLocal(aWorldOmegaGen);
+        if(localOmegaGen.z * mLocalOmegaFix.z < 0)
+            return 0;
 
         const Material &mat = aScene.GetMaterial(mMaterialID);
 
