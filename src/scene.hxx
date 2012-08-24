@@ -52,6 +52,12 @@ public:
         return mMaterials[aMaterialIdx];
     }
 
+    int GetMaterialCount() const
+    {
+        return (int)mMaterials.size();
+    }
+
+
     const AbstractLight* GetLightPtr(int aLightIdx) const
     {
         aLightIdx = std::min<int>(aLightIdx, mLights.size()-1);

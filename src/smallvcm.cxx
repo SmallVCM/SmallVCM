@@ -94,7 +94,7 @@ int main(int argc, const char *argv[])
         renderers = new AbstractRendererPtr[numThreads];
 
         for(int i=0; i<numThreads; i++)
-            renderers[i] = new t_Renderer(scene, 1234 + i);
+            renderers[i] = new t_Renderer(scene, VertexCM::Vcm, 1234 + i);
 
 #pragma omp parallel for
         for(int iter=0; iter < iterations; iter++)

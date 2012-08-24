@@ -117,7 +117,11 @@ class VertexCM : public AbstractRenderer
             const float wCamera = mCameraSample.d0 * mVertexCM.mMisVcWeightFactor +
                 mCameraSample.d1vm * mVertexCM.Mis(cameraBrdfRevPdfW);
 
-            const float weight = 1.f / (wLight + 1.f + wCamera);
+            float weight = 1.f;
+
+            // Ppm merges, but does not have MIS weights
+            if(!mVertexCM.mPpm)
+                weight = 1.f / (wLight + 1.f + wCamera);
 
             mContrib += weight * cameraBrdfFactor * aLightVertex.mWeight;
         }
@@ -131,27 +135,92 @@ class VertexCM : public AbstractRenderer
         Vec3f             mContrib;
     };
 public:
-    VertexCM(const Scene& aScene, int aSeed = 1234) : AbstractRenderer(aScene), mRng(aSeed)
+    enum AlgorithmType
+    {
+        // light particles contribute to camera,
+        // No MIS weights (d0, d1vm, d1vc all ignored)
+        Lighttrace = 0,
+        // Camera and light particles merged on first non-specular camera bounce.
+        // Cannot handle mixed specular + non-specular materials.
+        // No MIS weights (d0, d1vm, d1vc all ignored)
+        Ppm,
+        // Camera and light particles merged on along full path.
+        // d0 and d1vm used for MIS
+        Bpm,
+        // Standard bidirection path tracing
+        // d0 and d1vc used for MIS
+        Bpt,
+        // Vertex connection and mering
+        // d0, d1vm, and d1vc used for MIS
+        Vcm
+    };
+public:
+    VertexCM(const Scene& aScene, AlgorithmType aAlgorithm,
+        int aSeed = 1234) : AbstractRenderer(aScene), mRng(aSeed)
     {
         mLightTraceOnly = false;
-        mUseVC          = true;
-        mUseVM          = true;
+        mUseVC          = false;
+        mUseVM          = false;
+        mPpm            = false;
+        switch(aAlgorithm)
+        {
+        case Lighttrace:
+            mLightTraceOnly = true;
+            printf("VertexCM set to Light tracer\n");
+            break;
+        case Ppm:
+            mPpm   = true;
+            mUseVM = true;
+            printf("VertexCM set to Progressive photon mapping\n");
+            break;
+        case Bpm:
+            mUseVM = true;
+            printf("VertexCM set to Bidirectional Photon Mapping\n");
+            break;
+        case Bpt:
+            mUseVC = true;
+            printf("VertexCM set to Bidirectional Path Tracer\n");
+            break;
+        case Vcm:
+            mUseVC = true;
+            mUseVM = true;
+            printf("VertexCM set to Vertex Connection and Merging\n");
+            break;
+        default:
+            printf("Unknown algorithm requested\n");
+            break;
+        }
+
+        if(mPpm)
+        {
+            // We will check the scene to make sure it does not contain mixed
+            // specular and non-specular materials
+            for(int i=0; i<mScene.GetMaterialCount(); i++)
+            {
+                const Material &mat = mScene.GetMaterial(i);
+                const bool hasNonSpecular =
+                    (mat.mDiffuseReflectance.Max() > 0) ||
+                    (mat.mPhongReflectance.Max() > 0);
+                const bool hasSpecular =
+                    (mat.mMirrorReflectance.Max() > 0) ||
+                    (mat.mIOR > 0);
+                if(hasNonSpecular && hasSpecular)
+                {
+                    printf(
+                        "*WARNING* Our Ppm implementation cannot handle materials mixing\n"
+                        "Specular and NonSpecular BXDFs. The extension would be\n"
+                        "fairly straightforward. In BounceSample for CameraSample\n"
+                        "limit the considered events to Specular only.\n"
+                        "Merging will use non-specular components, bounce will be specular.\n"
+                        "If there is no specular component, the ray will terminate.");
+                    printf("We are now switching from *Ppm* to *Bpm*, which can handle the scene\n");
+                    mPpm = false;
+                }
+            }
+        }
+
         mBaseRadius  = 0.00886823884341192f;
         mPhotonAlpha = 0.75f;
-
-        if(mLightTraceOnly)
-            mUseVC = mUseVM = false;
-
-        if(mUseVC && mUseVM)
-            printf("VertexCM set to Vertex Connection and Merging\n");
-        else if(mUseVM)
-            printf("VertexCM set to Bidirectional Photon Mapping\n");
-        else if(mUseVC)
-            printf("VertexCM set to Bidirectional Path Tracer\n");
-        else if(mLightTraceOnly)
-            printf("VertexCM set to Light tracer\n");
-        else
-            printf("ERROR!! Neither connections nor merging are set\n");
     }
 
     virtual void RunIteration(int aIteration)
@@ -266,9 +335,10 @@ public:
         // Build hash grid
         //////////////////////////////////////////////////////////////////////////
 
-        // The number of cells is somewhat arbitrary, but seems to work ok
+        // Only build grid when merging (Vcm, Bpm, and Ppm)
         if(mUseVM && VM)
         {
+            // The number of cells is somewhat arbitrary, but seems to work ok
             mHashGrid.Reserve(pathCount);
             mHashGrid.Build(mLightVertices, radius);
         }
@@ -276,6 +346,8 @@ public:
         //////////////////////////////////////////////////////////////////////////
         // Generate camera paths
         //////////////////////////////////////////////////////////////////////////
+
+        // Light tracing does not use any camera particles at all
         for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly); pathIdx++)
         {
             //mRng.Reset(1522297579, aIteration+1, pathIdx);
@@ -370,6 +442,9 @@ public:
                     RangeQuery query(*this, hitPoint, bxdf, cameraSample);
                     mHashGrid.Process(mLightVertices, query);
                     color += cameraSample.mWeight * mVmNormalization * query.GetContrib();
+                    // Ppm merges only on first non-specular bounce
+                    if(mPpm)
+                        break;
                 }
 
                 if(!BounceSample(bxdf, hitPoint, cameraSample))
@@ -791,6 +866,7 @@ private:
     bool        mUseVM;
     bool        mUseVC;
     bool        mLightTraceOnly;
+    bool        mPpm;
 
     float       mPhotonAlpha; //!< Governs reduction rate
     float       mBaseRadius;
