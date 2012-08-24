@@ -34,6 +34,7 @@ class VertexCM : public AbstractRenderer
         uint  mPathLength    : 20; //!< Number of path segments, including this
         uint  mIsFiniteLight :  1; //!< Just generate by finite light
         uint  mSpecularPath  :  1; //!< All bounces so far were specular
+        uint  mIsFirstSpec   :  1; //!< First bounce on path is specular
 
         // We compute MIS in a cumulative fashion. 1 variable is used,
         // plus 1 for each used method (connection, merging).
@@ -138,14 +139,17 @@ public:
         mIterations = 0;
         mFramebuffer.Setup(mResolution);
 
-        mLightTraceOnly = true;
-        mUseVC          = true;
+        mLightTraceOnly = false;
+        mLightTraceComp = true;
+        mUseVC          = false;
         mUseVM          = true;
         mBaseRadius  = 0.00886823884341192f;
         mPhotonAlpha = 0.75f;
 
         if(mLightTraceOnly)
             mUseVC = mUseVM = false;
+        if(!mLightTraceOnly)
+            mLightTraceComp = false;
 
         if(mUseVC && mUseVM)
             printf("VertexCM set to Vertex Connection and Merging\n");
@@ -233,7 +237,7 @@ public:
                 }
 
                 // Store particle, purely delta bxdf cannot be merged
-                if(!bxdf.IsDelta())
+                if(!bxdf.IsDelta() && (mUseVC || mUseVM))
                 {
                     LightVertex lightVertex;
                     lightVertex.mHitpoint   = hitPoint;
@@ -281,7 +285,7 @@ public:
         //////////////////////////////////////////////////////////////////////////
         // Generate camera paths
         //////////////////////////////////////////////////////////////////////////
-        for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly); pathIdx++)
+        for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly || mLightTraceComp); pathIdx++)
         {
             //mRng.Reset(1522297579, aIteration+1, pathIdx);
             PathElement cameraSample;
@@ -461,6 +465,10 @@ private:
 
         if(aCameraSample.mPathLength == 1)
             return radiance;
+        // If we compensate for light tracing, we contribute along any path
+        // where primary bounce is specular (light tracing cannot connect to camera)
+        if(mLightTraceComp)
+            return aCameraSample.mIsFirstSpec ? radiance : Vec3f(0.f);
 
         directPdfA   *= lightPickProb;
         emissionPdfW *= lightPickProb;
@@ -782,6 +790,8 @@ private:
                 aoPathSample.d1vm *=
                     Mis(cosThetaOut / brdfDirPdfW) * Mis(brdfRevPdfW);
                 aoPathSample.mSpecularPath &= 1;
+                if(aoPathSample.mPathLength == 1)
+                    aoPathSample.mIsFirstSpec = 1;
             }
             else
             {
@@ -796,6 +806,8 @@ private:
                 aoPathSample.d0 = Mis(1.f / brdfDirPdfW);
 
                 aoPathSample.mSpecularPath &= 0;
+                if(aoPathSample.mPathLength == 1)
+                    aoPathSample.mIsFirstSpec = 0;
             }
         }
 
@@ -807,6 +819,7 @@ private:
     bool        mUseVM;
     bool        mUseVC;
     bool        mLightTraceOnly;
+    bool        mLightTraceComp;
 
     float       mPhotonAlpha; //!< Governs reduction rate
     float       mBaseRadius;
