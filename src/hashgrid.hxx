@@ -66,6 +66,21 @@ public:
 
         // now mCellEnds[x] points to the index right after the last
         // element of cell x
+
+        //// DEBUG
+        //for(size_t i=0; i<aParticles.size(); i++)
+        //{
+        //    const Vec3f &pos  = aParticles[i].GetPosition();
+        //    Vec2i range = GetCellRange(GetCellIndex(pos));
+        //    bool found = false;
+        //    for(;range.x < range.y; range.x++)
+        //    {
+        //        if(mIndices[range.x] == i)
+        //            found = true;
+        //    }
+        //    if(!found)
+        //        printf("Error at particle %d\n", i);
+        //}
     }
 
     template<typename tParticle, typename tQuery>

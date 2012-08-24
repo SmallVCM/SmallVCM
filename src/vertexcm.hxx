@@ -13,6 +13,12 @@
 #include "rng.hxx"
 #include "hashgrid.hxx"
 
+#define DIR_CON   1
+#define ON_HIT    1
+#define DIR_LIGHT 1
+#define VC        1
+#define VM        1
+
 class VertexCM : public AbstractRenderer
 {
     /* \brief Path element is used for tracing
@@ -188,6 +194,7 @@ public:
         //////////////////////////////////////////////////////////////////////////
         for(int pathIdx = 0; pathIdx < pathCount; pathIdx++)
         {
+            //mRng.Reset(1522297579, aIteration+1, pathIdx + pathCount);
             PathElement lightSample;
             GenerateLightSample(aScene, lightSample);
 
@@ -238,7 +245,7 @@ public:
                 }
 
                 // Contribute directly to camera, purely delta bxdf cannot be connected
-                if(!bxdf.IsDelta())
+                if(!bxdf.IsDelta() && DIR_CON)
                 {
                     DirectContribution(aScene, lightSample, hitPoint, bxdf);
                 }
@@ -260,15 +267,19 @@ public:
         // Build hash grid
         //////////////////////////////////////////////////////////////////////////
 
-        // this is somewhat arbitrary, but seems to work ok
-        mHashGrid.Reserve(pathCount);
-        mHashGrid.Build(mLightVertices, radius);
+        // The number of cells is somewhat arbitrary, but seems to work ok
+        if(VM)
+        {
+            mHashGrid.Reserve(pathCount);
+            mHashGrid.Build(mLightVertices, radius);
+        }
 
         //////////////////////////////////////////////////////////////////////////
         // Generate camera paths
         //////////////////////////////////////////////////////////////////////////
         for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly); pathIdx++)
         {
+            //mRng.Reset(1522297579, aIteration+1, pathIdx);
             PathElement cameraSample;
             const Vec2f screenSample =
                 GenerateCameraSample(aScene, pathIdx, cameraSample);
@@ -307,7 +318,7 @@ public:
 
                 // directly hit some light
                 // lights do not reflect light, so we stop after this
-                if(isect.lightID >= 0)
+                if(isect.lightID >= 0 && ON_HIT)
                 {
                     const AbstractLight *light = aScene.GetLightPtr(isect.lightID);
                     color += cameraSample.mWeight *
@@ -320,14 +331,14 @@ public:
                     break;
 
                 // [Vertex Connection] Connect to lights
-                if(!bxdf.IsDelta() && mUseVC)
+                if(!bxdf.IsDelta() && mUseVC && DIR_LIGHT)
                 {
                     color += cameraSample.mWeight *
                         DirectIllumination(aScene, cameraSample, hitPoint, bxdf);
                 }
 
                 // [Vertex Connection] Connect to light particles
-                if(!bxdf.IsDelta() && mUseVC)
+                if(!bxdf.IsDelta() && mUseVC && VC)
                 {
                     // Each lightpath is assigned to one eyepath ,as in standard BPT.
                     // This gives range in which are the lightvertices
@@ -355,7 +366,7 @@ public:
                 }
 
                 // [Vertex Merging] Merge with light particles
-                if(!bxdf.IsDelta() && mUseVM)
+                if(!bxdf.IsDelta() && mUseVM && VM)
                 {
                     RangeQuery query(*this, aScene, hitPoint, bxdf, cameraSample);
                     mHashGrid.Process(mLightVertices, query);
@@ -727,6 +738,10 @@ private:
         PathElement              &aoPathSample)
     {
         Vec3f rndTriplet  = mRng.GetVec3f();
+        //Vec3f rndTriplet;
+        //rndTriplet.x = mRng.GetFloat();
+        //rndTriplet.y = mRng.GetFloat();
+        //rndTriplet.z = 0;
         float brdfDirPdfW, cosThetaOut;
         uint  sampledEvent;
 
@@ -805,6 +820,7 @@ private:
     int         mIterations;
     Framebuffer mFramebuffer;
     Rng         mRng;
+    //GpuQ2RandomTea mRng;
 };
 
 #endif //__VERTEXCM_HXX__
