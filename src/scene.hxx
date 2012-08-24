@@ -73,6 +73,10 @@ public:
     // Loads a Cornell Box scene
     void LoadCornellBox()
     {
+        bool light_ceiling = false;
+        bool light_sun     = false;
+        bool light_point   = true;
+
         // Camera
         mCamera.Setup(
             Vec3f(-0.0439815f, -4.12529f, 0.222539f),
@@ -144,8 +148,16 @@ public:
         geometryList->mGeometry.push_back(new Triangle(p[2], p[3], p[0], 5));
 
         // Ceiling
-        geometryList->mGeometry.push_back(new Triangle(p[2], p[6], p[7], 0));
-        geometryList->mGeometry.push_back(new Triangle(p[7], p[3], p[2], 1));
+        if(light_ceiling)
+        {
+            geometryList->mGeometry.push_back(new Triangle(p[2], p[6], p[7], 0));
+            geometryList->mGeometry.push_back(new Triangle(p[7], p[3], p[2], 1));
+        }
+        else
+        {
+            geometryList->mGeometry.push_back(new Triangle(p[2], p[6], p[7], 5));
+            geometryList->mGeometry.push_back(new Triangle(p[7], p[3], p[2], 5));
+        }
 
         // Left wall
         geometryList->mGeometry.push_back(new Triangle(p[3], p[7], p[4], 3));
@@ -170,20 +182,35 @@ public:
         geometryList->mGeometry.push_back(new Sphere(rightBallCenter, radius, 7));
 
         // Lights
-        mLights.resize(2);
-        AreaLight *l = new AreaLight(p[2], p[6], p[7]);
-        l->mIntensity = Vec3f(0.95492965f);
-        mLights[0] = l;
-        mMaterial2Light.insert(std::make_pair(0, 0));
+        if(light_ceiling)
+        {
+            mLights.resize(2);
+            AreaLight *l = new AreaLight(p[2], p[6], p[7]);
+            l->mIntensity = Vec3f(0.95492965f);
+            mLights[0] = l;
+            mMaterial2Light.insert(std::make_pair(0, 0));
 
-        l = new AreaLight(p[7], p[3], p[2]);
-        l->mIntensity = Vec3f(0.95492965f);
-        mLights[1] = l;
-        mMaterial2Light.insert(std::make_pair(1, 1));
+            l = new AreaLight(p[7], p[3], p[2]);
+            l->mIntensity = Vec3f(0.95492965f);
+            mLights[1] = l;
+            mMaterial2Light.insert(std::make_pair(1, 1));
+        }
 
-        DirectionalLight *ld = new DirectionalLight(Vec3f(-1.f, 1.f, -1.f));
-        ld->mIntensity = Vec3f(0.5f, 0.2f, 0.f) * 1.5f;
-        mLights.push_back(ld);
+        if(light_sun)
+        {
+            DirectionalLight *l = new DirectionalLight(Vec3f(-1.f, 1.f, -1.f));
+            l->mIntensity = Vec3f(0.5f, 0.2f, 0.f) * 1.5f;
+            mLights.push_back(l);
+        }
+
+        if(light_point)
+        {
+            Vec3f center = (p[2] + p[3] + p[6] + p[7]) * (1.f / 4.f) -
+                Vec3f(0, 0, 0.2f);
+            PointLight *l = new PointLight(Vec3f(0.0, -0.5, 1.0));
+            l->mIntensity = Vec3f(70.f * (INV_PI_F * 0.25f));
+            mLights.push_back(l);
+        }
     }
 
     void BuildSceneSphere()

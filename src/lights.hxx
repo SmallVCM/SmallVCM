@@ -210,8 +210,8 @@ public:
 
     virtual Vec3f Illuminate(
         const SceneSphere &aSceneSphere,
-        const Vec3f       &aReceivingPosition,
-        const Vec2f       &aRndTuple,
+        const Vec3f       &/*aReceivingPosition*/,
+        const Vec2f       &/*aRndTuple*/,
         Vec3f             &oDirectionToLight,
         float             &oDistance,
         float             &oDirectPdfW,
@@ -250,7 +250,7 @@ public:
         oEmissionPdfW = EvalConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
 
         if(oDirectPdfA)    *oDirectPdfA = 1.f;
-        // This is not used for infinite lights
+        // This is not used for infinite or delta lights
         if(oCosThetaLight) *oCosThetaLight = 1.f;
 
         return mIntensity;
@@ -275,4 +275,77 @@ public:
     Vec3f mIntensity;
 };
 
+
+//////////////////////////////////////////////////////////////////////////
+class PointLight : public AbstractLight
+{
+public:
+    PointLight(){}
+    PointLight(const Vec3f& aPosition)
+    {
+        mPosition = aPosition;
+    }
+
+    virtual Vec3f Illuminate(
+        const SceneSphere &/*aSceneSphere*/,
+        const Vec3f       &aReceivingPosition,
+        const Vec2f       &aRndTuple,
+        Vec3f             &oDirectionToLight,
+        float             &oDistance,
+        float             &oDirectPdfW,
+        float             *oEmissionPdfW = NULL,
+        float             *oCosAtLight = NULL) const
+    {
+        oDirectionToLight     = mPosition - aReceivingPosition;
+        const float distSqr   = oDirectionToLight.LenSqr();
+        oDirectPdfW           = distSqr;
+        oDistance             = std::sqrt(distSqr);
+        oDirectionToLight     = oDirectionToLight / oDistance;
+
+        if(oCosAtLight) *oCosAtLight = 1.f;
+        if(oEmissionPdfW)
+        {
+            *oEmissionPdfW = EvalUniformSpherePdfW();
+        }
+        return mIntensity;
+    }
+
+    virtual Vec3f Emit(
+        const SceneSphere &/*aSceneSphere*/,
+        const Vec2f       &aDirRndTuple,
+        const Vec2f       &/*aPosRndTuple*/,
+        Vec3f             &oPosition,
+        Vec3f             &oDirection,
+        float             &oEmissionPdfW,
+        float             *oDirectPdfA,
+        float             *oCosThetaLight) const
+    {
+        oPosition  = mPosition;
+        oDirection = SampleUniformSphereW(aDirRndTuple, &oEmissionPdfW);
+
+        if(oDirectPdfA)    *oDirectPdfA = 1.f;
+        // This is not used for infinite or delta lights
+        if(oCosThetaLight) *oCosThetaLight = 1.f;
+
+        return mIntensity;
+    }
+
+    virtual Vec3f GetRadiance(
+        const SceneSphere &/*aSceneSphere*/,
+        const Vec3f       &/*aRayDirection*/,
+        const Vec3f       &/*aHitPoint*/,
+        float             *oDirectPdfA = NULL,
+        float             *oEmissionPdfW = NULL) const
+    {
+        return Vec3f(0);
+    }
+    // Whether the light has a finite extent (area, point) or not (directional, env. map)
+    virtual bool IsFinite() const { return true;  };
+    // Whether the light has delta function (point, directional) or not (area)
+    virtual bool IsDelta() const  { return false; };
+
+public:
+    Vec3f mPosition;
+    Vec3f mIntensity;
+};
 #endif //__LIGHTS_HXX__
