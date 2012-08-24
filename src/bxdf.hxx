@@ -321,6 +321,8 @@ private:
         float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
     {
         if(mProbabilities.diffProb == 0) return Vec3f(0);
+        if(mLocalOmegaFix.z < EPS_COSINE || aLocalOmegaGen.z < EPS_COSINE)
+            return Vec3f(0);
 
         if(oDirectPdfW)
             *oDirectPdfW  += mProbabilities.diffProb *
@@ -337,6 +339,8 @@ private:
         float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
     {
         if(mProbabilities.phongProb == 0) return Vec3f(0);
+        if(mLocalOmegaFix.z < EPS_COSINE || aLocalOmegaGen.z < EPS_COSINE)
+            return Vec3f(0);
 
         // assumes this is never called when rejectShadingCos(oLocalOmegaGen.z) is true
         const Vec3f reflLocalOmegaIn = reflect001(mLocalOmegaFix);
