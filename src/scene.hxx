@@ -17,7 +17,7 @@
 class Scene
 {
 public:
-    Scene() : mGeometry(NULL){};
+    Scene() : mGeometry(NULL), mBackground(NULL) {};
     ~Scene() { delete mGeometry; }
 
     bool Intersect(const Ray& aRay, Isect& oResult) const
@@ -69,13 +69,19 @@ public:
         return (int)mLights.size();
     }
 
+    const BackgroundLight* GetBackground() const
+    {
+        return mBackground;
+    }
+
     //////////////////////////////////////////////////////////////////////////
     // Loads a Cornell Box scene
     void LoadCornellBox()
     {
-        bool light_ceiling = false;
-        bool light_sun     = false;
-        bool light_point   = true;
+        bool light_ceiling    = false;
+        bool light_sun        = false;
+        bool light_point      = false;
+        bool light_background = true;
 
         // Camera
         mCamera.Setup(
@@ -178,8 +184,8 @@ public:
         float xlen = rightWallCenter.x - leftWallCenter.x;
         Vec3f leftBallCenter  = leftWallCenter  + Vec3f(2.f * xlen / 7.f, 0, 0);
         Vec3f rightBallCenter = rightWallCenter - Vec3f(2.f * xlen / 7.f, 0, 0);
-        geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  radius, 6));
-        geometryList->mGeometry.push_back(new Sphere(rightBallCenter, radius, 7));
+        //geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  radius, 6));
+        //geometryList->mGeometry.push_back(new Sphere(rightBallCenter, radius, 7));
 
         // Lights
         if(light_ceiling)
@@ -205,11 +211,17 @@ public:
 
         if(light_point)
         {
-            Vec3f center = (p[2] + p[3] + p[6] + p[7]) * (1.f / 4.f) -
-                Vec3f(0, 0, 0.2f);
             PointLight *l = new PointLight(Vec3f(0.0, -0.5, 1.0));
             l->mIntensity = Vec3f(70.f * (INV_PI_F * 0.25f));
             mLights.push_back(l);
+        }
+
+        if(light_background)
+        {
+            BackgroundLight *l = new BackgroundLight;
+            l->mScale = 1.f;
+            mLights.push_back(l);
+            mBackground = l;
         }
     }
 
@@ -234,6 +246,7 @@ public:
     std::vector<AbstractLight*>   mLights;
     std::map<int, int> mMaterial2Light;
     SceneSphere        mSceneSphere;
+    BackgroundLight*   mBackground;
 };
 
 #endif //__SCENE_HXX__

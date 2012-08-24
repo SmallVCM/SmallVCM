@@ -87,7 +87,6 @@ public:
 class AreaLight : public AbstractLight
 {
 public:
-    AreaLight(){}
     AreaLight(const Vec3f& aP0, const Vec3f& aP1, const Vec3f& aP2)
     {
         p0 = aP0;
@@ -202,7 +201,6 @@ public:
 class DirectionalLight : public AbstractLight
 {
 public:
-    DirectionalLight(){}
     DirectionalLight(const Vec3f& aDirection)
     {
         mFrame.SetFromZ(aDirection);
@@ -244,7 +242,7 @@ public:
 
         oPosition = aSceneSphere.mSceneCenter +
             aSceneSphere.mSceneRadius * (
-            -mFrame.Normal() + mFrame.Binormal() * xy.x + mFrame.Tangent()  * xy.y);
+            -mFrame.Normal() + mFrame.Binormal() * xy.x + mFrame.Tangent() * xy.y);
 
         oDirection = mFrame.Normal();
         oEmissionPdfW = EvalConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
@@ -280,7 +278,6 @@ public:
 class PointLight : public AbstractLight
 {
 public:
-    PointLight(){}
     PointLight(const Vec3f& aPosition)
     {
         mPosition = aPosition;
@@ -347,5 +344,106 @@ public:
 public:
     Vec3f mPosition;
     Vec3f mIntensity;
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+class BackgroundLight : public AbstractLight
+{
+public:
+    BackgroundLight()
+    {
+        mBackgroundColor = Vec3f(135, 206, 250) / Vec3f(255.f);
+        mScale = 1.f;
+    }
+
+    virtual Vec3f Illuminate(
+        const SceneSphere &aSceneSphere,
+        const Vec3f       &aReceivingPosition,
+        const Vec2f       &aRndTuple,
+        Vec3f             &oDirectionToLight,
+        float             &oDistance,
+        float             &oDirectPdfW,
+        float             *oEmissionPdfW = NULL,
+        float             *oCosAtLight = NULL) const
+    {
+        // Replace these two lines with image sampling
+        oDirectionToLight = SampleUniformSphereW(aRndTuple, &oDirectPdfW);
+        //oDirectionToLight = Vec3f(0.16123600f, -0.98195398f, 0.098840252f);
+        Vec3f radiance = mBackgroundColor * mScale;
+
+        // This stays even with image sampling
+        oDistance = 1e36f;
+        if(oEmissionPdfW)
+            *oEmissionPdfW = oDirectPdfW *
+            EvalConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
+        if(oCosAtLight) *oCosAtLight = 1.f;
+
+        return radiance;
+    }
+
+    virtual Vec3f Emit(
+        const SceneSphere &aSceneSphere,
+        const Vec2f       &aDirRndTuple,
+        const Vec2f       &aPosRndTuple,
+        Vec3f             &oPosition,
+        Vec3f             &oDirection,
+        float             &oEmissionPdfW,
+        float             *oDirectPdfA,
+        float             *oCosThetaLight) const
+    {
+        float directPdf;
+        // Replace these two lines with image sampling
+        oDirection = SampleUniformSphereW(aDirRndTuple, &directPdf);
+        //oDirection = -Vec3f(0.16123600f, -0.98195398f, 0.098840252f);
+        Vec3f radiance = mBackgroundColor * mScale;
+
+        // This stays even with image sampling
+        const Vec2f xy = SampleConcentricDisc(aPosRndTuple);
+
+        Frame frame;
+        frame.SetFromZ(oDirection);
+        oPosition = aSceneSphere.mSceneCenter +
+            aSceneSphere.mSceneRadius * (
+            -oDirection + frame.Binormal() * xy.x + frame.Tangent() * xy.y);
+        //oPosition = Vec3f(-1.109054f, -2.15064538f, -1.087019148f);
+
+        oEmissionPdfW = directPdf * EvalConcentricDiscPdfA() *
+            aSceneSphere.mInvSceneRadiusSqr;
+
+        // for background we lie about Pdf being in area measure
+        if(oDirectPdfA)    *oDirectPdfA    = directPdf;
+        // This is not used for infinite or delta lights
+        if(oCosThetaLight) *oCosThetaLight = 1.f;
+
+        return radiance;
+    }
+
+    virtual Vec3f GetRadiance(
+        const SceneSphere &aSceneSphere,
+        const Vec3f       &/*aRayDirection*/,
+        const Vec3f       &/*aHitPoint*/,
+        float             *oDirectPdfA = NULL,
+        float             *oEmissionPdfW = NULL) const
+    {
+        // Replace this with image lookup (proper pdf and such)
+        // use aRayDirection
+        float directPdf = EvalUniformSpherePdfW();
+        Vec3f radiance  = mBackgroundColor * mScale;
+
+        const float positionPdf = EvalConcentricDiscPdfA() *
+            aSceneSphere.mInvSceneRadiusSqr;
+
+        if(oDirectPdfA)   *oDirectPdfA   = directPdf;
+        if(oEmissionPdfW) *oEmissionPdfW = directPdf * positionPdf;
+        return radiance;
+    }
+    // Whether the light has a finite extent (area, point) or not (directional, env. map)
+    virtual bool IsFinite() const { return false; };
+    // Whether the light has delta function (point, directional) or not (area)
+    virtual bool IsDelta() const  { return false; };
+public:
+    Vec3f mBackgroundColor;
+    float mScale;
 };
 #endif //__LIGHTS_HXX__

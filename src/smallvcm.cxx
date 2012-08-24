@@ -39,7 +39,7 @@ int main(int argc, const char *argv[])
     printf("Using %d threads\n", numThreads);
 
     clock_t startT = clock();
-
+    if(1)
     {
         int iterations = base_iterations * 2;
         typedef PathTracer  t_Renderer;
@@ -85,6 +85,7 @@ int main(int argc, const char *argv[])
     printf("Path tracing took %g s\n", float(endT - startT) / CLOCKS_PER_SEC);
 
     startT = clock();
+
     {
         int iterations = base_iterations;
         typedef VertexCM  t_Renderer;
@@ -94,7 +95,7 @@ int main(int argc, const char *argv[])
         renderers = new AbstractRendererPtr[numThreads];
 
         for(int i=0; i<numThreads; i++)
-            renderers[i] = new t_Renderer(scene, VertexCM::Vcm, 1234 + i);
+            renderers[i] = new t_Renderer(scene, VertexCM::Bpt, 111234 + i);
 
 #pragma omp parallel for
         for(int iter=0; iter < iterations; iter++)

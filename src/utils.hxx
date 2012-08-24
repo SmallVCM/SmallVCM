@@ -194,7 +194,7 @@ Vec3f SampleUniformSphereW(
 
     if(oPdfSA)
     {
-        // *oPdfSA = 1.f / (4.f * PI_F);
+        //*oPdfSA = 1.f / (4.f * PI_F);
         *oPdfSA = INV_PI_F * 0.25f;
     }
 

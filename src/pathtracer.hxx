@@ -48,7 +48,27 @@ public:
             for(;; ++pathLength)
             {
                 if(!mScene.Intersect(ray, isect))
+                {
+                    const BackgroundLight* background = mScene.GetBackground();
+                    if(!background)
+                        break;
+                    // For background we cheat with the A/W suffixes,
+                    // and GetRadiance actually returns W instead of A
+                    float directPdfW;
+                    Vec3f contrib = background->GetRadiance(mScene.mSceneSphere,
+                        ray.dir, Vec3f(0), &directPdfW);
+                    if(contrib.IsZero())
+                        break;
+
+                    float misWeight = 1.f;
+                    if(pathLength > 1 && !lastSpecular)
+                    {
+                        misWeight = Mis2(lastPdfW, directPdfW * lightPickProb);
+                    }
+
+                    color += pathWeight * misWeight * contrib;
                     break;
+                }
 
                 Vec3f hitPoint = ray.org + ray.dir * isect.dist;
 

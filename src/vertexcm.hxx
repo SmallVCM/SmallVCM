@@ -366,9 +366,7 @@ public:
 
                 if(!mScene.Intersect(ray, isect))
                 {
-                    // Hit of background would use d0, d1vc, d1vm as they are now,
-                    // because we use solid angle and not area pdfs to determine MIS
-                    // weights of infinite lights
+                    color += cameraSample.mWeight * BackgroundOnHit(cameraSample);
                     break;
                 }
 
@@ -501,6 +499,41 @@ private:
         oCameraSample.d1vm          = 0;
 
         return sample;
+    }
+
+    // has to be called before Updating MIS constants
+    Vec3f BackgroundOnHit(
+        const PathElement &aCameraSample) const
+    {
+        const BackgroundLight *background = mScene.GetBackground();
+        if(!background)
+            return Vec3f(0);
+
+        float directPdfW, emissionPdfW;
+        const Vec3f radiance = background->GetRadiance(mScene.mSceneSphere,
+            aCameraSample.mDirection, Vec3f(0), &directPdfW, &emissionPdfW);
+
+        if(aCameraSample.mPathLength == 1)
+            return radiance;
+
+        // We sample lights uniformly
+        const int   lightCount    = mScene.GetLightCount();
+        const float lightPickProb = 1.f / lightCount;
+
+        directPdfW   *= lightPickProb;
+        emissionPdfW *= lightPickProb;
+
+        // when using only vertex merging, to get reflecting lights
+        if(mUseVM && !mUseVC)
+            return aCameraSample.mSpecularPath ? radiance : Vec3f(0);
+
+        // if the last hit was specular, then d0 == 0
+        // mMisVmWeightFactor already included in d0
+        const float wCamera = Mis(directPdfW) * aCameraSample.d0 +
+            Mis(emissionPdfW) * aCameraSample.d1vc;
+
+        const float misWeight = 1.f / (1.f + wCamera);
+        return radiance * misWeight;
     }
 
     // has to be called after Updating MIS constants
