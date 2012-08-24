@@ -67,8 +67,9 @@ public:
         Vec3f *ptr = &mColor[0];
         for(int y=0; y<mResY; y++)
         {
-            for(int x=0; x<mResX; x++, ptr++)
+            for(int x=0; x<mResX; x++)
             {
+                ptr = &mColor[x + (mResY-y-1)*mResX];
                 int r = int(std::pow(ptr->x, invGamma) * 255.f);
                 int g = int(std::pow(ptr->y, invGamma) * 255.f);
                 int b = int(std::pow(ptr->z, invGamma) * 255.f);
