@@ -174,12 +174,11 @@ public:
         AreaLight *l = new AreaLight(p[2], p[6], p[7]);
         l->mIntensity = Vec3f(0.95492965f);
         mLights[0] = l;
+        mMaterial2Light.insert(std::make_pair(0, 0));
 
         l = new AreaLight(p[7], p[3], p[2]);
         l->mIntensity = Vec3f(0.95492965f);
         mLights[1] = l;
-
-        mMaterial2Light.insert(std::make_pair(0, 0));
         mMaterial2Light.insert(std::make_pair(1, 1));
     }
 public:
