@@ -201,6 +201,7 @@ public:
 
                 if(!aScene.Intersect(ray, isect))
                     break;
+                isect.dist += EPS_RAY;
 
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
 
@@ -288,6 +289,7 @@ public:
                     // weights of infinite lights
                     break;
                 }
+                isect.dist += EPS_RAY;
 
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
 
