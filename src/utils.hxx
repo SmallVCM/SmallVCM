@@ -178,6 +178,37 @@ Vec2f SampleUniformTriangle(
 }
 
 //////////////////////////////////////////////////////////////////////////
+// Sphere sampling
+
+Vec3f SampleUniformSphereSA(
+    const Vec2f  &aSamples,
+    float        *oPdfSA)
+{
+    const float term1 = 2.f * PI_F * aSamples.x;
+    const float term2 = 2.f * FW::sqrt(aSamples.y - aSamples.y * aSamples.y);
+
+    const Vec3f ret(
+        FW::cos(term1) * term2,
+        FW::sin(term1) * term2,
+        1.f - 2.f * aSamples.y);
+
+    if(oPdfSA)
+    {
+        // *oPdfSA = 1.f / (4.f * PI_F);
+        *oPdfSA = INV_PI_F * 0.25f;
+    }
+
+    return ret;
+}
+
+float evalUniformSpherePdfSA()
+{
+    //return (1.f / (4.f * PI_F));
+    return INV_PI_F * 0.25f;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
 // Utilities for converting PDF between Area (A) and Solid angle (W)
 // The many variants are solely for purpose of adapting the interface
 // to what the algorithm has already available.
