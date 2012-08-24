@@ -15,7 +15,7 @@ class AbstractRenderer
 public:
     AbstractRenderer()
     {
-        mMaxPathLength = 2;
+        mMaxPathLength = 4;
     }
 
     virtual void RunIteration(int aIteration, const Scene& aScene) = 0;

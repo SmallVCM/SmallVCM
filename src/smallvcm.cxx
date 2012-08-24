@@ -17,14 +17,17 @@
 
 #include <omp.h>
 
+#include <Windows.h>
+#undef max
+
 //typedef PathTracer  t_Renderer;
-typedef VertexCM    t_Renderer;
+//typedef VertexCM    t_Renderer;
 
 int main(int argc, const char *argv[])
 {
-    int iterations = 100;
+    int base_iterations = 1000;
     if(argc > 1)
-        iterations = atoi(argv[1]);
+        base_iterations = atoi(argv[1]);
 
     Scene scene;
     scene.LoadCornellBox();
@@ -35,33 +38,78 @@ int main(int argc, const char *argv[])
     omp_set_num_threads(numThreads);
 
     printf("Using %d threads\n", numThreads);
+    DWORD startT = GetTickCount();
 
-    typedef AbstractRenderer* AbstractRendererPtr;
-    AbstractRendererPtr *renderers;
+    {
+        int iterations = base_iterations * 2;
+        typedef PathTracer  t_Renderer;
+        typedef AbstractRenderer* AbstractRendererPtr;
+        AbstractRendererPtr *renderers;
 
-    renderers = new AbstractRendererPtr[numThreads];
+        renderers = new AbstractRendererPtr[numThreads];
 
-    for(int i=0; i<numThreads; i++)
-        renderers[i] = new t_Renderer(scene.mCamera.mResolution, 1234 + i);
+        for(int i=0; i<numThreads; i++)
+            renderers[i] = new t_Renderer(scene.mCamera.mResolution, 1234 + i);
 
 #pragma omp parallel for
-    for(int iter=0; iter < iterations; iter++)
+        for(int iter=0; iter < iterations; iter++)
+        {
+            int threadId = omp_get_thread_num();
+            renderers[threadId]->RunIteration(iter, scene);
+        }
+
+        Framebuffer fbuffer;
+        renderers[0]->GetFramebuffer(fbuffer);
+        for(int i=1; i<numThreads; i++)
+        {
+            Framebuffer tmp;
+            renderers[i]->GetFramebuffer(tmp);
+            fbuffer.Add(tmp);
+        }
+
+        fbuffer.Scale(1.f / numThreads);
+
+        fbuffer.SavePPM("cb_pt.ppm", 2.2f);
+        //fbuffer.SavePFM("cb.pfm");
+    }
+    DWORD endT = GetTickCount();
+    printf("Path tracing took %g s\n", float(endT - startT) / 1000.f);
+
+    startT = GetTickCount();
     {
-        int threadId = omp_get_thread_num();
-        renderers[threadId]->RunIteration(iter, scene);
+        int iterations = base_iterations;
+        typedef VertexCM  t_Renderer;
+        typedef AbstractRenderer* AbstractRendererPtr;
+        AbstractRendererPtr *renderers;
+
+        renderers = new AbstractRendererPtr[numThreads];
+
+        for(int i=0; i<numThreads; i++)
+            renderers[i] = new t_Renderer(scene.mCamera.mResolution, 1234 + i);
+
+#pragma omp parallel for
+        for(int iter=0; iter < iterations; iter++)
+        {
+            int threadId = omp_get_thread_num();
+            renderers[threadId]->RunIteration(iter, scene);
+        }
+
+        Framebuffer fbuffer;
+        renderers[0]->GetFramebuffer(fbuffer);
+        for(int i=1; i<numThreads; i++)
+        {
+            Framebuffer tmp;
+            renderers[i]->GetFramebuffer(tmp);
+            fbuffer.Add(tmp);
+        }
+
+        fbuffer.Scale(1.f / numThreads);
+
+        fbuffer.SavePPM("cb_vcm.ppm", 2.2f);
+        //fbuffer.SavePFM("cb.pfm");
     }
 
-    Framebuffer fbuffer;
-    renderers[0]->GetFramebuffer(fbuffer);
-    for(int i=1; i<numThreads; i++)
-    {
-        Framebuffer tmp;
-        renderers[i]->GetFramebuffer(tmp);
-        fbuffer.Add(tmp);
-    }
+    endT = GetTickCount();
+    printf("VCM took %g s\n", float(endT - startT) / 1000.f);
 
-    fbuffer.Scale(1.f / numThreads);
-
-    fbuffer.SavePPM("cb.ppm", 2.2f);
-    fbuffer.SavePFM("cb.pfm");
 }

@@ -160,8 +160,8 @@ public:
         float xlen = rightWallCenter.x - leftWallCenter.x;
         Vec3f leftBallCenter  = leftWallCenter  + Vec3f(2.f * xlen / 7.f, 0, 0);
         Vec3f rightBallCenter = rightWallCenter - Vec3f(2.f * xlen / 7.f, 0, 0);
-        //geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  radius, 6));
-        //geometryList->mGeometry.push_back(new Sphere(rightBallCenter, radius, 7));
+        geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  radius, 6));
+        geometryList->mGeometry.push_back(new Sphere(rightBallCenter, radius, 7));
 
         // Lights
         mLights.resize(2);
