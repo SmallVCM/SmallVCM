@@ -61,7 +61,8 @@ public:
                 {
                     const AbstractLight *light = mScene.GetLightPtr(isect.lightID);
                     float directPdfA;
-                    Vec3f contrib = light->GetRadiance(ray.dir, hitPoint, &directPdfA);
+                    Vec3f contrib = light->GetRadiance(mScene.mSceneSphere,
+                        ray.dir, hitPoint, &directPdfA);
                     if(contrib.IsZero())
                         break;
 
@@ -91,7 +92,7 @@ public:
 
                     Vec3f directionToLight;
                     float distance, directPdfW;
-                    Vec3f radiance = light->Illuminate(hitPoint,
+                    Vec3f radiance = light->Illuminate(mScene.mSceneSphere, hitPoint,
                         mRng.GetVec2f(), directionToLight, distance, directPdfW);
 
                     if(directPdfW > 0)

@@ -515,8 +515,8 @@ private:
         const float lightPickProb = 1.f / lightCount;
 
         float directPdfA, emissionPdfW;
-        const Vec3f radiance = aLight->GetRadiance(aRayDirection, aHitpoint,
-            &directPdfA, &emissionPdfW);
+        const Vec3f radiance = aLight->GetRadiance(mScene.mSceneSphere,
+            aRayDirection, aHitpoint, &directPdfA, &emissionPdfW);
 
         if(aCameraSample.mPathLength == 1)
             return radiance;
@@ -554,7 +554,7 @@ private:
         Vec3f directionToLight;
         float distance;
         float directPdfW, emissionPdfW, cosAtLight;
-        const Vec3f radiance = light->Illuminate(aHitpoint,
+        const Vec3f radiance = light->Illuminate(mScene.mSceneSphere, aHitpoint,
             rndPosSamples, directionToLight, distance, directPdfW,
             &emissionPdfW, &cosAtLight);
 
@@ -703,7 +703,7 @@ private:
         const AbstractLight *light = mScene.GetLightPtr(lightID);
 
         float emissionPdfW, directPdfW, cosLight;
-        oLightSample.mWeight = light->Emit(rndDirSamples, rndPosSamples,
+        oLightSample.mWeight = light->Emit(mScene.mSceneSphere, rndDirSamples, rndPosSamples,
             oLightSample.mOrigin, oLightSample.mDirection,
             emissionPdfW, &directPdfW, &cosLight);
 

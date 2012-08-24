@@ -29,6 +29,7 @@ int main(int argc, const char *argv[])
 
     Scene scene;
     scene.LoadCornellBox();
+    scene.BuildSceneSphere();
 
     //EyeLight renderer(scene.mCamera.mResolution);
 
@@ -38,6 +39,7 @@ int main(int argc, const char *argv[])
     printf("Using %d threads\n", numThreads);
 
     clock_t startT = clock();
+
     {
         int iterations = base_iterations * 2;
         typedef PathTracer  t_Renderer;

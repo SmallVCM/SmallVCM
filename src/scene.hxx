@@ -180,13 +180,33 @@ public:
         l->mIntensity = Vec3f(0.95492965f);
         mLights[1] = l;
         mMaterial2Light.insert(std::make_pair(1, 1));
+
+        DirectionalLight *ld = new DirectionalLight(Vec3f(-1.f, 1.f, -1.f));
+        ld->mIntensity = Vec3f(0.5f, 0.2f, 0.f) * 1.5f;
+        mLights.push_back(ld);
     }
+
+    void BuildSceneSphere()
+    {
+        Vec3f bboxMin( 1e36f);
+        Vec3f bboxMax(-1e36f);
+        mGeometry->GrowBBox(bboxMin, bboxMax);
+
+        const float radius2 = (bboxMax - bboxMin).LenSqr();
+
+        mSceneSphere.mSceneCenter = (bboxMax + bboxMin) * 0.5f;
+        mSceneSphere.mSceneRadius = std::sqrt(radius2) * 0.5f;
+        mSceneSphere.mInvSceneRadiusSqr = 1.f / Sqr(mSceneSphere.mSceneRadius);
+    }
+private:
+
 public:
     AbstractGeometry      *mGeometry;
     Camera                mCamera;
     std::vector<Material> mMaterials;
     std::vector<AbstractLight*>   mLights;
     std::map<int, int> mMaterial2Light;
+    SceneSphere        mSceneSphere;
 };
 
 #endif //__SCENE_HXX__

@@ -9,6 +9,16 @@
 #include <cmath>
 #include "math.hxx"
 
+struct SceneSphere
+{
+    // Center of the scene's bounding sphere
+    Vec3f mSceneCenter;
+    // Radius of the scene's bounding sphere
+    float mSceneRadius;
+    // 1.f / (mSceneRadius^2)
+    float mInvSceneRadiusSqr;
+};
+
 class AbstractLight
 {
 public:
@@ -23,9 +33,15 @@ public:
      *
      * Returns radiance.
      */
-    virtual Vec3f Illuminate(const Vec3f& aReceivingPosition,
-        const Vec2f& aRndTuple, Vec3f& oDirectionToLight, float& oDistance,
-        float& oDirectPdfW, float* oEmissionPdfW = NULL, float* oCosAtLight = NULL) const = 0;
+    virtual Vec3f Illuminate(
+        const SceneSphere &aSceneSphere,
+        const Vec3f       &aReceivingPosition,
+        const Vec2f       &aRndTuple,
+        Vec3f             &oDirectionToLight,
+        float             &oDistance,
+        float             &oDirectPdfW,
+        float             *oEmissionPdfW = NULL,
+        float             *oCosAtLight = NULL) const = 0;
 
     /* \brief Emits particle from the light.
      *
@@ -38,9 +54,15 @@ public:
      *
      * Returns "energy" that particle carries
      */
-    virtual Vec3f Emit(const Vec2f &aDirRndTuple, const Vec2f &aPosRndTuple,
-        Vec3f &oPosition, Vec3f &oDirection, float &oEmissionPdfW,
-        float *oDirectPdfA, float *oCosThetaLight) const = 0;
+    virtual Vec3f Emit(
+        const SceneSphere &aSceneSphere,
+        const Vec2f       &aDirRndTuple,
+        const Vec2f       &aPosRndTuple,
+        Vec3f             &oPosition,
+        Vec3f             &oDirection,
+        float             &oEmissionPdfW,
+        float             *oDirectPdfA,
+        float             *oCosThetaLight) const = 0;
 
     /* \brief Returns radiance for ray randomly hitting the light
      *
@@ -48,8 +70,12 @@ public:
      * Can also provide area pdf of sampling hitpoint in Illuminate,
      * and of emitting particle along the ray (in opposite direction).
      */
-    virtual Vec3f GetRadiance(const Vec3f &aRayDirection,
-        const Vec3f &aHitPoint, float *oDirectPdfA = NULL, float *oEmissionPdfW = NULL) const = 0;
+    virtual Vec3f GetRadiance(
+        const SceneSphere &aSceneSphere,
+        const Vec3f       &aRayDirection,
+        const Vec3f       &aHitPoint,
+        float             *oDirectPdfA = NULL,
+        float             *oEmissionPdfW = NULL) const = 0;
 
     // Whether the light has a finite extent (area, point) or not (directional, env. map)
     virtual bool IsFinite() const = 0;
@@ -57,6 +83,7 @@ public:
     virtual bool IsDelta() const = 0;
 };
 
+//////////////////////////////////////////////////////////////////////////
 class AreaLight : public AbstractLight
 {
 public:
@@ -169,6 +196,83 @@ public:
     Frame mFrame;
     Vec3f mIntensity;
     float mInvArea;
+};
+
+//////////////////////////////////////////////////////////////////////////
+class DirectionalLight : public AbstractLight
+{
+public:
+    DirectionalLight(){}
+    DirectionalLight(const Vec3f& aDirection)
+    {
+        mFrame.SetFromZ(aDirection);
+    }
+
+    virtual Vec3f Illuminate(
+        const SceneSphere &aSceneSphere,
+        const Vec3f       &aReceivingPosition,
+        const Vec2f       &aRndTuple,
+        Vec3f             &oDirectionToLight,
+        float             &oDistance,
+        float             &oDirectPdfW,
+        float             *oEmissionPdfW = NULL,
+        float             *oCosAtLight = NULL) const
+    {
+        oDirectionToLight     = -mFrame.Normal();
+        oDistance             = 1e36f;
+        oDirectPdfW           = 1.f;
+
+        if(oCosAtLight) *oCosAtLight = 1.f;
+        if(oEmissionPdfW)
+        {
+            *oEmissionPdfW = EvalConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
+        }
+        return mIntensity;
+    }
+
+    virtual Vec3f Emit(
+        const SceneSphere &aSceneSphere,
+        const Vec2f       &/*aDirRndTuple*/,
+        const Vec2f       &aPosRndTuple,
+        Vec3f             &oPosition,
+        Vec3f             &oDirection,
+        float             &oEmissionPdfW,
+        float             *oDirectPdfA,
+        float             *oCosThetaLight) const
+    {
+        const Vec2f xy = SampleConcentricDisc(aPosRndTuple);
+
+        oPosition = aSceneSphere.mSceneCenter +
+            aSceneSphere.mSceneRadius * (
+            -mFrame.Normal() + mFrame.Binormal() * xy.x + mFrame.Tangent()  * xy.y);
+
+        oDirection = mFrame.Normal();
+        oEmissionPdfW = EvalConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
+
+        if(oDirectPdfA)    *oDirectPdfA = 1.f;
+        // This is not used for infinite lights
+        if(oCosThetaLight) *oCosThetaLight = 1.f;
+
+        return mIntensity;
+    }
+
+    virtual Vec3f GetRadiance(
+        const SceneSphere &/*aSceneSphere*/,
+        const Vec3f       &/*aRayDirection*/,
+        const Vec3f       &/*aHitPoint*/,
+        float             *oDirectPdfA = NULL,
+        float             *oEmissionPdfW = NULL) const
+    {
+        return Vec3f(0);
+    }
+    // Whether the light has a finite extent (area, point) or not (directional, env. map)
+    virtual bool IsFinite() const { return false; };
+    // Whether the light has delta function (point, directional) or not (area)
+    virtual bool IsDelta() const  { return true; };
+
+public:
+    Frame mFrame;
+    Vec3f mIntensity;
 };
 
 #endif //__LIGHTS_HXX__

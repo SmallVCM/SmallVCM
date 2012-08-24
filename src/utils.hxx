@@ -89,6 +89,54 @@ float EvalPowerCosHemispherePdfW(
     return (aPower + 1.f) * std::pow(cosTheta, aPower) * (INV_PI_F * 0.5f);
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+// Disc sampling
+
+Vec2f SampleConcentricDisc(
+    const Vec2f &aSamples)
+{
+    float phi, r;
+
+    float a = 2*aSamples.x - 1;   /* (a,b) is now on [-1,1]^2 */
+    float b = 2*aSamples.y - 1;
+
+    if (a > -b) {     /* region 1 or 2 */
+        if (a > b) {  /* region 1, also |a| > |b| */
+            r = a;
+            phi = (PI_F/4.f) * (b/a);
+        }
+        else       {  /* region 2, also |b| > |a| */
+            r = b;
+            phi = (PI_F/4.f) * (2.f - (a/b));
+        }
+    }
+    else {        /* region 3 or 4 */
+        if (a < b) {  /* region 3, also |a| >= |b|, a != 0 */
+            r = -a;
+            phi = (PI_F/4.f) * (4.f + (b/a));
+        }
+        else       {  /* region 4, |b| >= |a|, but a==0 and b==0 could occur. */
+            r = -b;
+            if (b != 0)
+                phi = (PI_F/4.f) * (6.f - (a/b));
+            else
+                phi = 0;
+        }
+    }
+
+    Vec2f res;
+    res.x = r * std::cos(phi);
+    res.y = r * std::sin(phi);
+    return res;
+}
+
+float EvalConcentricDiscPdfA()
+{
+    return INV_PI_F;
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 /// Sample direction in the upper hemisphere with cosine-proportional pdf
 /** The returned PDF is with respect to solid angle measure */
