@@ -31,10 +31,11 @@ public:
 
     //! Whether this renderer was used at all
     bool WasUsed() const { return mIterations > 0; }
+public:
+    uint         mMaxPathLength;
 protected:
     int          mIterations;
     Framebuffer  mFramebuffer;
-    uint         mMaxPathLength;
     const Scene& mScene;
 };
 

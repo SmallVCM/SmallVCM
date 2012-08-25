@@ -171,20 +171,16 @@ public:
         case Ppm:
             mPpm   = true;
             mUseVM = true;
-            printf("VertexCM set to Progressive photon mapping\n");
             break;
         case Bpm:
             mUseVM = true;
-            printf("VertexCM set to Bidirectional Photon Mapping\n");
             break;
         case Bpt:
             mUseVC = true;
-            printf("VertexCM set to Bidirectional Path Tracer\n");
             break;
         case Vcm:
             mUseVC = true;
             mUseVM = true;
-            printf("VertexCM set to Vertex Connection and Merging\n");
             break;
         default:
             printf("Unknown algorithm requested\n");

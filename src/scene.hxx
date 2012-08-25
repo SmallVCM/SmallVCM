@@ -76,19 +76,37 @@ public:
 
     //////////////////////////////////////////////////////////////////////////
     // Loads a Cornell Box scene
-    void LoadCornellBox()
+    enum BoxMask
     {
-        bool light_ceiling    = false;
-        bool light_sun        = false;
-        bool light_point      = false;
-        bool light_background = true;
+        LightCeiling    = 1,
+        LightSun        = 2,
+        LightPoint      = 4,
+        LightBackground = 8,
+        BallLargeMirror = 16,
+        BallLargeGlass  = 32,
+        BallMirror      = 64,
+        BallGlass       = 128,
+        Default         = (LightCeiling | BallMirror | BallGlass),
+        BothLargeBalls  = (BallLargeMirror | BallLargeGlass)
+    };
+    void LoadCornellBox(const Vec2i &aResolution, uint aBoxMask = Default)
+    {
+        if((aBoxMask & BothLargeBalls) == BothLargeBalls)
+        {
+            printf("Cannot have both large balls, using mirror\n");
+            aBoxMask &= ~BallLargeGlass;
+        }
+        bool light_ceiling    = (aBoxMask & LightCeiling)    != 0;
+        bool light_sun        = (aBoxMask & LightSun)        != 0;
+        bool light_point      = (aBoxMask & LightPoint)      != 0;
+        bool light_background = (aBoxMask & LightBackground) != 0;
 
         // Camera
         mCamera.Setup(
             Vec3f(-0.0439815f, -4.12529f, 0.222539f),
             Vec3f(0.00688625f, 0.998505f, -0.0542161f),
             Vec3f(3.73896e-4f, 0.0542148f, 0.998529f),
-            Vec2f(256, 256), 45);
+            Vec2f(float(aResolution.x), float(aResolution.y)), 45);
 
         // Materials
         Material mat;
@@ -174,18 +192,24 @@ public:
         geometryList->mGeometry.push_back(new Triangle(p[6], p[2], p[1], 4));
 
         // Ball - central
-        float radius = 0.5f;
-        Vec3f center = (p[0] + p[1] + p[4] + p[5]) * (1.f / 4.f) + Vec3f(0, 0, radius);
-        //geometryList->mGeometry.push_back(new Sphere(center, radius, 6));
+        float largeRadius = 0.8f;
+        Vec3f center = (p[0] + p[1] + p[4] + p[5]) * (1.f / 4.f) + Vec3f(0, 0, largeRadius);
+        if((aBoxMask & BallLargeMirror) != 0)
+            geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 6));
+        if((aBoxMask & BallLargeGlass) != 0)
+            geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 7));
 
         // Balls - left and right
-        Vec3f leftWallCenter  = (p[0] + p[4]) * (1.f / 2.f) + Vec3f(0, 0, radius);
-        Vec3f rightWallCenter = (p[1] + p[5]) * (1.f / 2.f) + Vec3f(0, 0, radius);
+        float smallRadius = 0.5f;
+        Vec3f leftWallCenter  = (p[0] + p[4]) * (1.f / 2.f) + Vec3f(0, 0, smallRadius);
+        Vec3f rightWallCenter = (p[1] + p[5]) * (1.f / 2.f) + Vec3f(0, 0, smallRadius);
         float xlen = rightWallCenter.x - leftWallCenter.x;
         Vec3f leftBallCenter  = leftWallCenter  + Vec3f(2.f * xlen / 7.f, 0, 0);
         Vec3f rightBallCenter = rightWallCenter - Vec3f(2.f * xlen / 7.f, 0, 0);
-        //geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  radius, 6));
-        //geometryList->mGeometry.push_back(new Sphere(rightBallCenter, radius, 7));
+        if((aBoxMask & BallMirror) != 0)
+            geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  smallRadius, 6));
+        if((aBoxMask & BallGlass) != 0)
+            geometryList->mGeometry.push_back(new Sphere(rightBallCenter, smallRadius, 7));
 
         // Lights
         if(light_ceiling)
