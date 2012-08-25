@@ -149,10 +149,15 @@ public:
                 // bmp is stored from bottom up
                 const Vec3f &rgbF = mColor[x + (mResY-y-1)*mResX];
                 typedef unsigned char byte;
+                float gammaBgr[3];
+                gammaBgr[0] = std::pow(rgbF.z, invGamma) * 255.f;
+                gammaBgr[1] = std::pow(rgbF.y, invGamma) * 255.f;
+                gammaBgr[2] = std::pow(rgbF.x, invGamma) * 255.f;
+
                 byte bgrB[3];
-                bgrB[0] = byte(std::pow(rgbF.z, invGamma) * 255.f);
-                bgrB[1] = byte(std::pow(rgbF.y, invGamma) * 255.f);
-                bgrB[2] = byte(std::pow(rgbF.x, invGamma) * 255.f);
+                bgrB[0] = byte(std::min(255.f, std::max(0.f, gammaBgr[0])));
+                bgrB[1] = byte(std::min(255.f, std::max(0.f, gammaBgr[1])));
+                bgrB[2] = byte(std::min(255.f, std::max(0.f, gammaBgr[2])));
 
                 bmp.write((char*)&bgrB, sizeof(bgrB));
             }
