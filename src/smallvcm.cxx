@@ -78,11 +78,14 @@ float render(const Config &aConfig)
     AbstractRendererPtr *renderers;
     renderers = new AbstractRendererPtr[aConfig.mNumThreads];
 
+    int iterations = aConfig.mIterations;
     switch(aConfig.mAlgorithm)
     {
     case Config::kEyeLight:
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new EyeLight(*aConfig.mScene);
+        // iterations have no meaning for kEyeLight
+        iterations = 1;
         break;
     case Config::kPathTracing:
         for(int i=0; i<aConfig.mNumThreads; i++)
@@ -121,7 +124,7 @@ float render(const Config &aConfig)
 
     clock_t startT = clock();
 #pragma omp parallel for
-    for(int iter=0; iter < aConfig.mIterations; iter++)
+    for(int iter=0; iter < iterations; iter++)
     {
         int threadId = omp_get_thread_num();
         renderers[threadId]->RunIteration(iter);
@@ -198,11 +201,11 @@ int main(int argc, const char *argv[])
 
     Framebuffer fbuffer;
     Config      config;
-    config.mIterations    = 1;
+    config.mIterations    = 10;
     config.mFramebuffer   = &fbuffer;
     config.mNumThreads    = numThreads;
     config.mBaseSeed      = 1234;
-    config.mMaxPathLength = 2;
+    config.mMaxPathLength = 10;
 
     std::ofstream html("report.html");
     std::vector<float> times;
