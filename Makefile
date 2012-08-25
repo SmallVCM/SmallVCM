@@ -5,4 +5,4 @@ all:
 	g++ -o smallvcm ./src/smallvcm.cxx -O3 -std=c++0x -fopenmp -DUSE_CPP11_RNG
 
 old_rng:
-	g++ -o smallvcm ./src/smallvcm.cxx -O3 -std=c++0x -fopenmp
+	g++ -o smallvcm ./src/smallvcm.cxx -O3 -fopenmp

@@ -25,6 +25,7 @@
 #include <vector>
 #include <cmath>
 #include <time.h>
+#include <cstdlib>
 #include "math.hxx"
 #include "ray.hxx"
 #include "geometry.hxx"

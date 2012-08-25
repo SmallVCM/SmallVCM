@@ -27,7 +27,6 @@
 
 #include <vector>
 #include <cmath>
-#include <random>
 #include "renderer.hxx"
 #include "bxdf.hxx"
 #include "rng.hxx"
