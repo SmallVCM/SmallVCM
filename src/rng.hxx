@@ -30,27 +30,13 @@
 #include "renderer.hxx"
 #include "bxdf.hxx"
 
-#define FORCE_CPP11 1
-
 #if defined(_MSC_VER)
-#   define IS_MSVC2010 (_MSC_VER >= 1600)
-#else
-#   define IS_MSVC2010 0
+#   if (_MSC_VER >= 1600)
+#       define USE_CPP11_RNG
+#   endif
 #endif
 
-#if defined(__GNUC__) && defined(__GNUC_MINOR__)
-#   define IS_GCC47 ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))
-#else
-#   define IS_GCC47 0
-#endif
-
-#define IS_CPP11 (IS_MSVC2010 || IS_GCC47)
-
-#if FORCE_CPP11 && !IS_CPP11
-#   error "Compiler does not support C++11, please set FORCE_CPP11 to 0"
-#endif
-
-#if IS_CPP11
+#if defined(USE_CPP11_RNG)
 
 #include <random>
 class Rng
