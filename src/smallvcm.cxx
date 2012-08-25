@@ -57,7 +57,7 @@ struct Config
     const char* GetName()
     {
         static const char* algorithmNames[7] = {
-            "Eye Light (L.N, DotLN)",
+            "Eye Light",
             "Path Tracing",
             "Light Tracing",
             "Progressive Photon Mapping",
@@ -252,10 +252,12 @@ int main(int argc, const char *argv[])
         uint mask = sceneConfigs[sceneId].mMask;
         if(sceneId2 < sceneConfigCount)
             mask |= Scene::kGlossyFloor;
+
         Scene scene;
         scene.LoadCornellBox(Vec2i(256), mask);
         scene.BuildSceneSphere();
         config.mScene = &scene;
+
         std::string sceneFilename(sceneConfigs[sceneId].mAcronym);
         if((mask & Scene::kGlossyFloor) != 0)
             sceneFilename = "g" + sceneFilename;
@@ -283,14 +285,18 @@ int main(int argc, const char *argv[])
 
             // Html output
             fbuffer.SaveBMP(filename.c_str(), 2.2f);
-            html << "<td> <a href=\"" << filename << "\">"
+            html << "<td width=\"" << thumbnailSize << "pixels\" valign=\"top\" align=\"center\">"
+                << " <a href=\"" << filename << "\">"
                 << "<img src=\"" << filename << "\" "
                 << "alt=\"" << config.GetName() << " (" << time << " s)\" "
                 << "height=\"" << thumbnailSize << "\" "
                 << "width=\"" << thumbnailSize << "\" />"
                 << "</a><br/>" << std::endl;
-            html << config.GetAcronym()
-                << " (" << time << " s)</td>" << std::endl;
+            //html << "<abbr title=\"" << config.GetName() << "\">"
+            //    << config.GetAcronym() << "</abbr> "
+            //    << " (" << time << " s)</td>" << std::endl;
+            html << "<small>" << config.GetName()
+                << " (" << time << " s)</small></td>" << std::endl;
         }
         html << "</tr>" << std::endl;
         html << "</table>" << std::endl;
