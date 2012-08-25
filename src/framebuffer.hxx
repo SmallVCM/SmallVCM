@@ -55,6 +55,8 @@ public:
             mColor[i] = mColor[i] * Vec3f(aScale);
     }
 
+    //////////////////////////////////////////////////////////////////////////
+    // Saving
     void SavePPM(const char* aFilename, float aGamma = 1.f)
     {
         const float invGamma = 1.f / aGamma;
@@ -91,6 +93,70 @@ public:
 
         ppm.write(reinterpret_cast<const char*>(&mColor[0]),
             mColor.size() * sizeof(Vec3f));
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Saving BMP
+    struct BmpHeader
+    {
+        //to avoid alignment issues, we leave this outside
+        //char   mMagic[2];        //!< always: BM
+        uint   mFileSize;        //!< size of file in bytes
+        uint   mReserved01;      //!< 2x 2 reserved bytes
+        uint   mDataOffset;      //!< Offset in bytes where data can be found (54)
+
+        uint   mHeaderSize;      //!< 40B
+        int    mWidth;           //!< width in pixels
+        int    mHeight;          //!< height in pixels
+
+        short  mColorPlates;     //!< must be 1
+        short  mBitsPerPixel;    //!< we use 24bpp
+        uint   mCompression;     //!< we use BI_RGB ~ 0, uncompressed
+        uint   mImageSize;       //!< mWidth x mHeight x 3B
+        uint   mHorizRes;        //!< pixels per meter (75dpi ~ 2953ppm)
+        uint   mVertRes;         //!< pixels per meter (75dpi ~ 2953ppm)
+        uint   mPaletteColors;   //!< not using palette - 0
+        uint   mImportantColors; //!< 0 - all are important
+    };
+
+    void SaveBMP(const char* aFilename, float aGamma = 1.f)
+    {
+        std::ofstream bmp(aFilename, std::ios::binary);
+        BmpHeader header;
+        bmp.write("BM", 2);
+        header.mFileSize   = uint(sizeof(BmpHeader) + 2) + mResX * mResX * 3;
+        header.mReserved01 = 0;
+        header.mDataOffset = uint(sizeof(BmpHeader) + 2);
+        header.mHeaderSize = 40;
+        header.mWidth      = mResX;
+        header.mHeight     = mResY;
+        header.mColorPlates     = 1;
+        header.mBitsPerPixel    = 24;
+        header.mCompression     = 0;
+        header.mImageSize       = mResX * mResY * 3;
+        header.mHorizRes        = 2953;
+        header.mVertRes         = 2953;
+        header.mPaletteColors   = 0;
+        header.mImportantColors = 0;
+
+        bmp.write((char*)&header, sizeof(header));
+
+        const float invGamma = 1.f / aGamma;
+        for(int y=0; y<mResY; y++)
+        {
+            for(int x=0; x<mResX; x++)
+            {
+                // bmp is stored from bottom up
+                const Vec3f &rgbF = mColor[x + (mResY-y-1)*mResX];
+                typedef unsigned char byte;
+                byte bgrB[3];
+                bgrB[0] = byte(std::pow(rgbF.z, invGamma) * 255.f);
+                bgrB[1] = byte(std::pow(rgbF.y, invGamma) * 255.f);
+                bgrB[2] = byte(std::pow(rgbF.x, invGamma) * 255.f);
+
+                bmp.write((char*)&bgrB, sizeof(bgrB));
+            }
+        }
     }
 private:
     std::vector<Vec3f> mColor;
