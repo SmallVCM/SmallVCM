@@ -208,18 +208,18 @@ public:
         return res;
     }
 
-    static Mat4f Perspective(float fov, float near, float far)
+    static Mat4f Perspective(float aFov, float aNear, float aFar)
     {
         // Camera points towards -z.  0 < near < far.
         // Matrix maps z range [-near, -far] to [-1, 1], after homogeneous division.
-        float f = 1.f / (std::tan(fov * PI_F / 360.0f));
-        float d = 1.f / (near - far);
+        float f = 1.f / (std::tan(aFov * PI_F / 360.0f));
+        float d = 1.f / (aNear - aFar);
 
         Mat4f r;
-        r.m00 = f;    r.m01 = 0.0f; r.m02 = 0.0f;             r.m03 = 0.0f;
-        r.m10 = 0.0f; r.m11 = -f;   r.m12 = 0.0f;             r.m13 = 0.0f;
-        r.m20 = 0.0f; r.m21 = 0.0f; r.m22 = (near + far) * d; r.m23 = 2.0f * near * far * d;
-        r.m30 = 0.0f; r.m31 = 0.0f; r.m32 = -1.0f;            r.m33 = 0.0f;
+        r.m00 = f;    r.m01 = 0.0f; r.m02 = 0.0f;               r.m03 = 0.0f;
+        r.m10 = 0.0f; r.m11 = -f;   r.m12 = 0.0f;               r.m13 = 0.0f;
+        r.m20 = 0.0f; r.m21 = 0.0f; r.m22 = (aNear + aFar) * d; r.m23 = 2.0f * aNear * aFar * d;
+        r.m30 = 0.0f; r.m31 = 0.0f; r.m32 = -1.0f;              r.m33 = 0.0f;
         return r;
     }
 public:
