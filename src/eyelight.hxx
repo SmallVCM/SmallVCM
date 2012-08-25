@@ -37,7 +37,11 @@ public:
 
             if(mScene.Intersect(ray, isect))
             {
-                mFramebuffer.AddColor(sample, Vec3f(Dot(isect.normal, -ray.dir)));
+                float dotLN = Dot(isect.normal, -ray.dir);
+                if(dotLN > 0)
+                    mFramebuffer.AddColor(sample, Vec3f(dotLN));
+                else
+                    mFramebuffer.AddColor(sample, Vec3f(-dotLN, 0, 0));
             }
         }
         mIterations++;
