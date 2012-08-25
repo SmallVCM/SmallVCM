@@ -7,10 +7,32 @@
 
 #include <vector>
 #include <cmath>
-#include <random>
 #include "renderer.hxx"
 #include "bxdf.hxx"
 
+#define FORCE_CPP11 1
+
+#if defined(_MSC_VER)
+#   define IS_MSVC2010 (_MSC_VER >= 1600)
+#else
+#   define IS_MSVC2010 0
+#endif
+
+#if defined(__GNUC__) && defined(__GNUC_MINOR__)
+#   define IS_GCC47 ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))
+#else
+#   define IS_GCC47 0
+#endif
+
+#define IS_CPP11 (IS_MSVC2010 || IS_GCC47)
+
+#if FORCE_CPP11 && !IS_CPP11
+#   error "Compiler does not support C++11, please set FORCE_CPP11 to 0"
+#endif
+
+#if IS_CPP11
+
+#include <random>
 class Rng
 {
 public:
@@ -54,86 +76,44 @@ private:
     std::uniform_real_distribution<float> mDistFloat;
 };
 
-namespace TeaDetail_v2
-{
-    int JenkinsMix(uint a, uint b, uint c)
-    {
-        a=a-b;  a=a-c;  a=a^(c >> 13);
-        b=b-c;  b=b-a;  b=b^(a << 8);
-        c=c-a;  c=c-b;  c=c^(b >> 13);
-        a=a-b;  a=a-c;  a=a^(c >> 12);
-        b=b-c;  b=b-a;  b=b^(a << 16);
-        c=c-a;  c=c-b;  c=c^(b >> 5);
-        a=a-b;  a=a-c;  a=a^(c >> 3);
-        b=b-c;  b=b-a;  b=b^(a << 10);
-        c=c-a;  c=c-b;  c=c^(b >> 15);
-        return c;
-    }
+#else
 
-    template<unsigned int rounds>
-    class TeaQImplTemplate_v2
-    {
-    public:
-        //////////////////////////////////////////////////////////////////////////
-        // aCpuRndSeed  - random seed generated on CPU, not used for Sobol
-        // aIndexOffset - offset to be added to g_IndexBase to get real index
-        // aPixelIndex   - a number based on pixel/slot, used to scramble
-        void Reset(uint aCpuRndSeed, uint aIndexOffset, uint aPixelIndex)
-        {
-            mState0 = aCpuRndSeed;
-            mState1 = JenkinsMix(aIndexOffset, aPixelIndex, 0x9e3779b9u);
-        }
-
-        void ForceNextDimension()                   {}
-        void ForceDimensionBy(int /*aDimensionOffset*/) {}
-
-        uint GetImpl(void)
-        {
-            unsigned int sum=0;
-            const unsigned int delta=0x9e3779b9U;
-
-            for (unsigned int i=0; i<rounds; i++) {
-                sum+=delta;
-                mState0+=((mState1<<4)+0xa341316cU) ^ (mState1+sum) ^ ((mState1>>5)+0xc8013ea4U);
-                mState1+=((mState0<<4)+0xad90777dU) ^ (mState0+sum) ^ ((mState0>>5)+0x7e95761eU);
-            }
-            return mState0;
-        }
-        //////////////////////////////////////////////////////////////////////////
-        void StoreState(uint *oState1, uint *oState2)
-        {
-            *oState1 = mState0;
-            *oState2 = mState1;
-        }
-
-        void LoadState(uint aState1, uint aState2, uint /*aDimension*/)
-        {
-            mState0 = aState1;
-            mState1 = aState2;
-        }
-
-    private:
-        uint mState0, mState1;
-    };
-}
-
-typedef TeaDetail_v2::TeaQImplTemplate_v2<6>  TeaQImpl_v2;
-
-template<typename GpuQRandomImpl>
-class GpuQRandomBase_v2
+template<unsigned int rounds>
+class TeaImplTemplate
 {
 public:
-    //////////////////////////////////////////////////////////////////////////
-    // aCpuRndSeed  - random seed generated on CPU, not used for Sobol
-    // aIndexOffset - offset to be added to g_IndexBase to get real index
-    // aPixelIndex   - a number based on pixel/slot, used to scramble
-    void Reset(uint aCpuRndSeed, uint aIndexOffset, uint aPixelIndex)
+    void Reset(uint aSeed0, uint aSeed1)
     {
-        mImpl.Reset(aCpuRndSeed, aIndexOffset, aPixelIndex);
+        mState0 = aSeed0;
+        mState1 = aSeed1;
     }
 
-    void ForceNextDimension()                   { mImpl.ForceNextDimension(); }
-    void ForceDimensionBy(int aDimensionOffset) { mImpl.ForceDimensionBy(aDimensionOffset); }
+    uint GetImpl(void)
+    {
+        unsigned int sum=0;
+        const unsigned int delta=0x9e3779b9U;
+
+        for (unsigned int i=0; i<rounds; i++) {
+            sum+=delta;
+            mState0+=((mState1<<4)+0xa341316cU) ^ (mState1+sum) ^ ((mState1>>5)+0xc8013ea4U);
+            mState1+=((mState0<<4)+0xad90777dU) ^ (mState0+sum) ^ ((mState0>>5)+0x7e95761eU);
+        }
+        return mState0;
+    }
+private:
+    uint mState0, mState1;
+};
+
+typedef TeaImplTemplate<6>  TeaImpl;
+
+template<typename RandomImpl>
+class RandomBase
+{
+public:
+    RandomBase(int aSeed = 1234)
+    {
+        mImpl.Reset(uint(aSeed), 5678);
+    }
 
     uint  GetUint   (void)            { return getImpl(); }
     float GetFloat  (void)            { return (float(GetUint()) + 1.f) * (1.0f / 4294967297.0f); }
@@ -168,9 +148,11 @@ protected:
     uint getImpl(void) { return mImpl.GetImpl(); }
 
 private:
-    GpuQRandomImpl mImpl;
+    RandomImpl mImpl;
 };
 
-typedef GpuQRandomBase_v2<TeaQImpl_v2> GpuQ2RandomTea;
+typedef RandomBase<TeaImpl> Rng;
+
+#endif
 
 #endif //__RNG_HXX__
