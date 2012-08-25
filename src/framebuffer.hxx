@@ -8,6 +8,7 @@
 #include <vector>
 #include <cmath>
 #include <fstream>
+#include <string.h>
 
 class Framebuffer
 {

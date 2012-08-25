@@ -43,13 +43,13 @@ public:
     { Vec2x<T> res; for(int i=0; i<2; i++) res.Get(i) = a.Get(i) / b.Get(i); return res; }
 
     Vec2x<T>& operator+=(const Vec2x& a)
-    { for(int i=0; i<2; i++) res.Get(i) += a.Get(i); return *this;}
+    { for(int i=0; i<2; i++) Get(i) += a.Get(i); return *this;}
     Vec2x<T>& operator-=(const Vec2x& a)
-    { for(int i=0; i<2; i++) res.Get(i) -= a.Get(i); return *this;}
+    { for(int i=0; i<2; i++) Get(i) -= a.Get(i); return *this;}
     Vec2x<T>& operator*=(const Vec2x& a)
-    { for(int i=0; i<2; i++) res.Get(i) *= a.Get(i); return *this;}
+    { for(int i=0; i<2; i++) Get(i) *= a.Get(i); return *this;}
     Vec2x<T>& operator/=(const Vec2x& a)
-    { for(int i=0; i<2; i++) res.Get(i) /= a.Get(i); return *this;}
+    { for(int i=0; i<2; i++) Get(i) /= a.Get(i); return *this;}
 
     friend T Dot(const Vec2x& a, const Vec2x& b)
     { T res(0); for(int i=0; i<2; i++) res += a.Get(i) * b.Get(i); return res; }

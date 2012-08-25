@@ -243,7 +243,6 @@ int main(int argc, const char *argv[])
             // Html output
             times[algId] = time;
             fbuffer.SaveBMP(filename.c_str(), 2.2f);
-            fbuffer.SavePPM("sanity.ppm", 2.2f);
             html << "<td> <a href=\"" << filename << "\">"
                 << "<img src=\"" << filename << "\" "
                 << "alt=\"" << config.GetName() << " (" << time << " s)\" "
