@@ -183,20 +183,24 @@ public:
         if(sampledEvent == Diffuse)
         {
             result += SampleDiffuse(mat, aRndTriplet.GetXY(), localOmegaGen, oPdfW);
+            if(result.IsZero()) return Vec3f(0);
             result += EvaluatePhong(mat, localOmegaGen, &oPdfW);
         }
         else if(sampledEvent == Phong)
         {
             result += SamplePhong(mat, aRndTriplet.GetXY(), localOmegaGen, oPdfW);
+            if(result.IsZero()) return Vec3f(0);
             result += EvaluateDiffuse(mat, localOmegaGen, &oPdfW);
         }
         else if(sampledEvent == Reflect)
         {
             result += SampleReflect(mat, aRndTriplet.GetXY(), localOmegaGen, oPdfW);
+            if(result.IsZero()) return Vec3f(0);
         }
         else
         {
             result += SampleRefract(mat, aRndTriplet.GetXY(), localOmegaGen, oPdfW);
+            if(result.IsZero()) return Vec3f(0);
         }
 
         oCosThetaGen   = std::abs(localOmegaGen.z);
@@ -222,6 +226,8 @@ private:
     Vec3f SampleDiffuse(const Material &aMaterial, const Vec2f &aRndTuple,
         Vec3f &oLocalOmegaGen, float &oPdfW) const
     {
+        if(mLocalOmegaFix.z < EPS_COSINE)
+            return Vec3f(0);
         float unweightedPdfW;
         oLocalOmegaGen = SampleCosHemisphereW(aRndTuple, &unweightedPdfW);
         oPdfW += unweightedPdfW * mProbabilities.diffProb;
