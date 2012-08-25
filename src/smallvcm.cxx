@@ -208,8 +208,6 @@ int main(int argc, const char *argv[])
     config.mMaxPathLength = 10;
 
     std::ofstream html("report.html");
-    std::vector<float> times;
-    times.resize(Config::kAlgorithmMax);
     int thumbnailSize = 128;
 
     int algorithmMask[7] = {1,1,1,1,1,1,1};
@@ -241,24 +239,15 @@ int main(int argc, const char *argv[])
                 config.GetAcronym() + ".bmp";
 
             // Html output
-            times[algId] = time;
             fbuffer.SaveBMP(filename.c_str(), 2.2f);
             html << "<td> <a href=\"" << filename << "\">"
                 << "<img src=\"" << filename << "\" "
                 << "alt=\"" << config.GetName() << " (" << time << " s)\" "
                 << "height=\"" << thumbnailSize << "\" "
                 << "width=\"" << thumbnailSize << "\" />"
-                << "</a></td>" << std::endl;
-        }
-        html << "</tr>" << std::endl;
-        // Html description row
-        html << "<tr>" << std::endl;
-        for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
-        {
-            if(!algorithmMask[algId]) continue;
-            config.mAlgorithm = Config::Algorithm(algId);
-            html << "<td>" << config.GetAcronym()
-                << " (" << times[algId] << " s)</td>" << std::endl;
+                << "</a><br/>" << std::endl;
+            html << config.GetAcronym()
+                << " (" << time << " s)</td>" << std::endl;
         }
         html << "</tr>" << std::endl;
         html << "</table>" << std::endl;
