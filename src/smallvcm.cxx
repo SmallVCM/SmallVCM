@@ -212,17 +212,24 @@ int main(int argc, const char *argv[])
 
     int algorithmMask[7] = {1,1,1,1,1,1,1};
 
-    for(int sceneId = 0; sceneId < sceneConfigCount; sceneId++)
+    for(int sceneId2 = 0; sceneId2 < sceneConfigCount * 2; sceneId2++)
     {
+        int sceneId = sceneId2 % sceneConfigCount;
+        uint mask = sceneConfigs[sceneId].mMask;
+        if(sceneId < sceneConfigCount)
+            mask |= Scene::kGlossyFloor;
         Scene scene;
-        scene.LoadCornellBox(Vec2i(256), sceneConfigs[sceneId].mMask);
+        scene.LoadCornellBox(Vec2i(256), mask);
         scene.BuildSceneSphere();
         config.mScene = &scene;
         std::string sceneFilename(sceneConfigs[sceneId].mAcronym);
 
         html << "<table>" << std::endl;
         html << "<tr>" << std::endl;
-        html << "<h2>" << sceneConfigs[sceneId].mName << "</h2>" << std::endl;
+        if((mask & Scene::kGlossyFloor) != 0)
+            html << "<h2> Glossy " << sceneConfigs[sceneId].mName << "</h2>" << std::endl;
+        else
+            html << "<h2>" << sceneConfigs[sceneId].mName << "</h2>" << std::endl;
         html << "</tr>" << std::endl;
 
         printf("Scene: %s\n", sceneConfigs[sceneId].mName);

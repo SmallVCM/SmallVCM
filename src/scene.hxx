@@ -91,6 +91,7 @@ public:
         kBallLargeGlass  = 32,
         kBallMirror      = 64,
         kBallGlass       = 128,
+        kGlossyFloor     = 256,
         kDefault         = (kLightCeiling | kBallMirror | kBallGlass),
         kBothSmallBalls  = (kBallMirror | kBallGlass),
         kBothLargeBalls  = (kBallLargeMirror | kBallLargeGlass)
@@ -123,9 +124,9 @@ public:
 
         // 2) glossy white floor
         mat.Reset();
-        mat.mDiffuseReflectance = Vec3f(0.3f);
-        mat.mPhongReflectance   = Vec3f(0.4f);
-        mat.mGlossiness         = 10.f;
+        mat.mDiffuseReflectance = Vec3f(0.1f);
+        mat.mPhongReflectance   = Vec3f(0.7f);
+        mat.mGlossiness         = 90.f;
         mMaterials.push_back(mat);
 
         // 3) diffuse green left wall
@@ -154,6 +155,12 @@ public:
         mat.mIOR                = 1.6f;
         mMaterials.push_back(mat);
 
+        // 8) diffuse blue wall (back wall for glossy floor)
+        mat.Reset();
+        mat.mDiffuseReflectance = Vec3f(0.156863f, 0.172549f, 0.803922f);
+        mMaterials.push_back(mat);
+
+
         delete mGeometry;
         Vec3f p[8] = {
             Vec3f(-1.27029f,  1.30455f, -1.28002f),
@@ -169,13 +176,25 @@ public:
         GeometryList *geometryList = new GeometryList;
         mGeometry = geometryList;
 
-        // Floor
-        geometryList->mGeometry.push_back(new Triangle(p[0], p[4], p[5], 5));
-        geometryList->mGeometry.push_back(new Triangle(p[5], p[1], p[0], 5));
+        if((aBoxMask & kGlossyFloor) != 0)
+        {
+            // Floor
+            geometryList->mGeometry.push_back(new Triangle(p[0], p[4], p[5], 2));
+            geometryList->mGeometry.push_back(new Triangle(p[5], p[1], p[0], 2));
+            // Back wall
+            geometryList->mGeometry.push_back(new Triangle(p[0], p[1], p[2], 8));
+            geometryList->mGeometry.push_back(new Triangle(p[2], p[3], p[0], 8));
+        }
+        else
+        {
+            // Floor
+            geometryList->mGeometry.push_back(new Triangle(p[0], p[4], p[5], 5));
+            geometryList->mGeometry.push_back(new Triangle(p[5], p[1], p[0], 5));
+            // Back wall
+            geometryList->mGeometry.push_back(new Triangle(p[0], p[1], p[2], 5));
+            geometryList->mGeometry.push_back(new Triangle(p[2], p[3], p[0], 5));
+        }
 
-        // Back wall
-        geometryList->mGeometry.push_back(new Triangle(p[0], p[1], p[2], 5));
-        geometryList->mGeometry.push_back(new Triangle(p[2], p[3], p[0], 5));
 
         // Ceiling
         if(light_ceiling)
