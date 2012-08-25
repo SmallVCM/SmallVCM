@@ -194,7 +194,10 @@ struct SceneConfig
 
 int main(int argc, const char *argv[])
 {
-    int base_iterations = 1;
+    int   base_iterations = 10;
+    Vec2i resolution(256, 256);
+    int   max_path_length = 10;
+
     if(argc > 1)
         base_iterations = atoi(argv[1]);
 
@@ -231,11 +234,11 @@ int main(int argc, const char *argv[])
 
     Framebuffer fbuffer;
     Config      config;
-    config.mIterations    = 10;
+    config.mIterations    = base_iterations;
     config.mFramebuffer   = &fbuffer;
     config.mNumThreads    = numThreads;
     config.mBaseSeed      = 1234;
-    config.mMaxPathLength = 10;
+    config.mMaxPathLength = max_path_length;
 
     std::ofstream html("report.html");
     int thumbnailSize = 128;
@@ -254,7 +257,7 @@ int main(int argc, const char *argv[])
             mask |= Scene::kGlossyFloor;
 
         Scene scene;
-        scene.LoadCornellBox(Vec2i(256), mask);
+        scene.LoadCornellBox(resolution, mask);
         scene.BuildSceneSphere();
         config.mScene = &scene;
 
