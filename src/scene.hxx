@@ -120,7 +120,7 @@ public:
     {
         if((aBoxMask & kBothLargeBalls) == kBothLargeBalls)
         {
-            printf("Cannot have both large balls, using mirror\n");
+            printf("Cannot have both large balls, using mirror\n\n");
             aBoxMask &= ~kBallLargeGlass;
         }
         bool light_ceiling    = (aBoxMask & kLightCeiling)    != 0;

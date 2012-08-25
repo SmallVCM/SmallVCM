@@ -226,8 +226,8 @@ public:
                         "fairly straightforward. In BounceSample for CameraSample\n"
                         "limit the considered events to Specular only.\n"
                         "Merging will use non-specular components, bounce will be specular.\n"
-                        "If there is no specular component, the ray will terminate.");
-                    printf("We are now switching from *Ppm* to *Bpm*, which can handle the scene\n");
+                        "If there is no specular component, the ray will terminate.\n\n");
+                    printf("We are now switching from *Ppm* to *Bpm*, which can handle the scene\n\n");
                     mPpm = false;
                 }
             }

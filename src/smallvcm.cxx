@@ -204,7 +204,7 @@ int main(int argc, const char *argv[])
         "random number generator.\n");
     printf("This is worse than the Mersenne Twister from C++11.\n");
     printf("Consider setting up for C++11.\n");
-    printf("Visual Studio 2010, and g++ 4.6.3 and later work.\n");
+    printf("Visual Studio 2010, and g++ 4.6.3 and later work.\n\n");
 #endif
 
     const int numThreads = std::max(1, omp_get_num_procs());
