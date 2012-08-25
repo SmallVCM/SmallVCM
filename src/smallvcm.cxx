@@ -216,13 +216,15 @@ int main(int argc, const char *argv[])
     {
         int sceneId = sceneId2 % sceneConfigCount;
         uint mask = sceneConfigs[sceneId].mMask;
-        if(sceneId < sceneConfigCount)
+        if(sceneId2 < sceneConfigCount)
             mask |= Scene::kGlossyFloor;
         Scene scene;
         scene.LoadCornellBox(Vec2i(256), mask);
         scene.BuildSceneSphere();
         config.mScene = &scene;
         std::string sceneFilename(sceneConfigs[sceneId].mAcronym);
+        if((mask & Scene::kGlossyFloor) != 0)
+            sceneFilename = "g" + sceneFilename;
 
         html << "<table>" << std::endl;
         html << "<tr>" << std::endl;
