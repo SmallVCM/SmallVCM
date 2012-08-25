@@ -157,7 +157,7 @@ public:
                     // russian roulette
                     const float contProb = bxdf.ContinuationProb();
 
-                    lastSpecular = (sampledEvent & BXDF<true>::Specular) != 0;
+                    lastSpecular = (sampledEvent & BXDF<true>::kSpecular) != 0;
                     lastPdfW     = pdf * contProb;
 
                     if(contProb < 1.f)

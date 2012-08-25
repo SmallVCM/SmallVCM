@@ -139,20 +139,20 @@ public:
     {
         // light particles contribute to camera,
         // No MIS weights (d0, d1vm, d1vc all ignored)
-        Lighttrace = 0,
+        kLightTrace = 0,
         // Camera and light particles merged on first non-specular camera bounce.
         // Cannot handle mixed specular + non-specular materials.
         // No MIS weights (d0, d1vm, d1vc all ignored)
-        Ppm,
+        kPpm,
         // Camera and light particles merged on along full path.
         // d0 and d1vm used for MIS
-        Bpm,
+        kBpm,
         // Standard bidirection path tracing
         // d0 and d1vc used for MIS
-        Bpt,
+        kBpt,
         // Vertex connection and mering
         // d0, d1vm, and d1vc used for MIS
-        Vcm
+        kVcm
     };
 public:
     VertexCM(const Scene& aScene, AlgorithmType aAlgorithm,
@@ -164,21 +164,21 @@ public:
         mPpm            = false;
         switch(aAlgorithm)
         {
-        case Lighttrace:
+        case kLightTrace:
             mLightTraceOnly = true;
             printf("VertexCM set to Light tracer\n");
             break;
-        case Ppm:
+        case kPpm:
             mPpm   = true;
             mUseVM = true;
             break;
-        case Bpm:
+        case kBpm:
             mUseVM = true;
             break;
-        case Bpt:
+        case kBpt:
             mUseVC = true;
             break;
-        case Vcm:
+        case kVcm:
             mUseVC = true;
             mUseVM = true;
             break;
@@ -845,7 +845,7 @@ private:
         float brdfRevPdfW = aBxdf.EvaluatePdfW(mScene, aoPathSample.mDirection, true);
         // if we sampled specular event, then the reverese probability cannot be evaluated,
         // but we know it is exactly the same as direct probability, so just set it
-        if(sampledEvent & LightBxdf::Specular)
+        if(sampledEvent & LightBxdf::kSpecular)
             brdfRevPdfW = brdfDirPdfW;
 
         // russian roulette
@@ -858,7 +858,7 @@ private:
 
         // new MIS weights
         {
-            if(sampledEvent & LightBxdf::Specular)
+            if(sampledEvent & LightBxdf::kSpecular)
             {
                 aoPathSample.d0 = 0.f;
                 aoPathSample.d1vc *=

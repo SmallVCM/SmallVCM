@@ -51,14 +51,14 @@ class BXDF
 public:
     enum Events
     {
-        NONE        = 0,
-        Diffuse     = 1,
-        Phong       = 2,
-        Reflect     = 4,
-        Refract     = 8,
-        Specular    = (Reflect | Refract),
-        NonSpecular = (Diffuse | Phong),
-        All         = (Specular | NonSpecular)
+        kNONE        = 0,
+        kDiffuse     = 1,
+        kPhong       = 2,
+        kReflect     = 4,
+        kRefract     = 8,
+        kSpecular    = (kReflect  | kRefract),
+        kNonSpecular = (kDiffuse  | kPhong),
+        kAll         = (kSpecular | kNonSpecular)
     };
 
 public:
@@ -163,14 +163,14 @@ public:
     {
         uint sampledEvent;
         if(aRndTriplet.z < mProbabilities.diffProb)
-            sampledEvent = Diffuse;
+            sampledEvent = kDiffuse;
         else if(aRndTriplet.z < mProbabilities.diffProb + mProbabilities.phongProb)
-            sampledEvent = Phong;
+            sampledEvent = kPhong;
         else if(aRndTriplet.z < mProbabilities.diffProb + mProbabilities.phongProb +
             mProbabilities.reflProb)
-            sampledEvent = Reflect;
+            sampledEvent = kReflect;
         else
-            sampledEvent = Refract;
+            sampledEvent = kRefract;
 
         if(oSampledEvent) *oSampledEvent = sampledEvent;
 
@@ -180,19 +180,19 @@ public:
         Vec3f result(0);
         Vec3f localOmegaGen;
 
-        if(sampledEvent == Diffuse)
+        if(sampledEvent == kDiffuse)
         {
             result += SampleDiffuse(mat, aRndTriplet.GetXY(), localOmegaGen, oPdfW);
             if(result.IsZero()) return Vec3f(0);
             result += EvaluatePhong(mat, localOmegaGen, &oPdfW);
         }
-        else if(sampledEvent == Phong)
+        else if(sampledEvent == kPhong)
         {
             result += SamplePhong(mat, aRndTriplet.GetXY(), localOmegaGen, oPdfW);
             if(result.IsZero()) return Vec3f(0);
             result += EvaluateDiffuse(mat, localOmegaGen, &oPdfW);
         }
-        else if(sampledEvent == Reflect)
+        else if(sampledEvent == kReflect)
         {
             result += SampleReflect(mat, aRndTriplet.GetXY(), localOmegaGen, oPdfW);
             if(result.IsZero()) return Vec3f(0);

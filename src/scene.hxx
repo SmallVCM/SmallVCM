@@ -83,28 +83,29 @@ public:
     // Loads a Cornell Box scene
     enum BoxMask
     {
-        LightCeiling    = 1,
-        LightSun        = 2,
-        LightPoint      = 4,
-        LightBackground = 8,
-        BallLargeMirror = 16,
-        BallLargeGlass  = 32,
-        BallMirror      = 64,
-        BallGlass       = 128,
-        Default         = (LightCeiling | BallMirror | BallGlass),
-        BothLargeBalls  = (BallLargeMirror | BallLargeGlass)
+        kLightCeiling    = 1,
+        kLightSun        = 2,
+        kLightPoint      = 4,
+        kLightBackground = 8,
+        kBallLargeMirror = 16,
+        kBallLargeGlass  = 32,
+        kBallMirror      = 64,
+        kBallGlass       = 128,
+        kDefault         = (kLightCeiling | kBallMirror | kBallGlass),
+        kBothSmallBalls  = (kBallMirror | kBallGlass),
+        kBothLargeBalls  = (kBallLargeMirror | kBallLargeGlass)
     };
-    void LoadCornellBox(const Vec2i &aResolution, uint aBoxMask = Default)
+    void LoadCornellBox(const Vec2i &aResolution, uint aBoxMask = kDefault)
     {
-        if((aBoxMask & BothLargeBalls) == BothLargeBalls)
+        if((aBoxMask & kBothLargeBalls) == kBothLargeBalls)
         {
             printf("Cannot have both large balls, using mirror\n");
-            aBoxMask &= ~BallLargeGlass;
+            aBoxMask &= ~kBallLargeGlass;
         }
-        bool light_ceiling    = (aBoxMask & LightCeiling)    != 0;
-        bool light_sun        = (aBoxMask & LightSun)        != 0;
-        bool light_point      = (aBoxMask & LightPoint)      != 0;
-        bool light_background = (aBoxMask & LightBackground) != 0;
+        bool light_ceiling    = (aBoxMask & kLightCeiling)    != 0;
+        bool light_sun        = (aBoxMask & kLightSun)        != 0;
+        bool light_point      = (aBoxMask & kLightPoint)      != 0;
+        bool light_background = (aBoxMask & kLightBackground) != 0;
 
         // Camera
         mCamera.Setup(
@@ -199,9 +200,9 @@ public:
         // Ball - central
         float largeRadius = 0.8f;
         Vec3f center = (p[0] + p[1] + p[4] + p[5]) * (1.f / 4.f) + Vec3f(0, 0, largeRadius);
-        if((aBoxMask & BallLargeMirror) != 0)
+        if((aBoxMask & kBallLargeMirror) != 0)
             geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 6));
-        if((aBoxMask & BallLargeGlass) != 0)
+        if((aBoxMask & kBallLargeGlass) != 0)
             geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 7));
 
         // Balls - left and right
@@ -211,9 +212,9 @@ public:
         float xlen = rightWallCenter.x - leftWallCenter.x;
         Vec3f leftBallCenter  = leftWallCenter  + Vec3f(2.f * xlen / 7.f, 0, 0);
         Vec3f rightBallCenter = rightWallCenter - Vec3f(2.f * xlen / 7.f, 0, 0);
-        if((aBoxMask & BallMirror) != 0)
+        if((aBoxMask & kBallMirror) != 0)
             geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  smallRadius, 6));
-        if((aBoxMask & BallGlass) != 0)
+        if((aBoxMask & kBallGlass) != 0)
             geometryList->mGeometry.push_back(new Sphere(rightBallCenter, smallRadius, 7));
 
         // Lights

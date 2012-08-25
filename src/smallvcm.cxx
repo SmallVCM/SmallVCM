@@ -66,31 +66,31 @@ float render(const Config &aConfig)
         printf("Using Light Tracing\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::Lighttrace, aConfig.mBaseSeed + i);
+            VertexCM::kLightTrace, aConfig.mBaseSeed + i);
         break;
     case Config::kProgressivePhotonMapping:
         printf("Using Progressive Photon Mapping\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::Ppm, aConfig.mBaseSeed + i);
+            VertexCM::kPpm, aConfig.mBaseSeed + i);
         break;
     case Config::kBidirectionalPhotonMapping:
         printf("Using Bidirectional Photon Mapping\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::Bpm, aConfig.mBaseSeed + i);
+            VertexCM::kBpm, aConfig.mBaseSeed + i);
         break;
     case Config::kBidirectionalPathTracing:
         printf("Using Bidirectional Path Tracing\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::Bpt, aConfig.mBaseSeed + i);
+            VertexCM::kBpt, aConfig.mBaseSeed + i);
         break;
     case Config::kVertexConnectionMerging:
         printf("Using Vertex Connection Merging\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::Vcm, aConfig.mBaseSeed + i);
+            VertexCM::kVcm, aConfig.mBaseSeed + i);
         break;
     }
 
