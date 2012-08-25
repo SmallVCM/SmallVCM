@@ -17,6 +17,7 @@
 #include "vertexcm.hxx"
 
 #include <omp.h>
+#include <string>
 
 struct Config
 {
@@ -28,8 +29,36 @@ struct Config
         kProgressivePhotonMapping,
         kBidirectionalPhotonMapping,
         kBidirectionalPathTracing,
-        kVertexConnectionMerging
+        kVertexConnectionMerging,
+        kAlgorithmMax
     };
+
+    const char* GetName()
+    {
+        static const char* algorithmNames[7] = {
+            "Eye Light (L.N, DotLN)",
+            "Path Tracing",
+            "Light Tracing",
+            "Progressive Photon Mapping",
+            "Bidirectional Photon Mapping",
+            "Bidirectional Path Tracing",
+            "Vertex Connection Merging"
+        };
+
+        if(mAlgorithm < 0 || mAlgorithm > 7)
+            return "Uknown algorithm";
+        return algorithmNames[mAlgorithm];
+    }
+
+    const char* GetAcronym()
+    {
+        static const char* algorithmNames[7] = {
+            "el", "pt", "lt", "ppm", "bpm", "bpt", "vcm" };
+
+        if(mAlgorithm < 0 || mAlgorithm > 7)
+            return "uknown";
+        return algorithmNames[mAlgorithm];
+    }
 
     const Scene *mScene;
     Algorithm   mAlgorithm;
@@ -52,42 +81,35 @@ float render(const Config &aConfig)
     switch(aConfig.mAlgorithm)
     {
     case Config::kEyeLight:
-        printf("Using EyeLight (L.N, DotLN)\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new EyeLight(*aConfig.mScene);
         break;
     case Config::kPathTracing:
-        printf("Using Path Tracing\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new PathTracer(*aConfig.mScene,
             aConfig.mBaseSeed + i);
         break;
     case Config::kLightTracing:
-        printf("Using Light Tracing\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
             VertexCM::kLightTrace, aConfig.mBaseSeed + i);
         break;
     case Config::kProgressivePhotonMapping:
-        printf("Using Progressive Photon Mapping\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
             VertexCM::kPpm, aConfig.mBaseSeed + i);
         break;
     case Config::kBidirectionalPhotonMapping:
-        printf("Using Bidirectional Photon Mapping\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
             VertexCM::kBpm, aConfig.mBaseSeed + i);
         break;
     case Config::kBidirectionalPathTracing:
-        printf("Using Bidirectional Path Tracing\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
             VertexCM::kBpt, aConfig.mBaseSeed + i);
         break;
     case Config::kVertexConnectionMerging:
-        printf("Using Vertex Connection Merging\n");
         for(int i=0; i<aConfig.mNumThreads; i++)
             renderers[i] = new VertexCM(*aConfig.mScene,
             VertexCM::kVcm, aConfig.mBaseSeed + i);
@@ -132,6 +154,20 @@ float render(const Config &aConfig)
     return float(endT - startT) / CLOCKS_PER_SEC;
 }
 
+struct SceneConfig
+{
+    SceneConfig(){};
+    SceneConfig(uint aMask, const char* aName, const char* aAcronym)
+        : mMask(aMask),
+        mName(aName),
+        mAcronym(aAcronym)
+    {}
+
+    uint       mMask;
+    const char *mName;
+    const char *mAcronym;
+};
+
 int main(int argc, const char *argv[])
 {
     int base_iterations = 1;
@@ -141,23 +177,88 @@ int main(int argc, const char *argv[])
     const int numThreads = std::max(1, omp_get_num_procs()-1);
     printf("Using %d threads\n", numThreads);
 
-    Scene scene;
-    scene.LoadCornellBox(Vec2i(256));
-    scene.BuildSceneSphere();
-    Framebuffer fbuffer;
+    SceneConfig sceneConfigs[] = {
+        SceneConfig(Scene::kLightCeiling,    "Empty + Ceiling", "ec"),
+        SceneConfig(Scene::kLightSun,        "Empty + Sun", "es"),
+        SceneConfig(Scene::kLightPoint,      "Empty + Point", "ep"),
+        SceneConfig(Scene::kLightBackground, "Empty + Background", "eb"),
 
-    Config config;
-    config.mScene         = &scene;
-    config.mAlgorithm     = Config::kVertexConnectionMerging;
-    config.mIterations    = 10;
+        SceneConfig(Scene::kBothSmallBalls | Scene::kLightCeiling,    "Small balls + Ceiling", "sbc"),
+        SceneConfig(Scene::kBothSmallBalls | Scene::kLightSun,        "Small balls + Sun", "sbs"),
+        SceneConfig(Scene::kBothSmallBalls | Scene::kLightPoint,      "Small balls + Point", "sbp"),
+        SceneConfig(Scene::kBothSmallBalls | Scene::kLightBackground, "Small balls + Background", "sbb"),
+
+        SceneConfig(Scene::kBallLargeMirror | Scene::kLightCeiling,    "Large mirror ball + Ceiling", "lbc"),
+        SceneConfig(Scene::kBallLargeMirror | Scene::kLightSun,        "Large mirror ball + Sun", "lbs"),
+        SceneConfig(Scene::kBallLargeMirror | Scene::kLightPoint,      "Large mirror ball + Point", "lbp"),
+        SceneConfig(Scene::kBallLargeMirror | Scene::kLightBackground, "Large mirror ball + Background", "lbb"),
+    };
+
+    const int sceneConfigCount = sizeof(sceneConfigs) / sizeof(SceneConfig);
+
+    Framebuffer fbuffer;
+    Config      config;
+    config.mIterations    = 1;
     config.mFramebuffer   = &fbuffer;
     config.mNumThreads    = numThreads;
     config.mBaseSeed      = 1234;
-    config.mMaxPathLength = 10;
+    config.mMaxPathLength = 2;
 
-    float time = render(config);
+    std::ofstream html("report.html");
+    std::vector<float> times;
+    times.resize(Config::kAlgorithmMax);
+    int thumbnailSize = 128;
 
-    printf("Path tracing took %g s\n", time);
-    fbuffer.SaveBMP("cb_pt.bmp", 2.2f);
-    fbuffer.SavePPM("cb_pt.ppm", 2.2f);
+    int algorithmMask[7] = {1,1,1,1,1,1,1};
+
+    for(int sceneId = 0; sceneId < sceneConfigCount; sceneId++)
+    {
+        Scene scene;
+        scene.LoadCornellBox(Vec2i(256), sceneConfigs[sceneId].mMask);
+        scene.BuildSceneSphere();
+        config.mScene = &scene;
+        std::string sceneFilename(sceneConfigs[sceneId].mAcronym);
+
+        html << "<table>" << std::endl;
+        html << "<tr>" << std::endl;
+        html << "<h2>" << sceneConfigs[sceneId].mName << "</h2>" << std::endl;
+        html << "</tr>" << std::endl;
+
+        printf("Scene: %s\n", sceneConfigs[sceneId].mName);
+        html << "<tr>" << std::endl;
+        for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
+        {
+            if(!algorithmMask[algId]) continue;
+            config.mAlgorithm = Config::Algorithm(algId);
+            printf("Running %s... ", config.GetName());
+            fflush(stdout);
+            float time = render(config);
+            printf("done in %g s\n", time);
+            std::string filename = sceneFilename + "_" +
+                config.GetAcronym() + ".bmp";
+
+            // Html output
+            times[algId] = time;
+            fbuffer.SaveBMP(filename.c_str(), 2.2f);
+            fbuffer.SavePPM("sanity.ppm", 2.2f);
+            html << "<td> <a href=\"" << filename << "\">"
+                << "<img src=\"" << filename << "\" "
+                << "alt=\"" << config.GetName() << " (" << time << " s)\" "
+                << "height=\"" << thumbnailSize << "\" "
+                << "width=\"" << thumbnailSize << "\" />"
+                << "</a></td>" << std::endl;
+        }
+        html << "</tr>" << std::endl;
+        // Html description row
+        html << "<tr>" << std::endl;
+        for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
+        {
+            if(!algorithmMask[algId]) continue;
+            config.mAlgorithm = Config::Algorithm(algId);
+            html << "<td>" << config.GetAcronym()
+                << " (" << times[algId] << " s)</td>" << std::endl;
+        }
+        html << "</tr>" << std::endl;
+        html << "</table>" << std::endl;
+    }
 }
