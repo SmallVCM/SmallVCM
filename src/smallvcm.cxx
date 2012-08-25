@@ -209,10 +209,14 @@ int main(int argc, const char *argv[])
 
     std::ofstream html("report.html");
     int thumbnailSize = 128;
+    bool glossy       = true;
+    bool diffuse      = true;
+    int  startSceneId = glossy ? 0 : sceneConfigCount;
+    int  endSceneId   = sceneConfigCount * (diffuse ? 2 : 1);
 
     int algorithmMask[7] = {1,1,1,1,1,1,1};
 
-    for(int sceneId2 = 0; sceneId2 < sceneConfigCount * 2; sceneId2++)
+    for(int sceneId2 = startSceneId; sceneId2 < endSceneId; sceneId2++)
     {
         int sceneId = sceneId2 % sceneConfigCount;
         uint mask = sceneConfigs[sceneId].mMask;
