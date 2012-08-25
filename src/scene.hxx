@@ -109,6 +109,9 @@ public:
         bool light_background = (aBoxMask & kLightBackground) != 0;
 
         bool light_box = true;
+        // because it looks really weird with it
+        if(light_point)
+            light_box = false;
 
         // Camera
         mCamera.Setup(
