@@ -108,6 +108,8 @@ public:
         bool light_point      = (aBoxMask & kLightPoint)      != 0;
         bool light_background = (aBoxMask & kLightBackground) != 0;
 
+        bool light_box = true;
+
         // Camera
         mCamera.Setup(
             Vec3f(-0.0439815f, -4.12529f, 0.222539f),
@@ -160,9 +162,11 @@ public:
         mat.mDiffuseReflectance = Vec3f(0.156863f, 0.172549f, 0.803922f);
         mMaterials.push_back(mat);
 
-
         delete mGeometry;
-        Vec3f p[8] = {
+
+        //////////////////////////////////////////////////////////////////////////
+        // Cornell box
+        Vec3f cb[8] = {
             Vec3f(-1.27029f,  1.30455f, -1.28002f),
             Vec3f( 1.28975f,  1.30455f, -1.28002f),
             Vec3f( 1.28975f,  1.30455f,  1.28002f),
@@ -179,46 +183,46 @@ public:
         if((aBoxMask & kGlossyFloor) != 0)
         {
             // Floor
-            geometryList->mGeometry.push_back(new Triangle(p[0], p[4], p[5], 2));
-            geometryList->mGeometry.push_back(new Triangle(p[5], p[1], p[0], 2));
+            geometryList->mGeometry.push_back(new Triangle(cb[0], cb[4], cb[5], 2));
+            geometryList->mGeometry.push_back(new Triangle(cb[5], cb[1], cb[0], 2));
             // Back wall
-            geometryList->mGeometry.push_back(new Triangle(p[0], p[1], p[2], 8));
-            geometryList->mGeometry.push_back(new Triangle(p[2], p[3], p[0], 8));
+            geometryList->mGeometry.push_back(new Triangle(cb[0], cb[1], cb[2], 8));
+            geometryList->mGeometry.push_back(new Triangle(cb[2], cb[3], cb[0], 8));
         }
         else
         {
             // Floor
-            geometryList->mGeometry.push_back(new Triangle(p[0], p[4], p[5], 5));
-            geometryList->mGeometry.push_back(new Triangle(p[5], p[1], p[0], 5));
+            geometryList->mGeometry.push_back(new Triangle(cb[0], cb[4], cb[5], 5));
+            geometryList->mGeometry.push_back(new Triangle(cb[5], cb[1], cb[0], 5));
             // Back wall
-            geometryList->mGeometry.push_back(new Triangle(p[0], p[1], p[2], 5));
-            geometryList->mGeometry.push_back(new Triangle(p[2], p[3], p[0], 5));
+            geometryList->mGeometry.push_back(new Triangle(cb[0], cb[1], cb[2], 5));
+            geometryList->mGeometry.push_back(new Triangle(cb[2], cb[3], cb[0], 5));
         }
 
 
         // Ceiling
-        if(light_ceiling)
+        if(light_ceiling && !light_box)
         {
-            geometryList->mGeometry.push_back(new Triangle(p[2], p[6], p[7], 0));
-            geometryList->mGeometry.push_back(new Triangle(p[7], p[3], p[2], 1));
+            geometryList->mGeometry.push_back(new Triangle(cb[2], cb[6], cb[7], 0));
+            geometryList->mGeometry.push_back(new Triangle(cb[7], cb[3], cb[2], 1));
         }
         else
         {
-            geometryList->mGeometry.push_back(new Triangle(p[2], p[6], p[7], 5));
-            geometryList->mGeometry.push_back(new Triangle(p[7], p[3], p[2], 5));
+            geometryList->mGeometry.push_back(new Triangle(cb[2], cb[6], cb[7], 5));
+            geometryList->mGeometry.push_back(new Triangle(cb[7], cb[3], cb[2], 5));
         }
 
         // Left wall
-        geometryList->mGeometry.push_back(new Triangle(p[3], p[7], p[4], 3));
-        geometryList->mGeometry.push_back(new Triangle(p[4], p[0], p[3], 3));
+        geometryList->mGeometry.push_back(new Triangle(cb[3], cb[7], cb[4], 3));
+        geometryList->mGeometry.push_back(new Triangle(cb[4], cb[0], cb[3], 3));
 
         // Right wall
-        geometryList->mGeometry.push_back(new Triangle(p[1], p[5], p[6], 4));
-        geometryList->mGeometry.push_back(new Triangle(p[6], p[2], p[1], 4));
+        geometryList->mGeometry.push_back(new Triangle(cb[1], cb[5], cb[6], 4));
+        geometryList->mGeometry.push_back(new Triangle(cb[6], cb[2], cb[1], 4));
 
         // Ball - central
         float largeRadius = 0.8f;
-        Vec3f center = (p[0] + p[1] + p[4] + p[5]) * (1.f / 4.f) + Vec3f(0, 0, largeRadius);
+        Vec3f center = (cb[0] + cb[1] + cb[4] + cb[5]) * (1.f / 4.f) + Vec3f(0, 0, largeRadius);
         if((aBoxMask & kBallLargeMirror) != 0)
             geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 6));
         if((aBoxMask & kBallLargeGlass) != 0)
@@ -226,8 +230,8 @@ public:
 
         // Balls - left and right
         float smallRadius = 0.5f;
-        Vec3f leftWallCenter  = (p[0] + p[4]) * (1.f / 2.f) + Vec3f(0, 0, smallRadius);
-        Vec3f rightWallCenter = (p[1] + p[5]) * (1.f / 2.f) + Vec3f(0, 0, smallRadius);
+        Vec3f leftWallCenter  = (cb[0] + cb[4]) * (1.f / 2.f) + Vec3f(0, 0, smallRadius);
+        Vec3f rightWallCenter = (cb[1] + cb[5]) * (1.f / 2.f) + Vec3f(0, 0, smallRadius);
         float xlen = rightWallCenter.x - leftWallCenter.x;
         Vec3f leftBallCenter  = leftWallCenter  + Vec3f(2.f * xlen / 7.f, 0, 0);
         Vec3f rightBallCenter = rightWallCenter - Vec3f(2.f * xlen / 7.f, 0, 0);
@@ -236,17 +240,78 @@ public:
         if((aBoxMask & kBallGlass) != 0)
             geometryList->mGeometry.push_back(new Sphere(rightBallCenter, smallRadius, 7));
 
-        // Lights
-        if(light_ceiling)
+        //////////////////////////////////////////////////////////////////////////
+        // Light box at the ceiling
+        Vec3f lb[8] = {
+            Vec3f(-0.25f,  0.25f, 1.26002f),
+            Vec3f( 0.25f,  0.25f, 1.26002f),
+            Vec3f( 0.25f,  0.25f, 1.28002f),
+            Vec3f(-0.25f,  0.25f, 1.28002f),
+            Vec3f(-0.25f, -0.25f, 1.26002f),
+            Vec3f( 0.25f, -0.25f, 1.26002f),
+            Vec3f( 0.25f, -0.25f, 1.28002f),
+            Vec3f(-0.25f, -0.25f, 1.28002f)
+        };
+
+        if(light_box)
         {
+            // Back wall
+            geometryList->mGeometry.push_back(new Triangle(lb[0], lb[1], lb[2], 8));
+            geometryList->mGeometry.push_back(new Triangle(lb[2], lb[3], lb[0], 8));
+            // Left wall
+            geometryList->mGeometry.push_back(new Triangle(lb[3], lb[7], lb[4], 3));
+            geometryList->mGeometry.push_back(new Triangle(lb[4], lb[0], lb[3], 3));
+            // Right wall
+            geometryList->mGeometry.push_back(new Triangle(lb[1], lb[5], lb[6], 4));
+            geometryList->mGeometry.push_back(new Triangle(lb[6], lb[2], lb[1], 4));
+            // Front wall
+            geometryList->mGeometry.push_back(new Triangle(lb[4], lb[5], lb[6], 8));
+            geometryList->mGeometry.push_back(new Triangle(lb[6], lb[7], lb[4], 8));
+
+
+            if(light_ceiling)
+            {
+                // Floor
+                geometryList->mGeometry.push_back(new Triangle(lb[0], lb[5], lb[4], 0));
+                geometryList->mGeometry.push_back(new Triangle(lb[5], lb[0], lb[1], 1));
+            }
+            else
+            {
+                // Floor
+                geometryList->mGeometry.push_back(new Triangle(lb[0], lb[5], lb[4], 5));
+                geometryList->mGeometry.push_back(new Triangle(lb[5], lb[0], lb[1], 5));
+            }
+        }
+
+        //////////////////////////////////////////////////////////////////////////
+        // Lights
+        if(light_ceiling && !light_box)
+        {
+            // Without lightbox, whole ceiling is light
             mLights.resize(2);
-            AreaLight *l = new AreaLight(p[2], p[6], p[7]);
+            AreaLight *l = new AreaLight(cb[2], cb[6], cb[7]);
             l->mIntensity = Vec3f(0.95492965f);
             mLights[0] = l;
             mMaterial2Light.insert(std::make_pair(0, 0));
 
-            l = new AreaLight(p[7], p[3], p[2]);
+            l = new AreaLight(cb[7], cb[3], cb[2]);
             l->mIntensity = Vec3f(0.95492965f);
+            mLights[1] = l;
+            mMaterial2Light.insert(std::make_pair(1, 1));
+        }
+        else if(light_box)
+        {
+            // With lightbox
+            mLights.resize(2);
+            AreaLight *l = new AreaLight(lb[0], lb[5], lb[4]);
+            //l->mIntensity = Vec3f(0.95492965f);
+            l->mIntensity = Vec3f(25.03329895614464f);
+            mLights[0] = l;
+            mMaterial2Light.insert(std::make_pair(0, 0));
+
+            l = new AreaLight(lb[5], lb[0], lb[1]);
+            //l->mIntensity = Vec3f(0.95492965f);
+            l->mIntensity = Vec3f(25.03329895614464f);
             mLights[1] = l;
             mMaterial2Light.insert(std::make_pair(1, 1));
         }
