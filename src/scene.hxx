@@ -256,18 +256,17 @@ public:
         if(light_box)
         {
             // Back wall
-            geometryList->mGeometry.push_back(new Triangle(lb[0], lb[1], lb[2], 8));
-            geometryList->mGeometry.push_back(new Triangle(lb[2], lb[3], lb[0], 8));
+            geometryList->mGeometry.push_back(new Triangle(lb[0], lb[2], lb[1], 5));
+            geometryList->mGeometry.push_back(new Triangle(lb[2], lb[0], lb[3], 5));
             // Left wall
-            geometryList->mGeometry.push_back(new Triangle(lb[3], lb[7], lb[4], 3));
-            geometryList->mGeometry.push_back(new Triangle(lb[4], lb[0], lb[3], 3));
+            geometryList->mGeometry.push_back(new Triangle(lb[3], lb[4], lb[7], 5));
+            geometryList->mGeometry.push_back(new Triangle(lb[4], lb[3], lb[0], 5));
             // Right wall
-            geometryList->mGeometry.push_back(new Triangle(lb[1], lb[5], lb[6], 4));
-            geometryList->mGeometry.push_back(new Triangle(lb[6], lb[2], lb[1], 4));
+            geometryList->mGeometry.push_back(new Triangle(lb[1], lb[6], lb[5], 5));
+            geometryList->mGeometry.push_back(new Triangle(lb[6], lb[1], lb[2], 5));
             // Front wall
-            geometryList->mGeometry.push_back(new Triangle(lb[4], lb[5], lb[6], 8));
-            geometryList->mGeometry.push_back(new Triangle(lb[6], lb[7], lb[4], 8));
-
+            geometryList->mGeometry.push_back(new Triangle(lb[4], lb[5], lb[6], 5));
+            geometryList->mGeometry.push_back(new Triangle(lb[6], lb[7], lb[4], 5));
 
             if(light_ceiling)
             {
