@@ -76,6 +76,7 @@ public:
     Triangle(const Vec3f& p0, const Vec3f& p1, const Vec3f& p2, int aMatID)
     {
         p[0] = p0; p[1] = p1; p[2] = p2; matID = aMatID;
+        mNormal   = Normalize(Cross(p[1] - p[0], p[2] - p[0]));
     }
 
     virtual bool Intersect(const Ray& aRay, Isect& oResult) const
@@ -92,14 +93,14 @@ public:
         const float v1d = Dot(v1, aRay.dir);
         const float v2d = Dot(v2, aRay.dir);
 
-        if(((v0d < 0.f) & (v1d < 0.f) & (v2d < 0.f)) | ((v0d >= 0.f) & (v1d >= 0.f) & (v2d >= 0.f)))
+        if(((v0d < 0.f) && (v1d < 0.f) && (v2d < 0.f)) ||
+            ((v0d >= 0.f) && (v1d >= 0.f) && (v2d >= 0.f)))
         {
-            const Vec3f normal   = Normalize(Cross(p[1] - p[0], p[2] - p[0]));
-            const float distance = Dot(normal, ao) / Dot(normal, aRay.dir);
+            const float distance = Dot(mNormal, ao) / Dot(mNormal, aRay.dir);
 
             if((distance > aRay.tmin) & (distance < oResult.dist))
             {
-                oResult.normal = normal;
+                oResult.normal = mNormal;
                 oResult.matID  = matID;
                 oResult.dist   = distance;
                 return true;
@@ -121,6 +122,7 @@ public:
 public:
     Vec3f p[3];
     int   matID;
+    Vec3f mNormal;
 };
 
 class Sphere : public AbstractGeometry
