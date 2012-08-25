@@ -298,7 +298,7 @@ public:
             mLights[1] = l;
             mMaterial2Light.insert(std::make_pair(1, 1));
         }
-        else if(light_box)
+        else if(light_ceiling && light_box)
         {
             // With lightbox
             mLights.resize(2);
