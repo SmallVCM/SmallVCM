@@ -166,7 +166,6 @@ public:
         {
         case kLightTrace:
             mLightTraceOnly = true;
-            printf("VertexCM set to Light tracer\n");
             break;
         case kPpm:
             mPpm   = true;
