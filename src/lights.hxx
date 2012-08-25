@@ -173,6 +173,8 @@ public:
         float             *oEmissionPdfW = NULL) const
     {
         const float cosOutL = std::max(0.f, Dot(mFrame.Normal(), -aRayDirection));
+        if(cosOutL == 0)
+            return Vec3f(0);
 
         if(oDirectPdfA) *oDirectPdfA = mInvArea;
 

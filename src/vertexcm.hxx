@@ -507,6 +507,8 @@ private:
         float directPdfW, emissionPdfW;
         const Vec3f radiance = background->GetRadiance(mScene.mSceneSphere,
             aCameraSample.mDirection, Vec3f(0), &directPdfW, &emissionPdfW);
+        if(radiance.IsZero())
+            return Vec3f(0);
 
         if(aCameraSample.mPathLength == 1)
             return radiance;
@@ -545,6 +547,8 @@ private:
         float directPdfA, emissionPdfW;
         const Vec3f radiance = aLight->GetRadiance(mScene.mSceneSphere,
             aRayDirection, aHitpoint, &directPdfA, &emissionPdfW);
+        if(radiance.IsZero())
+            return Vec3f(0);
 
         if(aCameraSample.mPathLength == 1)
             return radiance;
