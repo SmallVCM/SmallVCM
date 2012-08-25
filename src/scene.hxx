@@ -18,7 +18,12 @@ class Scene
 {
 public:
     Scene() : mGeometry(NULL), mBackground(NULL) {};
-    ~Scene() { delete mGeometry; }
+    ~Scene()
+    {
+        delete mGeometry;
+        for(size_t i=0; i<mLights.size(); i++)
+            delete mLights[i];
+    }
 
     bool Intersect(const Ray& aRay, Isect& oResult) const
     {

@@ -125,6 +125,8 @@ float render(const Config &aConfig)
 
     aConfig.mFramebuffer->Scale(1.f / usedRenderers);
 
+    for(int i=0; i<aConfig.mNumThreads; i++)
+        delete renderers[i];
     delete [] renderers;
 
     return float(endT - startT) / CLOCKS_PER_SEC;

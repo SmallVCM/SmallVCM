@@ -19,6 +19,7 @@ public:
         mIterations = 0;
         mFramebuffer.Setup(aScene.mCamera.mResolution);
     }
+    virtual ~AbstractRenderer(){}
 
     virtual void RunIteration(int aIteration) = 0;
 
