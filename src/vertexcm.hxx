@@ -496,20 +496,24 @@ private:
     //////////////////////////////////////////////////////////////////////////
     // Methods that handle camera tracing
     //////////////////////////////////////////////////////////////////////////
+    /* \brief Given a pixel index, generates new camera sample
+     */
     Vec2f GenerateCameraSample(
         const int    aPixelIndex,
         PathElement  &oCameraSample)
     {
         const Camera &camera    = mScene.mCamera;
-
         const int resX = int(camera.mResolution.x);
         const int resY = int(camera.mResolution.y);
 
+        // Determine pixel xy
         const int x = aPixelIndex % resX;
         const int y = aPixelIndex / resX;
 
+        // Jitter the pixel
         const Vec2f sample = Vec2f(float(x), float(y)) + mRng.GetVec2f();
 
+        // Generate primary ray and find its pdf
         const Ray   primaryRay = camera.GenerateRay(sample);
         const float cosTheta   = Dot(camera.mForward, primaryRay.dir);
         const float cameraPdfW = 1.f / (cosTheta * cosTheta * cosTheta *
