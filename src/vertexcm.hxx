@@ -533,22 +533,35 @@ private:
         return sample;
     }
 
-    // has to be called before Updating MIS constants
+    /* \brief Returns (unweighted) radiance when ray flies out of scene
+     *
+     * Has to be called before Updating MIS constants.
+     */
     Vec3f BackgroundOnHit(
         const PathElement &aCameraSample) const
     {
+        // If no background, return black
         const BackgroundLight *background = mScene.GetBackground();
         if(!background)
             return Vec3f(0);
 
+        // For obvious reasons, GetRadiance interface for background does
+        // not use HitPoint. Passing Vec3f(0)
         float directPdfW, emissionPdfW;
         const Vec3f radiance = background->GetRadiance(mScene.mSceneSphere,
             aCameraSample.mDirection, Vec3f(0), &directPdfW, &emissionPdfW);
         if(radiance.IsZero())
             return Vec3f(0);
 
+        // If we see background directly from camera, no weighting is required
         if(aCameraSample.mPathLength == 1)
             return radiance;
+
+        // When using only vertex merging, we want purely specular paths
+        // to give radiance (cannot get it otherwise). Rest is handled
+        // by merging and we should return 0.
+        if(mUseVM && !mUseVC)
+            return aCameraSample.mSpecularPath ? radiance : Vec3f(0);
 
         // We sample lights uniformly
         const int   lightCount    = mScene.GetLightCount();
@@ -557,12 +570,7 @@ private:
         directPdfW   *= lightPickProb;
         emissionPdfW *= lightPickProb;
 
-        // when using only vertex merging, to get reflecting lights
-        if(mUseVM && !mUseVC)
-            return aCameraSample.mSpecularPath ? radiance : Vec3f(0);
-
-        // if the last hit was specular, then d0 == 0
-        // mMisVmWeightFactor already included in d0
+        // If the last hit was specular, then d0 == 0.
         const float wCamera = Mis(directPdfW) * aCameraSample.d0 +
             Mis(emissionPdfW) * aCameraSample.d1vc;
 
