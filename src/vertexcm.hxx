@@ -32,11 +32,14 @@
 #include "rng.hxx"
 #include "hashgrid.hxx"
 
-#define DIR_CON   1
-#define ON_HIT    1
-#define DIR_LIGHT 1
-#define VC        1
-#define VM        1
+// This allows to easily turn on/off parts of algorithm,
+// to evaluate relative contributions. Algorithm does not
+// produce correct results unless all five are on
+#define DIR_CON   1 //!< Direct connection of light particles to camera
+#define ON_HIT    1 //!< Contribution when area light/background hit randomly
+#define DIR_LIGHT 1 //!< Direct connection of camera particles to lights
+#define VC        1 //!< Connection between light and camera particles
+#define VM        1 //!< Merging between light and camera particles
 
 class VertexCM : public AbstractRenderer
 {
@@ -384,7 +387,8 @@ public:
 
                 if(!mScene.Intersect(ray, isect))
                 {
-                    color += cameraSample.mWeight * BackgroundOnHit(cameraSample);
+                    if(ON_HIT)
+                        color += cameraSample.mWeight * BackgroundOnHit(cameraSample);
                     break;
                 }
 
