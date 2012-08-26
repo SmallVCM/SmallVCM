@@ -276,7 +276,6 @@ public:
         //////////////////////////////////////////////////////////////////////////
         for(int pathIdx = 0; pathIdx < pathCount; pathIdx++)
         {
-            //mRng.Reset(1522297579, aIteration+1, pathIdx + pathCount);
             PathElement lightSample;
             GenerateLightSample(lightSample);
 
@@ -284,6 +283,9 @@ public:
             // Trace light path
             for(;; ++lightSample.mPathLength)
             {
+                // We offset ray origin instead of setting tmin due to numeric
+                // issues in ray-sphere intersection. The isect.dist has to be
+                // extended by this EPS_RAY after hitpoint is determined
                 Ray ray(lightSample.mOrigin + lightSample.mDirection * EPS_RAY,
                     lightSample.mDirection, 0);
                 Isect isect(1e36f);
@@ -364,7 +366,6 @@ public:
         // Light tracing does not use any camera particles at all
         for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly); pathIdx++)
         {
-            //mRng.Reset(1522297579, aIteration+1, pathIdx);
             PathElement cameraSample;
             const Vec2f screenSample =
                 GenerateCameraSample(pathIdx, cameraSample);
@@ -374,6 +375,9 @@ public:
             // Trace camera path
             for(;; ++cameraSample.mPathLength)
             {
+                // We offset ray origin instead of setting tmin due to numeric
+                // issues in ray-sphere intersection. The isect.dist has to be
+                // extended by this EPS_RAY after hitpoint is determined
                 Ray ray(cameraSample.mOrigin + cameraSample.mDirection * EPS_RAY,
                     cameraSample.mDirection, 0);
                 Isect isect(1e36f);

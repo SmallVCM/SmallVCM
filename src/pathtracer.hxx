@@ -90,6 +90,7 @@ public:
                 }
 
                 Vec3f hitPoint = ray.org + ray.dir * isect.dist;
+                isect.dist += EPS_RAY;
 
                 BXDF<false> bxdf(ray, isect, mScene);
                 if(!bxdf.IsValid())
@@ -189,9 +190,9 @@ public:
                     }
 
                     pathWeight *= factor * (cosThetaOut / pdf);
-                    // Due to numerics in sphere intersection,
-                    // we actually want to offset origin from sphere surface,
-                    // instead of using tmin
+                    // We offset ray origin instead of setting tmin due to numeric
+                    // issues in ray-sphere intersection. The isect.dist has to be
+                    // extended by this EPS_RAY after hitpoint is determined
                     ray.org    = hitPoint + EPS_RAY * ray.dir;
                     ray.tmin   = 0.f;
                     isect.dist = 1e36f;
