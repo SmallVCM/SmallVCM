@@ -243,7 +243,7 @@ public:
             }
         }
 
-        mBaseRadius  = 0.00886823884341192f;
+        mBaseRadius  = 0.004f * mScene.mSceneSphere.mSceneRadius;
         mPhotonAlpha = 0.75f;
     }
 
