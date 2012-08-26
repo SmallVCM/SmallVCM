@@ -341,7 +341,7 @@ public:
         if(light_sun)
         {
             DirectionalLight *l = new DirectionalLight(Vec3f(-1.f, 1.5f, -1.f));
-            l->mIntensity = Vec3f(0.5f, 0.2f, 0.f) * 1.5f;
+            l->mIntensity = Vec3f(0.5f, 0.2f, 0.f) * 20.f;
             mLights.push_back(l);
         }
 
