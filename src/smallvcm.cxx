@@ -249,6 +249,7 @@ int main(int argc, const char *argv[])
 
     int algorithmMask[7] = {1,1,1,1,1,1,1};
 
+    clock_t startTime = clock();
     for(int sceneId2 = startSceneId; sceneId2 < endSceneId; sceneId2++)
     {
         int sceneId = sceneId2 % sceneConfigCount;
@@ -273,7 +274,11 @@ int main(int argc, const char *argv[])
             html << "<h2>" << sceneConfigs[sceneId].mName << "</h2>" << std::endl;
         html << "</tr>" << std::endl;
 
-        printf("Scene: %s\n", sceneConfigs[sceneId].mName);
+        if((mask & Scene::kGlossyFloor) != 0)
+            printf("Scene: Glossy %s\n", sceneConfigs[sceneId].mName);
+        else
+            printf("Scene: %s\n", sceneConfigs[sceneId].mName);
+
         html << "<tr>" << std::endl;
         for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
         {
@@ -304,4 +309,6 @@ int main(int argc, const char *argv[])
         html << "</tr>" << std::endl;
         html << "</table>" << std::endl;
     }
+    clock_t endTime = clock();
+    printf("Whole run took %g s\n", float(endTime - startTime) / CLOCKS_PER_SEC);
 }
