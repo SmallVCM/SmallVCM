@@ -33,7 +33,7 @@ This is not properly formatted html but at least Firefox, Chrome,
 and Internet Explorer can handle it, even when program is still running.
 
 On 4 core machine, it takes about 2 seconds per image (with 10 iterations each).
-You can have a look at 100 iterations each version in results_100 directory.
+You can have a look at 1000 iterations each version in results_1000 directory.
 
 3) SETTINGS  *TEMPORARY*
 All settings in this section are to be found in smallvcm.cxx, main.
