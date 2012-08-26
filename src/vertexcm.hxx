@@ -56,7 +56,6 @@ class VertexCM : public AbstractRenderer
         uint  mPathLength    : 20; //!< Number of path segments, including this
         uint  mIsFiniteLight :  1; //!< Just generate by finite light
         uint  mSpecularPath  :  1; //!< All bounces so far were specular
-        uint  mIsFirstSpec   :  1; //!< First bounce on path is specular
 
         // We compute MIS in a cumulative fashion. 1 variable is used,
         // plus 1 for each used method (connection, merging).
@@ -886,8 +885,6 @@ private:
                 aoPathSample.d1vm *=
                     Mis(cosThetaOut / brdfDirPdfW) * Mis(brdfRevPdfW);
                 aoPathSample.mSpecularPath &= 1;
-                if(aoPathSample.mPathLength == 1)
-                    aoPathSample.mIsFirstSpec = 1;
             }
             else
             {
@@ -902,8 +899,6 @@ private:
                 aoPathSample.d0 = Mis(1.f / brdfDirPdfW);
 
                 aoPathSample.mSpecularPath &= 0;
-                if(aoPathSample.mPathLength == 1)
-                    aoPathSample.mIsFirstSpec = 0;
             }
         }
 
