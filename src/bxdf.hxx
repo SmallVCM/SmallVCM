@@ -477,23 +477,26 @@ private:
             oProbabilities.phongProb = albedoPhong   / totalAlbedo;
             oProbabilities.reflProb  = albedoReflect / totalAlbedo;
             oProbabilities.refrProb  = albedoRefract / totalAlbedo;
+            // The continuation probability is max component from reflectance.
+            // That way the weight of sample will never rise.
+            // Luminance is another very valid option.
             mContinuationProb =
-                aMaterial.mDiffuseReflectance.Max() +
-                aMaterial.mPhongReflectance.Max() +
-                mReflectCoeff * aMaterial.mMirrorReflectance.Max() +
+                (aMaterial.mDiffuseReflectance +
+                aMaterial.mPhongReflectance +
+                mReflectCoeff * aMaterial.mMirrorReflectance).Max() +
                 (1.f - mReflectCoeff);
             mContinuationProb = std::min(1.f, std::max(0.f, mContinuationProb));
         }
     }
 
 private:
-    int   mMaterialID;
-    Frame mFrame;
-    Vec3f mLocalOmegaFix;
-    bool  mIsDelta;
-    ComponentProbabilities mProbabilities;
-    float mContinuationProb;
-    float mReflectCoeff;
+    int   mMaterialID;    //!< Id of scene material, < 0 ~ invalid
+    Frame mFrame;         //!< Local frame of reference
+    Vec3f mLocalOmegaFix; //!< Incoming (fixed) direction, in local
+    bool  mIsDelta;       //!< True when material is purely specular
+    ComponentProbabilities mProbabilities; //!< Sampling probabilities
+    float mContinuationProb; //!< Russian roulette probability
+    float mReflectCoeff;     //!< Fresnel reflection coefficient (for glass)
 };
 
 #endif //__BXDF_HXX__

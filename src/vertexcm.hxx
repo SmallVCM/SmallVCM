@@ -322,7 +322,8 @@ public:
                     lightSample.d1vm /= Mis(std::abs(bxdf.CosThetaFix()));
                 }
 
-                // Store particle, purely delta bxdf cannot be merged
+                // Store particle, purely delta bxdf cannot be merged or
+                // connected, so we don't store these
                 if(!bxdf.IsDelta() && (mUseVC || mUseVM))
                 {
                     LightVertex lightVertex;
@@ -583,7 +584,11 @@ private:
         return misWeight * radiance;
     }
 
-    // has to be called after UpdateConstantsOnHit
+    /* \brief Connects camera sample to randomly chosen sample,
+     * returns (unweighted) radiance.
+     *
+     * Has to be called AFTER updating MIS constants.
+     */
     Vec3f DirectIllumination(
         const PathElement  &aCameraSample,
         const Vec3f        &aHitpoint,
@@ -662,7 +667,12 @@ private:
         return contrib;
     }
 
-    // The direction is FROM camera TO light Vertex
+    /* \brief Connects camera and light samples, returns radiance
+     * unweighted by camera and light weight both.
+     *
+     * Has to be called AFTER updating MIS constants.
+     * The 'direction' is FROM camera TO light Vertex
+     */
     Vec3f ConnectVertices(
         const LightVertex   &aLightVertex,
         const CameraBxdf    &aCameraBxdf,
@@ -708,7 +718,7 @@ private:
         if(geometryTerm < 0)
             return Vec3f(0);
 
-        // convert pdfs to area pdf, when we have squared distance available
+        // convert pdfs to area pdf
         const float cameraBrdfDirPdfA = PdfWtoA(cameraBrdfDirPdfW, distance, cosLight);
         const float lightBrdfDirPdfA  = PdfWtoA(lightBrdfDirPdfW,  distance, cosCamera);
 
@@ -733,10 +743,9 @@ private:
     //////////////////////////////////////////////////////////////////////////
     // Methods that handle light tracing
     //////////////////////////////////////////////////////////////////////////
-
     /* \brief Generates new light sample
      *
-     * Effectively emits particle from light, storing it in oLightSample
+     * Emits particle from light, storing it in oLightSample.
      */
     void GenerateLightSample(PathElement &oLightSample)
     {
@@ -778,7 +787,9 @@ private:
 
     /* \brief Computes contribution of light sample to camera.
      *
-     * It directly splats the sample into framebuffer
+     * It directly splats the sample into framebuffer.
+     * Unlike many others, this actually does use the weight
+     * to scale the radiance (obviously, as nothing is returned).
      */
     void DirectContribution(
         const PathElement  &aLightSample,
@@ -839,7 +850,8 @@ private:
 
     /* \brief Bounces sample according to BXDF, returns false when terminating
      *
-     * Can bounce both light and camera samples, the difference is only in Bxdf
+     * Can bounce both light and camera samples, the difference is only
+     * in Bxdf.
      */
     template<bool tLightSample>
     bool BounceSample(
@@ -847,11 +859,8 @@ private:
         const Vec3f              &aHitPoint,
         PathElement              &aoPathSample)
     {
+        // xy for direction, z is for component. No rescaling happens
         Vec3f rndTriplet  = mRng.GetVec3f();
-        //Vec3f rndTriplet;
-        //rndTriplet.x = mRng.GetFloat();
-        //rndTriplet.y = mRng.GetFloat();
-        //rndTriplet.z = 0;
         float brdfDirPdfW, cosThetaOut;
         uint  sampledEvent;
 
@@ -861,11 +870,14 @@ private:
         if(brdfFactor.IsZero())
             return false;
 
-        float brdfRevPdfW = aBxdf.EvaluatePdfW(mScene, aoPathSample.mDirection, true);
-        // if we sampled specular event, then the reverese probability cannot be evaluated,
-        // but we know it is exactly the same as direct probability, so just set it
-        if(sampledEvent & LightBxdf::kSpecular)
-            brdfRevPdfW = brdfDirPdfW;
+        // If we sampled specular event, then the reverese probability
+        // cannot be evaluated, but we know it is exactly the same as
+        // direct probability, so just set it. If non-specular event happened,
+        // we evaluate the pdf
+        float brdfRevPdfW = brdfDirPdfW;
+        if((sampledEvent & LightBxdf::kSpecular) == 0)
+            brdfRevPdfW = aBxdf.EvaluatePdfW(mScene,
+            aoPathSample.mDirection, true);
 
         // russian roulette
         const float contProb = aBxdf.ContinuationProb();
@@ -875,31 +887,30 @@ private:
         brdfDirPdfW *= contProb;
         brdfRevPdfW *= contProb;
 
-        // new MIS weights
+        // New MIS weights
+        if(sampledEvent & LightBxdf::kSpecular)
         {
-            if(sampledEvent & LightBxdf::kSpecular)
-            {
-                aoPathSample.d0 = 0.f;
-                aoPathSample.d1vc *=
-                    Mis(cosThetaOut / brdfDirPdfW) * Mis(brdfRevPdfW);
-                aoPathSample.d1vm *=
-                    Mis(cosThetaOut / brdfDirPdfW) * Mis(brdfRevPdfW);
-                aoPathSample.mSpecularPath &= 1;
-            }
-            else
-            {
-                aoPathSample.d1vc = Mis(cosThetaOut / brdfDirPdfW) * (
-                    aoPathSample.d1vc * Mis(brdfRevPdfW) +
-                    aoPathSample.d0 + mMisVmWeightFactor);
+            aoPathSample.d0 = 0.f;
+            aoPathSample.d1vc *=
+                Mis(cosThetaOut / brdfDirPdfW) * Mis(brdfRevPdfW);
+            aoPathSample.d1vm *=
+                Mis(cosThetaOut / brdfDirPdfW) * Mis(brdfRevPdfW);
 
-                aoPathSample.d1vm = Mis(cosThetaOut / brdfDirPdfW) * (
-                    aoPathSample.d1vm * Mis(brdfRevPdfW) +
-                    aoPathSample.d0 * mMisVcWeightFactor + 1.f);
+            aoPathSample.mSpecularPath &= 1;
+        }
+        else
+        {
+            aoPathSample.d1vc = Mis(cosThetaOut / brdfDirPdfW) * (
+                aoPathSample.d1vc * Mis(brdfRevPdfW) +
+                aoPathSample.d0 + mMisVmWeightFactor);
 
-                aoPathSample.d0 = Mis(1.f / brdfDirPdfW);
+            aoPathSample.d1vm = Mis(cosThetaOut / brdfDirPdfW) * (
+                aoPathSample.d1vm * Mis(brdfRevPdfW) +
+                aoPathSample.d0 * mMisVcWeightFactor + 1.f);
 
-                aoPathSample.mSpecularPath &= 0;
-            }
+            aoPathSample.d0 = Mis(1.f / brdfDirPdfW);
+
+            aoPathSample.mSpecularPath &= 0;
         }
 
         aoPathSample.mOrigin  = aHitPoint;
@@ -907,28 +918,27 @@ private:
         return true;
     }
 private:
-    bool        mUseVM;
-    bool        mUseVC;
-    bool        mLightTraceOnly;
-    bool        mPpm;
+    bool        mUseVM; //!< Vertex merging (of some form) is used
+    bool        mUseVC; //!< Vertex connection (bpt) is used
+    bool        mLightTraceOnly; //!< Do only light tracing
+    bool        mPpm; //!< Do Ppm, same terminates camera after first merge
 
     float       mPhotonAlpha; //!< Governs reduction rate
-    float       mBaseRadius;
-    float       mMisVmWeightFactor;
-    float       mMisVcWeightFactor;
-    float       mScreenPixelCount;
-    float       mLightPathCount;
-    float       mVmNormalization;
+    float       mBaseRadius;  //!< Initial merge radius, 0.002f of scene diameter
+    float       mMisVmWeightFactor; //!< Weight of vertex merging (used in vc)
+    float       mMisVcWeightFactor; //!< Weight of vertex conn (used in vm)
+    float       mScreenPixelCount;  //!< Number of pixels
+    float       mLightPathCount;    //!< Number of light paths
+    float       mVmNormalization;   //!< 1 / (Pi * radius^2 * light_path_count)
 
 
-    std::vector<LightVertex> mLightVertices;
-    // for lightpath belonging to pixel index [x] it stores
+    std::vector<LightVertex> mLightVertices; //!< Stored light vertices
+    // For lightpath belonging to pixel index [x] it stores
     // where it's light vertices end (begin is at [x-1])
     std::vector<int>         mPathEnds;
     HashGrid                 mHashGrid;
 
     Rng         mRng;
-    //GpuQ2RandomTea mRng;
 };
 
 #endif //__VERTEXCM_HXX__
