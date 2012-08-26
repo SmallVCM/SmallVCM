@@ -486,13 +486,11 @@ public:
     }
 
 private:
-    // Mis power (1 for balance heuristic)
-    float Mis(float aPdf) const { return aPdf; }
-
-    // Mis weight for 2 pdfs
-    float Mis2(float aSamplePdf, float aOtherPdf) const
+    // Mis power, we use balance heuristic
+    float Mis(float aPdf) const
     {
-        return Mis(aSamplePdf) / (Mis(aSamplePdf) + Mis(aOtherPdf));
+        //return std::pow(aPdf, /*power*/);
+        return aPdf;
     }
 
     //////////////////////////////////////////////////////////////////////////
