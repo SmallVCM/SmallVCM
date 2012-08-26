@@ -135,7 +135,7 @@ public:
                     Vec3f radiance = light->Illuminate(mScene.mSceneSphere, hitPoint,
                         mRng.GetVec2f(), directionToLight, distance, directPdfW);
 
-                    if(directPdfW > 0)
+                    if(!radiance.IsZero())
                     {
                         float brdfPdfW, cosThetaOut;
                         const Vec3f factor = bxdf.EvaluateBrdfPdfW(mScene,

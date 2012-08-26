@@ -142,7 +142,6 @@ public:
         // too close to, or under, tangent
         if(cosNormalDir < EPS_COSINE)
         {
-            oDirectPdfW  = -1.f;
             return Vec3f(0.f);
         }
 

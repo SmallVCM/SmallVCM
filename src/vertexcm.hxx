@@ -599,7 +599,6 @@ private:
 
         const AbstractLight *light = mScene.GetLightPtr(lightID);
 
-
         Vec3f directionToLight;
         float distance;
         float directPdfW, emissionPdfW, cosAtLight;
@@ -607,7 +606,8 @@ private:
             rndPosSamples, directionToLight, distance, directPdfW,
             &emissionPdfW, &cosAtLight);
 
-        if(directPdfW <= 0.f)
+        // if radiance == 0, other values are undefined, so have to early exit
+        if(radiance.IsZero())
             return Vec3f(0);
 
         float brdfDirPdfW, brdfRevPdfW, cosToLight;
