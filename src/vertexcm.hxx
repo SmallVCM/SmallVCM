@@ -99,6 +99,13 @@ class VertexCM : public AbstractRenderer
     typedef BXDF<false>       CameraBxdf;
     typedef BXDF<true>        LightBxdf;
 
+    /* \brief Range query used for Ppm, Bpm, and Vcm
+     *
+     * Is used by HashGrid, when a particle is found within
+     * range (given by hash grid), Process() is called
+     * and vertex merge is performed. BXDF of the camera
+     * particle is used.
+     */
     class RangeQuery
     {
     public:
@@ -124,6 +131,7 @@ class VertexCM : public AbstractRenderer
                 mCameraSample.mPathLength > mVertexCM.mMaxPathLength)
                 return;
 
+            // Retrieve light' incoming direction in world coordinates
             const Vec3f lightDirection = aLightVertex.mBxdf.WorldOmegaFix();
 
             float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
