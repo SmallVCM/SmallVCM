@@ -395,8 +395,12 @@ public:
 
                 if(!mScene.Intersect(ray, isect))
                 {
-                    if(ON_HIT)
-                        color += cameraSample.mWeight * BackgroundOnHit(cameraSample);
+                    if(mScene.GetBackground() != NULL && ON_HIT)
+                    {
+                        color += cameraSample.mWeight *
+                            LightOnHit(mScene.GetBackground(), cameraSample,
+                            Vec3f(0), ray.dir);
+                    }
                     break;
                 }
 
@@ -421,7 +425,7 @@ public:
                 {
                     const AbstractLight *light = mScene.GetLightPtr(isect.lightID);
                     color += cameraSample.mWeight *
-                        AreaLightOnHit(light, cameraSample, hitPoint, ray.dir);
+                        LightOnHit(light, cameraSample, hitPoint, ray.dir);
                     break;
                 }
 
@@ -533,53 +537,17 @@ private:
         return sample;
     }
 
-    /* \brief Returns (unweighted) radiance when ray flies out of scene
+    /* \brief Returns (unweighted) radiance when ray hits a light source
      *
-     * Has to be called before Updating MIS constants.
+     * Can be used for both Background and Area lights.
+     * For Background:
+     *  Has to be called BEFORE updating MIS constants.
+     *  Value of aHitpoint is irrelevant (passing Vec3f(0))
+     *
+     * For Area lights:
+     *  Has to be called AFTER updating MIS constants.
      */
-    Vec3f BackgroundOnHit(
-        const PathElement &aCameraSample) const
-    {
-        // If no background, return black
-        const BackgroundLight *background = mScene.GetBackground();
-        if(!background)
-            return Vec3f(0);
-
-        // For obvious reasons, GetRadiance interface for background does
-        // not use HitPoint. Passing Vec3f(0)
-        float directPdfW, emissionPdfW;
-        const Vec3f radiance = background->GetRadiance(mScene.mSceneSphere,
-            aCameraSample.mDirection, Vec3f(0), &directPdfW, &emissionPdfW);
-        if(radiance.IsZero())
-            return Vec3f(0);
-
-        // If we see background directly from camera, no weighting is required
-        if(aCameraSample.mPathLength == 1)
-            return radiance;
-
-        // When using only vertex merging, we want purely specular paths
-        // to give radiance (cannot get it otherwise). Rest is handled
-        // by merging and we should return 0.
-        if(mUseVM && !mUseVC)
-            return aCameraSample.mSpecularPath ? radiance : Vec3f(0);
-
-        // We sample lights uniformly
-        const int   lightCount    = mScene.GetLightCount();
-        const float lightPickProb = 1.f / lightCount;
-
-        directPdfW   *= lightPickProb;
-        emissionPdfW *= lightPickProb;
-
-        // If the last hit was specular, then d0 == 0.
-        const float wCamera = Mis(directPdfW) * aCameraSample.d0 +
-            Mis(emissionPdfW) * aCameraSample.d1vc;
-
-        const float misWeight = 1.f / (1.f + wCamera);
-        return radiance * misWeight;
-    }
-
-    // has to be called after Updating MIS constants
-    Vec3f AreaLightOnHit(
+    Vec3f LightOnHit(
         const AbstractLight *aLight,
         const PathElement   &aCameraSample,
         const Vec3f         &aHitpoint,
@@ -595,16 +563,20 @@ private:
         if(radiance.IsZero())
             return Vec3f(0);
 
+        // If we see background directly from camera, no weighting is required
         if(aCameraSample.mPathLength == 1)
             return radiance;
+
+        // When using only vertex merging, we want purely specular paths
+        // to give radiance (cannot get it otherwise). Rest is handled
+        // by merging and we should return 0.
+        if(mUseVM && !mUseVC)
+            return aCameraSample.mSpecularPath ? radiance : Vec3f(0);
 
         directPdfA   *= lightPickProb;
         emissionPdfW *= lightPickProb;
 
-        // when using only vertex merging, to get reflecting lights
-        if(mUseVM && !mUseVC)
-            return aCameraSample.mSpecularPath ? radiance : Vec3f(0.f);
-
+        // If the last hit was specular, then d0 == 0.
         const float wCamera = Mis(directPdfA) * aCameraSample.d0 +
             Mis(emissionPdfW) * aCameraSample.d1vc;
 
