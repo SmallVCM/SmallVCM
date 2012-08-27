@@ -360,7 +360,7 @@ public:
     // Whether the light has a finite extent (area, point) or not (directional, env. map)
     virtual bool IsFinite() const { return true;  };
     // Whether the light has delta function (point, directional) or not (area)
-    virtual bool IsDelta() const  { return false; };
+    virtual bool IsDelta() const  { return true; };
 
 public:
     Vec3f mPosition;
