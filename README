@@ -6,7 +6,8 @@ tomas@davidovic.cz and we will figure out whatever you might need.
 With that out of the way, let's go over the usual stuff.
 
 1) INSTALLATION and COMPILATION
-tl;dr: Compiler smallvcm.cxx with OpenMP and for C++11 support define USE_CPP11_RNG
+TL;DR - Compiler smallvcm.cxx with OpenMP, if you don't have C++11 support,
+define LEGACY_RNG (automatic for VS2008, found in rng.hxx).
 
 The whole thing is one c++ source file and a lot of headers.
 It was developed in VS2010. However, we did some limited testing on Linux (g++)
@@ -22,7 +23,7 @@ so just go ahead and compile smallvcm.cxx
 
 
 2) FUNCTION
-tl;dr: in about 7-8 minutes (on 4 cores) it generates report.html, that
+TL;DR - in about 7-8 minutes (on 4 cores) it generates report.html, that
 shows multiple algorithms on 3 different cornell boxes with 4 lighting variants.
 
 The program is set up to iterate through several variants of Cornell Box:
@@ -42,7 +43,7 @@ You can have a look at 100 and 100 iterations each version in results_100 and
 results_1000 directories.
 
 3) SETTINGS  *TEMPORARY*
-tl;dr: no setting is necessary, out of the box generates 256x256 images with
+TL;DR - no setting is necessary, out of the box generates 256x256 images with
 10 iterations of each algorithm each.
 
 All settings in this section are to be found in smallvcm.cxx, main.

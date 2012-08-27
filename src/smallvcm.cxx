@@ -201,7 +201,7 @@ int main(int argc, const char *argv[])
     if(argc > 1)
         base_iterations = atoi(argv[1]);
 
-#if !defined(USE_CPP11_RNG)
+#if defined(LEGACY_RNG)
     printf("The code was not compiled for C++11.\n");
     printf("It will be using Tiny Encryption Algorithm-based"
         "random number generator.\n");

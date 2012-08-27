@@ -31,12 +31,12 @@
 #include "bxdf.hxx"
 
 #if defined(_MSC_VER)
-#   if (_MSC_VER >= 1600)
-#       define USE_CPP11_RNG
+#   if (_MSC_VER < 1600)
+#       define LEGACY_RNG
 #   endif
 #endif
 
-#if defined(USE_CPP11_RNG)
+#if !defined(LEGACY_RNG)
 
 #include <random>
 class Rng
