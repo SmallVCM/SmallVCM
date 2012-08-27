@@ -126,8 +126,10 @@ class VertexCM : public AbstractRenderer
 
         void Process(const LightVertex& aLightVertex)
         {
-            if(aLightVertex.mPathLength +
-                mCameraSample.mPathLength > mVertexCM.mMaxPathLength)
+            if((aLightVertex.mPathLength + mCameraSample.mPathLength >
+                mVertexCM.mMaxPathLength) ||
+                (aLightVertex.mPathLength + mCameraSample.mPathLength <
+                mVertexCM.mMinPathLength))
                 return;
 
             // Retrieve light' incoming direction in world coordinates
@@ -342,7 +344,8 @@ public:
                 // Contribute directly to camera, purely delta bxdf cannot be connected
                 if(!bxdf.IsDelta() && (mUseVC || mLightTraceOnly) && DIR_CON)
                 {
-                    DirectContribution(lightSample, hitPoint, bxdf);
+                    if(lightSample.mPathLength + 1 >= mMinPathLength)
+                        DirectContribution(lightSample, hitPoint, bxdf);
                 }
 
                 // We will now extend by the bounce (1) and then
@@ -397,9 +400,12 @@ public:
                 {
                     if(mScene.GetBackground() != NULL && ON_HIT)
                     {
-                        color += cameraSample.mWeight *
-                            LightOnHit(mScene.GetBackground(), cameraSample,
-                            Vec3f(0), ray.dir);
+                        if(cameraSample.mPathLength >= mMinPathLength)
+                        {
+                            color += cameraSample.mWeight *
+                                LightOnHit(mScene.GetBackground(), cameraSample,
+                                Vec3f(0), ray.dir);
+                        }
                     }
                     break;
                 }
@@ -424,8 +430,11 @@ public:
                 if(isect.lightID >= 0 && ON_HIT)
                 {
                     const AbstractLight *light = mScene.GetLightPtr(isect.lightID);
-                    color += cameraSample.mWeight *
-                        LightOnHit(light, cameraSample, hitPoint, ray.dir);
+                    if(cameraSample.mPathLength >= mMinPathLength)
+                    {
+                        color += cameraSample.mWeight *
+                            LightOnHit(light, cameraSample, hitPoint, ray.dir);
+                    }
                     break;
                 }
 
@@ -436,8 +445,11 @@ public:
                 // [Vertex Connection] Connect to lights
                 if(!bxdf.IsDelta() && mUseVC && DIR_LIGHT)
                 {
-                    color += cameraSample.mWeight *
-                        DirectIllumination(cameraSample, hitPoint, bxdf);
+                    if(cameraSample.mPathLength + 1>= mMinPathLength)
+                    {
+                        color += cameraSample.mWeight *
+                            DirectIllumination(cameraSample, hitPoint, bxdf);
+                    }
                 }
 
                 // [Vertex Connection] Connect to light particles
@@ -455,6 +467,9 @@ public:
                     for(int i=range.x; i < range.y; i++)
                     {
                         const LightVertex &lightVertex = mLightVertices[i];
+                        if(lightVertex.mPathLength + 1 +
+                            cameraSample.mPathLength < mMinPathLength)
+                            continue;
                         // light vertices are stored in increasing path length
                         // order, once we go above the max path length, we can
                         // skip the rest

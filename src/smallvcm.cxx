@@ -88,6 +88,7 @@ struct Config
     int         mNumThreads;
     int         mBaseSeed;
     uint        mMaxPathLength;
+    uint        mMinPathLength;
 };
 
 
@@ -141,7 +142,10 @@ float render(const Config &aConfig)
     }
 
     for(int i=0; i<aConfig.mNumThreads; i++)
+    {
         renderers[i]->mMaxPathLength = aConfig.mMaxPathLength;
+        renderers[i]->mMinPathLength = aConfig.mMinPathLength;
+    }
 
     clock_t startT = clock();
 #pragma omp parallel for
@@ -197,9 +201,15 @@ int main(int argc, const char *argv[])
     int   base_iterations = 10;
     Vec2i resolution(256, 256);
     int   max_path_length = 10;
+    int   min_path_length = 0;
 
     if(argc > 1)
         base_iterations = atoi(argv[1]);
+    if(argc > 2)
+    {
+        max_path_length = atoi(argv[2]);
+        min_path_length = atoi(argv[2]);
+    }
 
 #if defined(LEGACY_RNG)
     printf("The code was not compiled for C++11.\n");
@@ -239,6 +249,7 @@ int main(int argc, const char *argv[])
     config.mNumThreads    = numThreads;
     config.mBaseSeed      = 1234;
     config.mMaxPathLength = max_path_length;
+    config.mMinPathLength = min_path_length;
 
     std::ofstream html("report.html");
     int thumbnailSize = 128;

@@ -68,6 +68,9 @@ public:
             {
                 if(!mScene.Intersect(ray, isect))
                 {
+                    if(pathLength < mMinPathLength)
+                        break;
+
                     const BackgroundLight* background = mScene.GetBackground();
                     if(!background)
                         break;
@@ -99,6 +102,9 @@ public:
                 // directly hit some light, lights do not reflect
                 if(isect.lightID >= 0)
                 {
+                    if(pathLength < mMinPathLength)
+                        break;
+
                     const AbstractLight *light = mScene.GetLightPtr(isect.lightID);
                     float directPdfA;
                     Vec3f contrib = light->GetRadiance(mScene.mSceneSphere,
@@ -125,7 +131,7 @@ public:
                     break;
 
                 // next event estimation
-                if(!bxdf.IsDelta())
+                if(!bxdf.IsDelta() && pathLength + 1 >= mMinPathLength)
                 {
                     int lightID = int(mRng.GetFloat() * lightCount);
                     const AbstractLight *light = mScene.GetLightPtr(lightID);

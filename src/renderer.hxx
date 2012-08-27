@@ -35,7 +35,8 @@ class AbstractRenderer
 public:
     AbstractRenderer(const Scene& aScene) : mScene(aScene)
     {
-        mMaxPathLength = 10;
+        mMinPathLength = 0;
+        mMaxPathLength = 2;
         mIterations = 0;
         mFramebuffer.Setup(aScene.mCamera.mResolution);
     }
@@ -54,6 +55,7 @@ public:
     bool WasUsed() const { return mIterations > 0; }
 public:
     uint         mMaxPathLength;
+    uint         mMinPathLength;
 protected:
     int          mIterations;
     Framebuffer  mFramebuffer;
