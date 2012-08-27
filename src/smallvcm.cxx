@@ -224,20 +224,20 @@ int main(int argc, const char *argv[])
     printf("Using %d threads\n", numThreads);
 
     SceneConfig sceneConfigs[] = {
-        SceneConfig(Scene::kLightCeiling,    "Empty + Ceiling", "ec"),
-        SceneConfig(Scene::kLightSun,        "Empty + Sun", "es"),
-        SceneConfig(Scene::kLightPoint,      "Empty + Point", "ep"),
-        SceneConfig(Scene::kLightBackground, "Empty + Background", "eb"),
+        //SceneConfig(Scene::kLightCeiling,    "Empty + Ceiling", "ec"),
+        //SceneConfig(Scene::kLightSun,        "Empty + Sun", "es"),
+        //SceneConfig(Scene::kLightPoint,      "Empty + Point", "ep"),
+        //SceneConfig(Scene::kLightBackground, "Empty + Background", "eb"),
 
-        SceneConfig(Scene::kBothSmallBalls | Scene::kLightCeiling,    "Small balls + Ceiling", "sbc"),
-        SceneConfig(Scene::kBothSmallBalls | Scene::kLightSun,        "Small balls + Sun", "sbs"),
+        //SceneConfig(Scene::kBothSmallBalls | Scene::kLightCeiling,    "Small balls + Ceiling", "sbc"),
+        //SceneConfig(Scene::kBothSmallBalls | Scene::kLightSun,        "Small balls + Sun", "sbs"),
         SceneConfig(Scene::kBothSmallBalls | Scene::kLightPoint,      "Small balls + Point", "sbp"),
-        SceneConfig(Scene::kBothSmallBalls | Scene::kLightBackground, "Small balls + Background", "sbb"),
+        //SceneConfig(Scene::kBothSmallBalls | Scene::kLightBackground, "Small balls + Background", "sbb"),
 
-        SceneConfig(Scene::kBallLargeMirror | Scene::kLightCeiling,    "Large mirror ball + Ceiling", "lbc"),
-        SceneConfig(Scene::kBallLargeMirror | Scene::kLightSun,        "Large mirror ball + Sun", "lbs"),
-        SceneConfig(Scene::kBallLargeMirror | Scene::kLightPoint,      "Large mirror ball + Point", "lbp"),
-        SceneConfig(Scene::kBallLargeMirror | Scene::kLightBackground, "Large mirror ball + Background", "lbb"),
+        //SceneConfig(Scene::kBallLargeMirror | Scene::kLightCeiling,    "Large mirror ball + Ceiling", "lbc"),
+        //SceneConfig(Scene::kBallLargeMirror | Scene::kLightSun,        "Large mirror ball + Sun", "lbs"),
+        //SceneConfig(Scene::kBallLargeMirror | Scene::kLightPoint,      "Large mirror ball + Point", "lbp"),
+        //SceneConfig(Scene::kBallLargeMirror | Scene::kLightBackground, "Large mirror ball + Background", "lbb"),
     };
 
     const int sceneConfigCount = sizeof(sceneConfigs) / sizeof(SceneConfig);
@@ -252,13 +252,14 @@ int main(int argc, const char *argv[])
     config.mMinPathLength = min_path_length;
 
     std::ofstream html("report.html");
-    int thumbnailSize = 128;
-    bool glossy       = true;
+    int thumbnailSize = 256;
+    bool glossy       = false;
     bool diffuse      = true;
     int  startSceneId = glossy ? 0 : sceneConfigCount;
     int  endSceneId   = sceneConfigCount * (diffuse ? 2 : 1);
 
-    int algorithmMask[7] = {1,1,1,1,1,1,1};
+    int algorithmMask[7] = {0,0,0,0,1,1,0};
+    //int algorithmMask[7] = {0,1,0,0,0,0,0};
 
     clock_t startTime = clock();
     for(int sceneId2 = startSceneId; sceneId2 < endSceneId; sceneId2++)
