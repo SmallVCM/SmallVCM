@@ -205,6 +205,7 @@ int main(int argc, const char *argv[])
 
     if(argc > 1)
         base_iterations = atoi(argv[1]);
+
     if(argc > 2)
     {
         max_path_length = atoi(argv[2]);
@@ -252,8 +253,8 @@ int main(int argc, const char *argv[])
     config.mMinPathLength = min_path_length;
 
     std::ofstream html("report.html");
-    int thumbnailSize = 256;
-    bool glossy       = false;
+    int thumbnailSize = 128;
+    bool glossy       = true;
     bool diffuse      = true;
     int  startSceneId = glossy ? 0 : sceneConfigCount;
     int  endSceneId   = sceneConfigCount * (diffuse ? 2 : 1);
