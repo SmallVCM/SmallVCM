@@ -258,7 +258,15 @@ int main(int argc, const char *argv[])
     int  startSceneId = glossy ? 0 : sceneConfigCount;
     int  endSceneId   = sceneConfigCount * (diffuse ? 2 : 1);
 
-    int algorithmMask[7] = {0,0,0,0,1,1,0};
+    int algorithmMask[7] = {
+        1, // kEyeLight
+        1, // kPathTracing
+        1, // kLightTracing
+        1, // kProgressivePhotonMapping
+        1, // kBidirectionalPhotonMapping
+        1, // kBidirectionalPathTracing
+        1  // kVertexConnectionMerging
+    };
     //int algorithmMask[7] = {0,1,0,0,0,0,0};
 
     clock_t startTime = clock();
