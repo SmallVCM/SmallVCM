@@ -143,6 +143,12 @@ class VertexCM : public AbstractRenderer
             if(cameraBrdfFactor.IsZero())
                 return;
 
+            cameraBrdfDirPdfW *= mCameraBxdf.ContinuationProb();
+            // Even though this is pdf from camera brdf, the continuation probability
+            // must come from light brdf, because that would govern it if light particle
+            // actually bounced
+            cameraBrdfRevPdfW *= aLightVertex.mBxdf.ContinuationProb();
+
             const float wLight = aLightVertex.d0 * mVertexCM.mMisVcWeightFactor +
                 aLightVertex.d1vm * mVertexCM.Mis(cameraBrdfDirPdfW);
             const float wCamera = mCameraSample.d0 * mVertexCM.mMisVcWeightFactor +
