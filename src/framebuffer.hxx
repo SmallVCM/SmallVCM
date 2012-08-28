@@ -29,6 +29,7 @@
 #include <cmath>
 #include <fstream>
 #include <string.h>
+#include "utils.hxx"
 
 class Framebuffer
 {
@@ -74,6 +75,21 @@ public:
     {
         for(size_t i=0; i<mColor.size(); i++)
             mColor[i] = mColor[i] * Vec3f(aScale);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Statistics
+    float TotalLuminance()
+    {
+        float lum = 0;
+        for(int y=0; y<mResY; y++)
+        {
+            for(int x=0; x<mResX; x++)
+            {
+                lum += Luminance(mColor[x + y*mResX]);
+            }
+        }
+        return lum;
     }
 
     //////////////////////////////////////////////////////////////////////////
