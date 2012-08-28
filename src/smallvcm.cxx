@@ -224,20 +224,20 @@ int main(int argc, const char *argv[])
     printf("Using %d threads\n", numThreads);
 
     SceneConfig sceneConfigs[] = {
-        //SceneConfig(Scene::kLightCeiling,    "Empty + Ceiling", "ec"),
-        //SceneConfig(Scene::kLightSun,        "Empty + Sun", "es"),
-        //SceneConfig(Scene::kLightPoint,      "Empty + Point", "ep"),
-        //SceneConfig(Scene::kLightBackground, "Empty + Background", "eb"),
+        SceneConfig(Scene::kLightCeiling,    "Empty + Ceiling", "ec"),
+        SceneConfig(Scene::kLightSun,        "Empty + Sun", "es"),
+        SceneConfig(Scene::kLightPoint,      "Empty + Point", "ep"),
+        SceneConfig(Scene::kLightBackground, "Empty + Background", "eb"),
 
-        //SceneConfig(Scene::kBothSmallBalls | Scene::kLightCeiling,    "Small balls + Ceiling", "sbc"),
-        //SceneConfig(Scene::kBothSmallBalls | Scene::kLightSun,        "Small balls + Sun", "sbs"),
+        SceneConfig(Scene::kBothSmallBalls | Scene::kLightCeiling,    "Small balls + Ceiling", "sbc"),
+        SceneConfig(Scene::kBothSmallBalls | Scene::kLightSun,        "Small balls + Sun", "sbs"),
         SceneConfig(Scene::kBothSmallBalls | Scene::kLightPoint,      "Small balls + Point", "sbp"),
-        //SceneConfig(Scene::kBothSmallBalls | Scene::kLightBackground, "Small balls + Background", "sbb"),
+        SceneConfig(Scene::kBothSmallBalls | Scene::kLightBackground, "Small balls + Background", "sbb"),
 
-        //SceneConfig(Scene::kBallLargeMirror | Scene::kLightCeiling,    "Large mirror ball + Ceiling", "lbc"),
-        //SceneConfig(Scene::kBallLargeMirror | Scene::kLightSun,        "Large mirror ball + Sun", "lbs"),
-        //SceneConfig(Scene::kBallLargeMirror | Scene::kLightPoint,      "Large mirror ball + Point", "lbp"),
-        //SceneConfig(Scene::kBallLargeMirror | Scene::kLightBackground, "Large mirror ball + Background", "lbb"),
+        SceneConfig(Scene::kBallLargeMirror | Scene::kLightCeiling,    "Large mirror ball + Ceiling", "lbc"),
+        SceneConfig(Scene::kBallLargeMirror | Scene::kLightSun,        "Large mirror ball + Sun", "lbs"),
+        SceneConfig(Scene::kBallLargeMirror | Scene::kLightPoint,      "Large mirror ball + Point", "lbp"),
+        SceneConfig(Scene::kBallLargeMirror | Scene::kLightBackground, "Large mirror ball + Background", "lbb"),
     };
 
     const int sceneConfigCount = sizeof(sceneConfigs) / sizeof(SceneConfig);
@@ -267,7 +267,6 @@ int main(int argc, const char *argv[])
         1, // kBidirectionalPathTracing
         1  // kVertexConnectionMerging
     };
-    //int algorithmMask[7] = {0,1,0,0,0,0,0};
 
     clock_t startTime = clock();
     for(int sceneId2 = startSceneId; sceneId2 < endSceneId; sceneId2++)
@@ -308,7 +307,6 @@ int main(int argc, const char *argv[])
             fflush(stdout);
             float time = render(config);
             printf("done in %g s\n", time);
-            printf("Total Luminance: %g\n", fbuffer.TotalLuminance());
             std::string filename = sceneFilename + "_" +
                 config.GetAcronym() + ".bmp";
 
@@ -325,8 +323,7 @@ int main(int argc, const char *argv[])
             //    << config.GetAcronym() << "</abbr> "
             //    << " (" << time << " s)</td>" << std::endl;
             html << "<small>" << config.GetName()
-                << " (" << time << " s, lum " << fbuffer.TotalLuminance()
-                <<")</small></td>" << std::endl;
+                << " (" << time << " s)</small></td>" << std::endl;
         }
         html << "</tr>" << std::endl;
         html << "</table>" << std::endl;
