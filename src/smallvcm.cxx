@@ -308,6 +308,7 @@ int main(int argc, const char *argv[])
             fflush(stdout);
             float time = render(config);
             printf("done in %g s\n", time);
+            printf("Total Luminance: %g\n", fbuffer.TotalLuminance());
             std::string filename = sceneFilename + "_" +
                 config.GetAcronym() + ".bmp";
 
@@ -324,7 +325,8 @@ int main(int argc, const char *argv[])
             //    << config.GetAcronym() << "</abbr> "
             //    << " (" << time << " s)</td>" << std::endl;
             html << "<small>" << config.GetName()
-                << " (" << time << " s)</small></td>" << std::endl;
+                << " (" << time << " s, lum " << fbuffer.TotalLuminance()
+                <<")</small></td>" << std::endl;
         }
         html << "</tr>" << std::endl;
         html << "</table>" << std::endl;
