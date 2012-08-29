@@ -230,15 +230,15 @@ int main(int argc, const char *argv[])
         SceneConfig(Scene::kLightPoint,      "Empty + Point", "ep"),
         SceneConfig(Scene::kLightBackground, "Empty + Background", "eb"),
 
-        SceneConfig(Scene::kBothSmallBalls | Scene::kLightCeiling,    "Small balls + Ceiling", "sbc"),
-        SceneConfig(Scene::kBothSmallBalls | Scene::kLightSun,        "Small balls + Sun", "sbs"),
-        SceneConfig(Scene::kBothSmallBalls | Scene::kLightPoint,      "Small balls + Point", "sbp"),
-        SceneConfig(Scene::kBothSmallBalls | Scene::kLightBackground, "Small balls + Background", "sbb"),
+        SceneConfig(Scene::kBothSmallSpheres | Scene::kLightCeiling,    "Small spheres + Ceiling", "sbc"),
+        SceneConfig(Scene::kBothSmallSpheres | Scene::kLightSun,        "Small spheres + Sun", "sbs"),
+        SceneConfig(Scene::kBothSmallSpheres | Scene::kLightPoint,      "Small spheres + Point", "sbp"),
+        SceneConfig(Scene::kBothSmallSpheres | Scene::kLightBackground, "Small spheres + Background", "sbb"),
 
-        SceneConfig(Scene::kBallLargeMirror | Scene::kLightCeiling,    "Large mirror ball + Ceiling", "lbc"),
-        SceneConfig(Scene::kBallLargeMirror | Scene::kLightSun,        "Large mirror ball + Sun", "lbs"),
-        SceneConfig(Scene::kBallLargeMirror | Scene::kLightPoint,      "Large mirror ball + Point", "lbp"),
-        SceneConfig(Scene::kBallLargeMirror | Scene::kLightBackground, "Large mirror ball + Background", "lbb"),
+        SceneConfig(Scene::kLargeMirrorSphere | Scene::kLightCeiling,    "Large mirror sphere + Ceiling", "lbc"),
+        SceneConfig(Scene::kLargeMirrorSphere | Scene::kLightSun,        "Large mirror sphere + Sun", "lbs"),
+        SceneConfig(Scene::kLargeMirrorSphere | Scene::kLightPoint,      "Large mirror sphere + Point", "lbp"),
+        SceneConfig(Scene::kLargeMirrorSphere | Scene::kLightBackground, "Large mirror sphere + Background", "lbb"),
     };
 
     const int sceneConfigCount = sizeof(sceneConfigs) / sizeof(SceneConfig);
@@ -255,7 +255,7 @@ int main(int argc, const char *argv[])
     std::ofstream html("report.html");
     int thumbnailSize = 128;
     bool glossy       = true;
-    bool diffuse      = true;
+    bool diffuse      = false;
     int  startSceneId = glossy ? 0 : sceneConfigCount;
     int  endSceneId   = sceneConfigCount * (diffuse ? 2 : 1);
 

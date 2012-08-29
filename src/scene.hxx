@@ -103,25 +103,25 @@ public:
     // Loads a Cornell Box scene
     enum BoxMask
     {
-        kLightCeiling    = 1,
-        kLightSun        = 2,
-        kLightPoint      = 4,
-        kLightBackground = 8,
-        kBallLargeMirror = 16,
-        kBallLargeGlass  = 32,
-        kBallMirror      = 64,
-        kBallGlass       = 128,
-        kGlossyFloor     = 256,
-        kDefault         = (kLightCeiling | kBallMirror | kBallGlass),
-        kBothSmallBalls  = (kBallMirror | kBallGlass),
-        kBothLargeBalls  = (kBallLargeMirror | kBallLargeGlass)
+        kLightCeiling      = 1,
+        kLightSun          = 2,
+        kLightPoint        = 4,
+        kLightBackground   = 8,
+        kLargeMirrorSphere = 16,
+        kLargeGlassSphere  = 32,
+        kSmallMirrorSphere = 64,
+        kSmallGlassSphere  = 128,
+        kGlossyFloor       = 256,
+        kBothSmallSpheres  = (kSmallMirrorSphere | kSmallGlassSphere),
+        kBothLargeSpheres  = (kLargeMirrorSphere | kLargeGlassSphere),
+        kDefault           = (kLightCeiling | kBothSmallSpheres),
     };
     void LoadCornellBox(const Vec2i &aResolution, uint aBoxMask = kDefault)
     {
-        if((aBoxMask & kBothLargeBalls) == kBothLargeBalls)
+        if((aBoxMask & kBothLargeSpheres) == kBothLargeSpheres)
         {
             printf("Cannot have both large balls, using mirror\n\n");
-            aBoxMask &= ~kBallLargeGlass;
+            aBoxMask &= ~kLargeGlassSphere;
         }
         bool light_ceiling    = (aBoxMask & kLightCeiling)    != 0;
         bool light_sun        = (aBoxMask & kLightSun)        != 0;
@@ -246,9 +246,9 @@ public:
         // Ball - central
         float largeRadius = 0.8f;
         Vec3f center = (cb[0] + cb[1] + cb[4] + cb[5]) * (1.f / 4.f) + Vec3f(0, 0, largeRadius);
-        if((aBoxMask & kBallLargeMirror) != 0)
+        if((aBoxMask & kLargeMirrorSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 6));
-        if((aBoxMask & kBallLargeGlass) != 0)
+        if((aBoxMask & kLargeGlassSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 7));
 
         // Balls - left and right
@@ -258,9 +258,9 @@ public:
         float xlen = rightWallCenter.x - leftWallCenter.x;
         Vec3f leftBallCenter  = leftWallCenter  + Vec3f(2.f * xlen / 7.f, 0, 0);
         Vec3f rightBallCenter = rightWallCenter - Vec3f(2.f * xlen / 7.f, 0, 0);
-        if((aBoxMask & kBallMirror) != 0)
+        if((aBoxMask & kSmallMirrorSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  smallRadius, 6));
-        if((aBoxMask & kBallGlass) != 0)
+        if((aBoxMask & kSmallGlassSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(rightBallCenter, smallRadius, 7));
 
         //////////////////////////////////////////////////////////////////////////
