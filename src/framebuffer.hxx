@@ -206,10 +206,32 @@ public:
     void SaveHDR(const char* aFilename)
     {
         std::ofstream hdr(aFilename, std::ios::binary);
-        hdr << "?#RADIANCE" << '\n';
+        hdr << "#?RADIANCE" << '\n';
         hdr << "# SmallVCM" << '\n';
         hdr << "FORMAT=32-bit_rle_rgbe" << '\n' << '\n';
         hdr << "-Y " << mResY << " +X " << mResX << '\n';
+        for(int y=0; y<mResY; y++)
+        {
+            for(int x=0; x<mResX; x++)
+            {
+                typedef unsigned char byte;
+                byte rgbe[4] = {0,0,0,0};
+
+                const Vec3f &rgbF = mColor[x + y*mResX];
+                float v = std::max(rgbF.x, std::max(rgbF.y, rgbF.z));
+                if(v >= 1e-32f)
+                {
+                    int e;
+                    v = float(frexp(v, &e) * 256.f / v);
+                    rgbe[0] = byte(rgbF.x * v);
+                    rgbe[1] = byte(rgbF.y * v);
+                    rgbe[2] = byte(rgbF.z * v);
+                    rgbe[3] = byte(e + 128);
+                }
+
+                hdr.write((char*)&rgbe[0], 4);
+            }
+        }
     }
 private:
     std::vector<Vec3f> mColor;
