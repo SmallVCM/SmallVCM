@@ -185,15 +185,11 @@ float render(const Config &aConfig)
 struct SceneConfig
 {
     SceneConfig(){};
-    SceneConfig(uint aMask, const char* aName, const char* aAcronym)
-        : mMask(aMask),
-        mName(aName),
-        mAcronym(aAcronym)
+    SceneConfig(uint aMask)
+        : mMask(aMask)
     {}
 
     uint       mMask;
-    const char *mName;
-    const char *mAcronym;
 };
 
 int main(int argc, const char *argv[])
@@ -225,20 +221,10 @@ int main(int argc, const char *argv[])
     printf("Using %d threads\n", numThreads);
 
     SceneConfig sceneConfigs[] = {
-        SceneConfig(Scene::kLightCeiling,    "Empty + Ceiling", "ec"),
-        SceneConfig(Scene::kLightSun,        "Empty + Sun", "es"),
-        SceneConfig(Scene::kLightPoint,      "Empty + Point", "ep"),
-        SceneConfig(Scene::kLightBackground, "Empty + Background", "eb"),
-
-        SceneConfig(Scene::kBothSmallSpheres | Scene::kLightCeiling,    "Small spheres + Ceiling", "sbc"),
-        SceneConfig(Scene::kBothSmallSpheres | Scene::kLightSun,        "Small spheres + Sun", "sbs"),
-        SceneConfig(Scene::kBothSmallSpheres | Scene::kLightPoint,      "Small spheres + Point", "sbp"),
-        SceneConfig(Scene::kBothSmallSpheres | Scene::kLightBackground, "Small spheres + Background", "sbb"),
-
-        SceneConfig(Scene::kLargeMirrorSphere | Scene::kLightCeiling,    "Large mirror sphere + Ceiling", "lbc"),
-        SceneConfig(Scene::kLargeMirrorSphere | Scene::kLightSun,        "Large mirror sphere + Sun", "lbs"),
-        SceneConfig(Scene::kLargeMirrorSphere | Scene::kLightPoint,      "Large mirror sphere + Point", "lbp"),
-        SceneConfig(Scene::kLargeMirrorSphere | Scene::kLightBackground, "Large mirror sphere + Background", "lbb"),
+        SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightSun),
+        SceneConfig(Scene::kGlossyFloor | Scene::kLargeMirrorSphere | Scene::kLightCeiling),
+        SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightPoint),
+        SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightBackground)
     };
 
     const int sceneConfigCount = sizeof(sceneConfigs) / sizeof(SceneConfig);
@@ -254,10 +240,6 @@ int main(int argc, const char *argv[])
 
     std::ofstream html("report.html");
     int thumbnailSize = 128;
-    bool glossy       = true;
-    bool diffuse      = false;
-    int  startSceneId = glossy ? 0 : sceneConfigCount;
-    int  endSceneId   = sceneConfigCount * (diffuse ? 2 : 1);
 
     int algorithmMask[7] = {
         1, // kEyeLight
@@ -270,34 +252,29 @@ int main(int argc, const char *argv[])
     };
 
     clock_t startTime = clock();
-    for(int sceneId2 = startSceneId; sceneId2 < endSceneId; sceneId2++)
+    for(int sceneId = 0; sceneId < sceneConfigCount; sceneId++)
     {
-        int sceneId = sceneId2 % sceneConfigCount;
         uint mask = sceneConfigs[sceneId].mMask;
-        if(sceneId2 < sceneConfigCount)
-            mask |= Scene::kGlossyFloor;
+
 
         Scene scene;
         scene.LoadCornellBox(resolution, mask);
         scene.BuildSceneSphere();
         config.mScene = &scene;
 
-        std::string sceneFilename(sceneConfigs[sceneId].mAcronym);
+        std::string name, acronym;
+        name = scene.GetSceneName(mask, &acronym);
+
+        std::string sceneFilename(acronym);
         if((mask & Scene::kGlossyFloor) != 0)
             sceneFilename = "g" + sceneFilename;
 
         html << "<table>" << std::endl;
         html << "<tr>" << std::endl;
-        if((mask & Scene::kGlossyFloor) != 0)
-            html << "<h2> Glossy " << sceneConfigs[sceneId].mName << "</h2>" << std::endl;
-        else
-            html << "<h2>" << sceneConfigs[sceneId].mName << "</h2>" << std::endl;
+        html << "<h2>" << name << "</h2>" << std::endl;
         html << "</tr>" << std::endl;
 
-        if((mask & Scene::kGlossyFloor) != 0)
-            printf("Scene: Glossy %s\n", sceneConfigs[sceneId].mName);
-        else
-            printf("Scene: %s\n", sceneConfigs[sceneId].mName);
+        printf("Scene: %s\n", name.c_str());
 
         html << "<tr>" << std::endl;
         for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
@@ -324,8 +301,8 @@ int main(int argc, const char *argv[])
             //    << config.GetAcronym() << "</abbr> "
             //    << " (" << time << " s)</td>" << std::endl;
             html << "<small>" << config.GetName()
-                << " (" << time << " s)</small><br/>"
-                << "Total luminance: " << fbuffer.TotalLuminance() << "</td>" << std::endl;
+                << " (" << time << " s)<br/>"
+                << "Lum: " << fbuffer.TotalLuminance() << "</small></td>" << std::endl;
         }
         html << "</tr>" << std::endl;
         html << "</table>" << std::endl;

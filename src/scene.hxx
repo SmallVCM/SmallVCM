@@ -116,6 +116,7 @@ public:
         kBothLargeSpheres  = (kLargeMirrorSphere | kLargeGlassSphere),
         kDefault           = (kLightCeiling | kBothSmallSpheres),
     };
+
     void LoadCornellBox(const Vec2i &aResolution, uint aBoxMask = kDefault)
     {
         if((aBoxMask & kBothLargeSpheres) == kBothLargeSpheres)
@@ -372,6 +373,78 @@ public:
         mSceneSphere.mSceneCenter = (bboxMax + bboxMin) * 0.5f;
         mSceneSphere.mSceneRadius = std::sqrt(radius2) * 0.5f;
         mSceneSphere.mInvSceneRadiusSqr = 1.f / Sqr(mSceneSphere.mSceneRadius);
+    }
+
+
+    std::string GetSceneName(uint aBoxMask, std::string *oAcronym = NULL)
+    {
+        std::string name;
+        std::string acronym;
+        // Floor type
+        if((aBoxMask & kGlossyFloor) == kGlossyFloor)
+        {
+            name    += "Glossy ";
+            acronym += "g";
+        }
+
+        // Box content
+        if((aBoxMask & kBothSmallSpheres) == kBothSmallSpheres)
+        {
+            name    += "Small spheres";
+            acronym += "bs";
+        }
+        else if((aBoxMask & kSmallMirrorSphere) == kSmallMirrorSphere)
+        {
+            name    += "Small mirror sphere";
+            acronym += "sm";
+        }
+        else if((aBoxMask & kSmallGlassSphere) == kSmallGlassSphere)
+        {
+            name    += "Small glass sphere";
+            acronym += "sg";
+        }
+        else if((aBoxMask & kLargeMirrorSphere) == kLargeMirrorSphere)
+        {
+            name    += "Large mirror sphere";
+            acronym += "lm";
+        }
+        else if((aBoxMask & kLargeGlassSphere) == kLargeGlassSphere)
+        {
+            name    += "Large glass sphere";
+            acronym += "lg";
+        }
+        else
+        {
+            name    += "Empty";
+            acronym += "e";
+        }
+
+        acronym += "_";
+
+        // Lighting
+        if((aBoxMask & kLightCeiling) == kLightCeiling)
+        {
+            name    += " + Ceiling";
+            acronym += "c";
+        }
+        else if((aBoxMask & kLightSun) == kLightSun)
+        {
+            name    += " + Sun";
+            acronym += "s";
+        }
+        else if((aBoxMask & kLightPoint) == kLightPoint)
+        {
+            name    += " + Point";
+            acronym += "p";
+        }
+        else if((aBoxMask & kLightBackground) == kLightBackground)
+        {
+            name    += " + Background";
+            acronym += "b";
+        }
+
+        if(oAcronym) *oAcronym = acronym;
+        return name;
     }
 private:
 

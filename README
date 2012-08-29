@@ -24,7 +24,7 @@ so just go ahead and compile smallvcm.cxx
 
 2) FUNCTION
 TL;DR - in about 7-8 minutes (on 4 cores) it generates report.html, that
-shows multiple algorithms on 3 different cornell boxes with 4 lighting variants.
+shows multiple algorithms on 4 different cornell boxes.
 
 The program is set up to iterate through several variants of Cornell Box:
 Empty, 2 small spheres (mirror and glass), 1 large mirror sphere.
@@ -55,9 +55,8 @@ On 4 core machine, 10 iterations take about 2-5 seconds
 The other two important parameters, that have to be changed in smallvcm.cxx,
 are resolution (256x256) and maximum path length (10 segments).
 
-There are 2 variants on the cornell box, one has diffuse floor and white back wall,
-the other has glossy floor and blue back wall. The default renders both, but you can
-use bools glossy and diffuse to turn on/off either.
+There are 2 variants on the cornell box, one has diffuse floor and a white back wall,
+the other has glossy floor and blue back wall. The default renders glossy.
 
 sceneConfigs sets which scenes are used, algorithmMask sets which algorithms
 will be run. Thumbnail size sets size of thumbnails in report.html
