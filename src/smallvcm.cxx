@@ -36,9 +36,11 @@
 #include "pathtracer.hxx"
 #include "bsdf.hxx"
 #include "vertexcm.hxx"
+#include "html_writer.hxx"
 
 #include <omp.h>
 #include <string>
+#include <set>
 
 struct Config
 {
@@ -190,11 +192,15 @@ struct SceneConfig
     {}
 
     uint       mMask;
+    //Config::Algorithm
+    std::set<uint> mGoodResults;
+    std::set<uint> mPoorResults;
 };
 
 int main(int argc, const char *argv[])
 {
     int   base_iterations = 10;
+    //Vec2i resolution(512, 512);
     Vec2i resolution(256, 256);
     int   max_path_length = 10;
     int   min_path_length = 0;
@@ -238,7 +244,8 @@ int main(int argc, const char *argv[])
     config.mMaxPathLength = max_path_length;
     config.mMinPathLength = min_path_length;
 
-    std::ofstream html("report.html");
+    HtmlWriter html_writer("report.html");
+    html_writer.WriteHeader();
     int thumbnailSize = 128;
 
     int algorithmMask[7] = {
@@ -251,11 +258,29 @@ int main(int argc, const char *argv[])
         1  // kVertexConnectionMerging
     };
 
+    std::string FourWaySplitFiles[4];
+    std::string FourWaySplitNames[4];
+    uint        FourWaySplitAlgorithms[4] = {
+        Config::kProgressivePhotonMapping,
+        Config::kBidirectionalPhotonMapping,
+        Config::kBidirectionalPathTracing,
+        Config::kVertexConnectionMerging,
+    };
+
+    for(int i=0; i<4; i++)
+    {
+        config.mAlgorithm = Config::Algorithm(FourWaySplitAlgorithms[i]);
+        std::string acronym = config.GetAcronym();
+        for(uint j=0; j<acronym.length(); j++)
+            if(acronym[j] >= 'a' && acronym[j] <= 'z')
+                acronym[j] += 'A' - 'a';
+        FourWaySplitNames[i] = acronym;
+    }
+
     clock_t startTime = clock();
     for(int sceneId = 0; sceneId < sceneConfigCount; sceneId++)
     {
         uint mask = sceneConfigs[sceneId].mMask;
-
 
         Scene scene;
         scene.LoadCornellBox(resolution, mask);
@@ -269,14 +294,10 @@ int main(int argc, const char *argv[])
         if((mask & Scene::kGlossyFloor) != 0)
             sceneFilename = "g" + sceneFilename;
 
-        html << "<table>" << std::endl;
-        html << "<tr>" << std::endl;
-        html << "<h2>" << name << "</h2>" << std::endl;
-        html << "</tr>" << std::endl;
-
+        html_writer.AddScene(name);
         printf("Scene: %s\n", name.c_str());
 
-        html << "<tr>" << std::endl;
+        int algorithmIdx = 0;
         for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
         {
             if(!algorithmMask[algId]) continue;
@@ -290,22 +311,18 @@ int main(int argc, const char *argv[])
 
             // Html output
             fbuffer.SaveBMP(filename.c_str(), 2.2f);
-            html << "<td width=\"" << thumbnailSize << "pixels\" valign=\"top\" align=\"center\">"
-                << " <a href=\"" << filename << "\">"
-                << "<img src=\"" << filename << "\" "
-                << "alt=\"" << config.GetName() << " (" << time << " s)\" "
-                << "height=\"" << thumbnailSize << "\" "
-                << "width=\"" << thumbnailSize << "\" />"
-                << "</a><br/>" << std::endl;
-            //html << "<abbr title=\"" << config.GetName() << "\">"
-            //    << config.GetAcronym() << "</abbr> "
-            //    << " (" << time << " s)</td>" << std::endl;
-            html << "<small>" << config.GetName()
-                << " (" << time << " s)<br/>"
-                << "Lum: " << fbuffer.TotalLuminance() << "</small></td>" << std::endl;
+            HtmlWriter::BorderColor bcolor = HtmlWriter::kNone;
+            html_writer.AddRendering(config.GetName(),
+                filename, time, bcolor);
+            for(int i=0; i<4; i++)
+            {
+                if(algId == FourWaySplitAlgorithms[i])
+                    FourWaySplitFiles[i] = filename;
+            }
         }
-        html << "</tr>" << std::endl;
-        html << "</table>" << std::endl;
+
+        html_writer.AddFourWaySplit(FourWaySplitFiles,
+            FourWaySplitNames, resolution.x);
     }
     clock_t endTime = clock();
     printf("Whole run took %g s\n", float(endTime - startTime) / CLOCKS_PER_SEC);

@@ -84,6 +84,7 @@
     <ClInclude Include="src\bsdf.hxx" />
     <ClInclude Include="src\frame.hxx" />
     <ClInclude Include="src\hashgrid.hxx" />
+    <ClInclude Include="src\html_writer.hxx" />
     <ClInclude Include="src\pathtracer.hxx" />
     <ClInclude Include="src\renderer.hxx" />
     <ClInclude Include="src\eyelight.hxx" />

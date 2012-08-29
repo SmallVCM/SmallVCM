@@ -67,5 +67,8 @@
     <ClInclude Include="src\bsdf.hxx">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\html_writer.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
