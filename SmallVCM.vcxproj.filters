@@ -52,9 +52,6 @@
     <ClInclude Include="src\utils.hxx">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\bxdf.hxx">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\pathtracer.hxx">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -65,6 +62,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\vertexcm.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bsdf.hxx">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

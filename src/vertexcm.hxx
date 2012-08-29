@@ -28,7 +28,7 @@
 #include <vector>
 #include <cmath>
 #include "renderer.hxx"
-#include "bxdf.hxx"
+#include "bsdf.hxx"
 #include "rng.hxx"
 #include "hashgrid.hxx"
 
@@ -75,12 +75,12 @@ class VertexCM : public AbstractRenderer
         Vec3f mWeight;     //!< Weight (multiply contribution)
         uint  mPathLength; //!< How many segments between source and vertex
 
-        /* \brief BXDF at vertex position
+        /* \brief Bsdf at vertex position
          *
          * This stores all required local information, including incoming
          * direction.
          */
-        BXDF<tFromLight> mBxdf;
+        BSDF<tFromLight> mBsdf;
         // We compute MIS in a cumulative fashion. 1 variable is used,
         // plus 1 for each used method (connection, merging).
         // Please see the accompanying writeup for derivation.
@@ -95,14 +95,14 @@ class VertexCM : public AbstractRenderer
     typedef PathVertex<false> CameraVertex;
     typedef PathVertex<true>  LightVertex;
 
-    typedef BXDF<false>       CameraBxdf;
-    typedef BXDF<true>        LightBxdf;
+    typedef BSDF<false>       CameraBsdf;
+    typedef BSDF<true>        LightBsdf;
 
     /* \brief Range query used for Ppm, Bpm, and Vcm
      *
      * Is used by HashGrid, when a particle is found within
      * range (given by hash grid), Process() is called
-     * and vertex merge is performed. BXDF of the camera
+     * and vertex merge is performed. Bsdf of the camera
      * particle is used.
      */
     class RangeQuery
@@ -111,11 +111,11 @@ class VertexCM : public AbstractRenderer
         RangeQuery(
             const VertexCM    &aVertexCM,
             const Vec3f       &aCameraPosition,
-            const CameraBxdf  &aCameraBxdf,
+            const CameraBsdf  &aCameraBsdf,
             const PathElement &aCameraSample)
             : mVertexCM(aVertexCM),
             mCameraPosition(aCameraPosition),
-            mCameraBxdf(aCameraBxdf),
+            mCameraBsdf(aCameraBsdf),
             mCameraSample(aCameraSample),
             mContrib(0)
         {
@@ -133,21 +133,21 @@ class VertexCM : public AbstractRenderer
                 return;
 
             // Retrieve light' incoming direction in world coordinates
-            const Vec3f lightDirection = aLightVertex.mBxdf.WorldOmegaFix();
+            const Vec3f lightDirection = aLightVertex.mBsdf.WorldOmegaFix();
 
             float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
-            const Vec3f cameraBrdfFactor = mCameraBxdf.EvaluateBrdfPdfW(
+            const Vec3f cameraBrdfFactor = mCameraBsdf.EvaluateBrdfPdfW(
                 mVertexCM.mScene, lightDirection, cosCamera, &cameraBrdfDirPdfW,
                 &cameraBrdfRevPdfW);
 
             if(cameraBrdfFactor.IsZero())
                 return;
 
-            cameraBrdfDirPdfW *= mCameraBxdf.ContinuationProb();
+            cameraBrdfDirPdfW *= mCameraBsdf.ContinuationProb();
             // Even though this is pdf from camera brdf, the continuation probability
             // must come from light brdf, because that would govern it if light particle
             // actually bounced
-            cameraBrdfRevPdfW *= aLightVertex.mBxdf.ContinuationProb();
+            cameraBrdfRevPdfW *= aLightVertex.mBsdf.ContinuationProb();
 
             const float wLight = aLightVertex.d0 * mVertexCM.mMisVcWeightFactor +
                 aLightVertex.d1vm * mVertexCM.Mis(cameraBrdfDirPdfW);
@@ -167,7 +167,7 @@ class VertexCM : public AbstractRenderer
     private:
         const VertexCM    &mVertexCM;
         const Vec3f       &mCameraPosition;
-        const CameraBxdf  &mCameraBxdf;
+        const CameraBsdf  &mCameraBsdf;
         const PathElement &mCameraSample;
         Vec3f             mContrib;
     };
@@ -240,7 +240,7 @@ public:
                 {
                     printf(
                         "*WARNING* Our Ppm implementation cannot handle materials mixing\n"
-                        "Specular and NonSpecular BXDFs. The extension would be\n"
+                        "Specular and NonSpecular Bsdfs. The extension would be\n"
                         "fairly straightforward. In BounceSample for CameraSample\n"
                         "limit the considered events to Specular only.\n"
                         "Merging will use non-specular components, bounce will be specular.\n"
@@ -314,8 +314,8 @@ public:
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
                 isect.dist += EPS_RAY;
 
-                LightBxdf bxdf(ray, isect, mScene);
-                if(!bxdf.IsValid())
+                LightBsdf bsdf(ray, isect, mScene);
+                if(!bsdf.IsValid())
                     break;
 
                 // Update MIS constants
@@ -325,20 +325,20 @@ public:
                     if(lightSample.mPathLength > 1 || lightSample.mIsFiniteLight == 1)
                         lightSample.d0 *= Mis(Sqr(isect.dist));
 
-                    lightSample.d0   /= Mis(std::abs(bxdf.CosThetaFix()));
-                    lightSample.d1vc /= Mis(std::abs(bxdf.CosThetaFix()));
-                    lightSample.d1vm /= Mis(std::abs(bxdf.CosThetaFix()));
+                    lightSample.d0   /= Mis(std::abs(bsdf.CosThetaFix()));
+                    lightSample.d1vc /= Mis(std::abs(bsdf.CosThetaFix()));
+                    lightSample.d1vm /= Mis(std::abs(bsdf.CosThetaFix()));
                 }
 
-                // Store particle, purely delta bxdf cannot be merged or
+                // Store particle, purely delta bsdf cannot be merged or
                 // connected, so we don't store these
-                if(!bxdf.IsDelta() && (mUseVC || mUseVM))
+                if(!bsdf.IsDelta() && (mUseVC || mUseVM))
                 {
                     LightVertex lightVertex;
                     lightVertex.mHitpoint   = hitPoint;
                     lightVertex.mWeight     = lightSample.mWeight;
                     lightVertex.mPathLength = lightSample.mPathLength;
-                    lightVertex.mBxdf       = bxdf;
+                    lightVertex.mBsdf       = bsdf;
 
                     lightVertex.d0   = lightSample.d0;
                     lightVertex.d1vc = lightSample.d1vc;
@@ -347,11 +347,11 @@ public:
                     mLightVertices.push_back(lightVertex);
                 }
 
-                // Contribute directly to camera, purely delta bxdf cannot be connected
-                if(!bxdf.IsDelta() && (mUseVC || mLightTraceOnly) && DIR_CON)
+                // Contribute directly to camera, purely delta bsdf cannot be connected
+                if(!bsdf.IsDelta() && (mUseVC || mLightTraceOnly) && DIR_CON)
                 {
                     if(lightSample.mPathLength + 1 >= mMinPathLength)
-                        DirectContribution(lightSample, hitPoint, bxdf);
+                        DirectContribution(lightSample, hitPoint, bsdf);
                 }
 
                 // We will now extend by the bounce (1) and then
@@ -360,7 +360,7 @@ public:
                 if(lightSample.mPathLength + 2 > mMaxPathLength)
                     break;
 
-                if(!BounceSample(bxdf, hitPoint, lightSample))
+                if(!BounceSample(bsdf, hitPoint, lightSample))
                     break;
             }
 
@@ -419,16 +419,16 @@ public:
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
                 isect.dist += EPS_RAY;
 
-                CameraBxdf bxdf(ray, isect, mScene);
-                if(!bxdf.IsValid())
+                CameraBsdf bsdf(ray, isect, mScene);
+                if(!bsdf.IsValid())
                     break;
 
                 // Update MIS constants
                 {
                     cameraSample.d0   *= Mis(Sqr(isect.dist));
-                    cameraSample.d0   /= Mis(std::abs(bxdf.CosThetaFix()));
-                    cameraSample.d1vc /= Mis(std::abs(bxdf.CosThetaFix()));
-                    cameraSample.d1vm /= Mis(std::abs(bxdf.CosThetaFix()));
+                    cameraSample.d0   /= Mis(std::abs(bsdf.CosThetaFix()));
+                    cameraSample.d1vc /= Mis(std::abs(bsdf.CosThetaFix()));
+                    cameraSample.d1vm /= Mis(std::abs(bsdf.CosThetaFix()));
                 }
 
                 // directly hit some light
@@ -449,17 +449,17 @@ public:
                     break;
 
                 // [Vertex Connection] Connect to lights
-                if(!bxdf.IsDelta() && mUseVC && DIR_LIGHT)
+                if(!bsdf.IsDelta() && mUseVC && DIR_LIGHT)
                 {
                     if(cameraSample.mPathLength + 1>= mMinPathLength)
                     {
                         color += cameraSample.mWeight *
-                            DirectIllumination(cameraSample, hitPoint, bxdf);
+                            DirectIllumination(cameraSample, hitPoint, bsdf);
                     }
                 }
 
                 // [Vertex Connection] Connect to light particles
-                if(!bxdf.IsDelta() && mUseVC && VC)
+                if(!bsdf.IsDelta() && mUseVC && VC)
                 {
                     // Each lightpath is assigned to one eyepath ,as in standard BPT.
                     // This gives range in which are the lightvertices
@@ -484,15 +484,15 @@ public:
                             break;
 
                         color += cameraSample.mWeight * lightVertex.mWeight *
-                            ConnectVertices(lightVertex, bxdf, hitPoint,
+                            ConnectVertices(lightVertex, bsdf, hitPoint,
                             cameraSample);
                     }
                 }
 
                 // [Vertex Merging] Merge with light particles
-                if(!bxdf.IsDelta() && mUseVM && VM)
+                if(!bsdf.IsDelta() && mUseVM && VM)
                 {
-                    RangeQuery query(*this, hitPoint, bxdf, cameraSample);
+                    RangeQuery query(*this, hitPoint, bsdf, cameraSample);
                     mHashGrid.Process(mLightVertices, query);
                     color += cameraSample.mWeight * mVmNormalization * query.GetContrib();
                     // Ppm merges only on first non-specular bounce
@@ -500,7 +500,7 @@ public:
                         break;
                 }
 
-                if(!BounceSample(bxdf, hitPoint, cameraSample))
+                if(!BounceSample(bsdf, hitPoint, cameraSample))
                     break;
             }
 
@@ -613,7 +613,7 @@ private:
     Vec3f DirectIllumination(
         const PathElement  &aCameraSample,
         const Vec3f        &aHitpoint,
-        const CameraBxdf   &aBxdf)
+        const CameraBsdf   &aBsdf)
     {
         // We sample lights uniformly
         const int   lightCount    = mScene.GetLightCount();
@@ -636,13 +636,13 @@ private:
             return Vec3f(0);
 
         float brdfDirPdfW, brdfRevPdfW, cosToLight;
-        const Vec3f brdfFactor = aBxdf.EvaluateBrdfPdfW(mScene,
+        const Vec3f brdfFactor = aBsdf.EvaluateBrdfPdfW(mScene,
             directionToLight, cosToLight, &brdfDirPdfW, &brdfRevPdfW);
 
         if(brdfFactor.IsZero())
             return Vec3f(0);
 
-        const float continuationProbability = aBxdf.ContinuationProb();
+        const float continuationProbability = aBsdf.ContinuationProb();
         // If the light is delta light, we can never hit it
         // by brdf sampling, so the probability of this path is 0
         if(light->IsDelta())
@@ -696,7 +696,7 @@ private:
      */
     Vec3f ConnectVertices(
         const LightVertex   &aLightVertex,
-        const CameraBxdf    &aCameraBxdf,
+        const CameraBsdf    &aCameraBsdf,
         const Vec3f         &aCameraHitpoint,
         const PathElement   &aCameraSample) const
     {
@@ -708,7 +708,7 @@ private:
 
         // evaluate brdf at camera vertex
         float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
-        const Vec3f cameraBrdfFactor = aCameraBxdf.EvaluateBrdfPdfW(
+        const Vec3f cameraBrdfFactor = aCameraBsdf.EvaluateBrdfPdfW(
             mScene, direction, cosCamera, &cameraBrdfDirPdfW,
             &cameraBrdfRevPdfW);
 
@@ -716,13 +716,13 @@ private:
             return Vec3f(0);
 
         // camera continuation probability (for russian roulette)
-        const float cameraCont = aCameraBxdf.ContinuationProb();
+        const float cameraCont = aCameraBsdf.ContinuationProb();
         cameraBrdfDirPdfW *= cameraCont;
         cameraBrdfRevPdfW *= cameraCont;
 
         // evaluate brdf at light vertex
         float cosLight, lightBrdfDirPdfW, lightBrdfRevPdfW;
-        const Vec3f lightBrdfFactor = aLightVertex.mBxdf.EvaluateBrdfPdfW(
+        const Vec3f lightBrdfFactor = aLightVertex.mBsdf.EvaluateBrdfPdfW(
             mScene, -direction, cosLight, &lightBrdfDirPdfW,
             &lightBrdfRevPdfW);
 
@@ -730,7 +730,7 @@ private:
             return Vec3f(0);
 
         // light continuation probability (for russian roulette)
-        const float lightCont = aLightVertex.mBxdf.ContinuationProb();
+        const float lightCont = aLightVertex.mBsdf.ContinuationProb();
         lightBrdfDirPdfW *= lightCont;
         lightBrdfRevPdfW *= lightCont;
 
@@ -815,7 +815,7 @@ private:
     void DirectContribution(
         const PathElement  &aLightSample,
         const Vec3f        &aHitpoint,
-        const LightBxdf    &aBxdf)
+        const LightBsdf    &aBsdf)
     {
         const Camera &camera    = mScene.mCamera;
         Vec3f directionToCamera = camera.mPosition - aHitpoint;
@@ -835,12 +835,12 @@ private:
 
         // get the BRDF
         float cosToCamera, brdfDirPdfW, brdfRevPdfW;
-        const Vec3f brdfFactor = aBxdf.EvaluateBrdfPdfW(mScene,
+        const Vec3f brdfFactor = aBsdf.EvaluateBrdfPdfW(mScene,
             directionToCamera, cosToCamera, &brdfDirPdfW, &brdfRevPdfW);
         if(brdfFactor.IsZero())
             return;
 
-        brdfRevPdfW *= aBxdf.ContinuationProb();
+        brdfRevPdfW *= aBsdf.ContinuationProb();
 
         // PDF of ray from camera hitting here (w.r.t. real resolution)
         const float cosAtCamera = Dot(camera.mForward, -directionToCamera);
@@ -869,14 +869,14 @@ private:
     }
 
 
-    /* \brief Bounces sample according to BXDF, returns false when terminating
+    /* \brief Bounces sample according to Bsdf, returns false when terminating
      *
      * Can bounce both light and camera samples, the difference is only
-     * in Bxdf.
+     * in Bsdf.
      */
     template<bool tLightSample>
     bool BounceSample(
-        const BXDF<tLightSample> &aBxdf,
+        const BSDF<tLightSample> &aBsdf,
         const Vec3f              &aHitPoint,
         PathElement              &aoPathSample)
     {
@@ -885,7 +885,7 @@ private:
         float brdfDirPdfW, cosThetaOut;
         uint  sampledEvent;
 
-        Vec3f brdfFactor = aBxdf.SampleBrdf(mScene, rndTriplet, aoPathSample.mDirection,
+        Vec3f brdfFactor = aBsdf.SampleBrdf(mScene, rndTriplet, aoPathSample.mDirection,
             brdfDirPdfW, cosThetaOut, &sampledEvent);
 
         if(brdfFactor.IsZero())
@@ -896,12 +896,12 @@ private:
         // direct probability, so just set it. If non-specular event happened,
         // we evaluate the pdf
         float brdfRevPdfW = brdfDirPdfW;
-        if((sampledEvent & LightBxdf::kSpecular) == 0)
-            brdfRevPdfW = aBxdf.EvaluatePdfW(mScene,
+        if((sampledEvent & LightBsdf::kSpecular) == 0)
+            brdfRevPdfW = aBsdf.EvaluatePdfW(mScene,
             aoPathSample.mDirection, true);
 
         // russian roulette
-        const float contProb = aBxdf.ContinuationProb();
+        const float contProb = aBsdf.ContinuationProb();
         if(mRng.GetFloat() > contProb)
             return false;
 
@@ -909,7 +909,7 @@ private:
         brdfRevPdfW *= contProb;
 
         // New MIS weights
-        if(sampledEvent & LightBxdf::kSpecular)
+        if(sampledEvent & LightBsdf::kSpecular)
         {
             aoPathSample.d0 = 0.f;
             aoPathSample.d1vc *=

@@ -80,12 +80,12 @@ a) All basic types of light (area, point, directional, and env. map) are
 b) Basic materials are supported, and should be fairly straightforward
 	to extend to more materials. I would suggest changing the actual
 	implementation, but the interfaces should suffice for most.
-c) Material instances are represented by BXDF object.
+c) Material instances are represented by BSDF object.
 	This stores the incoming (fixed) direction and answers questions
 	(sample, evaluate brdf, evaluate pdf) always w.r.t. this direction.
 	Also stores all the other important things, like local frame.
 	Extending the framework by shading normals should happen within
-	this BXDF object (has template parameter ~ Veach's Adjoint brdf).
+	this BSDF object (has template parameter ~ Veach's Adjoint brdf).
 d) For fast preview supports Eye Light shader (color ~ Dot(L, N)).
 	Answers in red instead of gray when back is hit.
 	eyelight.hxx
@@ -121,7 +121,7 @@ a) Light Tracing
 
 b) Progressive Photon Mapping
 	Light particles are traced (do not contribute to camera).
-	When on non-delta BXDF, they are stored (as LightVertex).
+	When on non-delta BSDF, they are stored (as LightVertex).
 	Hash grid is built.
 	Camera particles are traced until first non-specular bounce is hit.
 	Then merging (photon lookup) is performed and camera path is terminated.

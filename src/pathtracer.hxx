@@ -28,7 +28,7 @@
 #include <vector>
 #include <cmath>
 #include "renderer.hxx"
-#include "bxdf.hxx"
+#include "bsdf.hxx"
 #include "rng.hxx"
 
 class PathTracer : public AbstractRenderer
@@ -95,8 +95,8 @@ public:
                 Vec3f hitPoint = ray.org + ray.dir * isect.dist;
                 isect.dist += EPS_RAY;
 
-                BXDF<false> bxdf(ray, isect, mScene);
-                if(!bxdf.IsValid())
+                BSDF<false> bsdf(ray, isect, mScene);
+                if(!bsdf.IsValid())
                     break;
 
                 // directly hit some light, lights do not reflect
@@ -116,7 +116,7 @@ public:
                     if(pathLength > 1 && !lastSpecular)
                     {
                         const float directPdfW = PdfAtoW(directPdfA, isect.dist,
-                            bxdf.CosThetaFix());
+                            bsdf.CosThetaFix());
                         misWeight = Mis2(lastPdfW, directPdfW * lightPickProb);
                     }
 
@@ -127,11 +127,11 @@ public:
                 if(pathLength >= mMaxPathLength)
                     break;
 
-                if(bxdf.ContinuationProb() == 0)
+                if(bsdf.ContinuationProb() == 0)
                     break;
 
                 // next event estimation
-                if(!bxdf.IsDelta() && pathLength + 1 >= mMinPathLength)
+                if(!bsdf.IsDelta() && pathLength + 1 >= mMinPathLength)
                 {
                     int lightID = int(mRng.GetFloat() * lightCount);
                     const AbstractLight *light = mScene.GetLightPtr(lightID);
@@ -144,7 +144,7 @@ public:
                     if(!radiance.IsZero())
                     {
                         float brdfPdfW, cosThetaOut;
-                        const Vec3f factor = bxdf.EvaluateBrdfPdfW(mScene,
+                        const Vec3f factor = bsdf.EvaluateBrdfPdfW(mScene,
                             directionToLight, cosThetaOut, &brdfPdfW);
 
                         if(!factor.IsZero())
@@ -152,7 +152,7 @@ public:
                             float weight = 1.f;
                             if(!light->IsDelta())
                             {
-                                const float contProb = bxdf.ContinuationProb();
+                                const float contProb = bsdf.ContinuationProb();
                                 brdfPdfW *= contProb;
                                 weight = Mis2(directPdfW * lightPickProb, brdfPdfW);
                             }
@@ -174,16 +174,16 @@ public:
                     float pdf, cosThetaOut;
                     uint  sampledEvent;
 
-                    Vec3f factor = bxdf.SampleBrdf(mScene, rndTriplet, ray.dir,
+                    Vec3f factor = bsdf.SampleBrdf(mScene, rndTriplet, ray.dir,
                         pdf, cosThetaOut, &sampledEvent);
 
                     if(factor.IsZero())
                         break;
 
                     // russian roulette
-                    const float contProb = bxdf.ContinuationProb();
+                    const float contProb = bsdf.ContinuationProb();
 
-                    lastSpecular = (sampledEvent & BXDF<true>::kSpecular) != 0;
+                    lastSpecular = (sampledEvent & BSDF<true>::kSpecular) != 0;
                     lastPdfW     = pdf * contProb;
 
                     if(contProb < 1.f)

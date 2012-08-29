@@ -81,7 +81,7 @@
     <ClCompile Include="src\smallvcm.cxx" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\bxdf.hxx" />
+    <ClInclude Include="src\bsdf.hxx" />
     <ClInclude Include="src\frame.hxx" />
     <ClInclude Include="src\hashgrid.hxx" />
     <ClInclude Include="src\pathtracer.hxx" />

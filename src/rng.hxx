@@ -28,7 +28,6 @@
 #include <vector>
 #include <cmath>
 #include "renderer.hxx"
-#include "bxdf.hxx"
 
 #if defined(_MSC_VER)
 #   if (_MSC_VER < 1600)

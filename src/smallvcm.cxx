@@ -34,7 +34,7 @@
 #include "scene.hxx"
 #include "eyelight.hxx"
 #include "pathtracer.hxx"
-#include "bxdf.hxx"
+#include "bsdf.hxx"
 #include "vertexcm.hxx"
 
 #include <omp.h>

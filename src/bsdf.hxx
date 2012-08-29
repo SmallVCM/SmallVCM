@@ -22,8 +22,8 @@
  * (The above is MIT License: http://en.wikipedia.org/wiki/MIT_License)
  */
 
-#ifndef __BXDF_HXX__
-#define __BXDF_HXX__
+#ifndef __BSDF_HXX__
+#define __BSDF_HXX__
 
 #include <vector>
 #include <cmath>
@@ -34,7 +34,7 @@
 #include "utils.hxx"
 
 //////////////////////////////////////////////////////////////////////////
-// BXDF, most magic happens here
+// Bsdf, most magic happens here
 //
 // One of important conventions is prefixing direction with World when
 // are in world coordinates and with Local when they are in local frame,
@@ -43,23 +43,23 @@
 // Another important convention if suffix Fix and Gen.
 // For PDF computation, we need to know which direction is given (Fix),
 // and which is the generated (Gen) direction. This is important even
-// when simply evaluating BXDF.
+// when simply evaluating Bsdf.
 // In BPT, we call EvaluateBrdfPdf when directly connecting to light/camera.
-// This gives us both directions required for evaluating BXDF.
+// This gives us both directions required for evaluating Bsdf.
 // However, for MIS we also need to know probabilities of having sampled
-// this path via BXDF sampling, and we need that for both possible directions.
+// this path via Bsdf sampling, and we need that for both possible directions.
 // The Fix/Gen convention (along with Direct and Reverse for PDF) clearly
 // establishes which PDF is which.
 //
-// The BXDF is also templated by direction of tracing, whether from camera
-// (BXDF<false>) or from light (BXDF<true>). This is identical to Veach's
+// The Bsdf is also templated by direction of tracing, whether from camera
+// (Bsdf<false>) or from light (Bsdf<true>). This is identical to Veach's
 // Adjoint BRDF (except the name is more straightforward).
 // For us this is only used when refracting.
 
 #define EPS_PHONG 1e-3f
 
 template<bool FixIsLight>
-class BXDF
+class BSDF
 {
     struct ComponentProbabilities
     {
@@ -82,9 +82,9 @@ public:
     };
 
 public:
-    BXDF():mMaterialID(-1){};
+    BSDF():mMaterialID(-1){};
 
-    BXDF(const Ray& aRay, const Isect& aIsect, const Scene& aScene)
+    BSDF(const Ray& aRay, const Isect& aIsect, const Scene& aScene)
     {
         Setup(aRay, aIsect, aScene);
     }
@@ -110,9 +110,9 @@ public:
         mMaterialID = aIsect.matID;
     }
 
-    /* \brief Given a direction, evaluates BXDF
+    /* \brief Given a direction, evaluates Bsdf
      *
-     * Returns value of BXDF, as well as cosine for the
+     * Returns value of Bsdf, as well as cosine for the
      * aWorldOmegaGen direction.
      * Can return probability (w.r.t. solid angle W),
      * of having sampled aWorldOmegaGen given mLocalOmegaFix (oDirectPdfW),
@@ -169,12 +169,12 @@ public:
         return aEvalRevPdf ? reversePdfW : directPdfW;
     }
 
-    /* \brief Given 3 random numbers, samples new direction from BXDF.
+    /* \brief Given 3 random numbers, samples new direction from Bsdf.
      *
-     * Uses z component of random triplet to pick BXDF component from
+     * Uses z component of random triplet to pick Bsdf component from
      * which it will sample direction. If non-specular component is chosen,
-     * it will also evaluate the other (non-specular) BXDF components.
-     * Return BXDF factor for given direction, as well as PDF choosing that direction.
+     * it will also evaluate the other (non-specular) Bsdf components.
+     * Return Bsdf factor for given direction, as well as PDF choosing that direction.
      * Can return event which has been sampled.
      * If result is Vec3f(0,0,0), then the sample should be discarded.
      */
@@ -499,4 +499,4 @@ private:
     float mReflectCoeff;     //!< Fresnel reflection coefficient (for glass)
 };
 
-#endif //__BXDF_HXX__
+#endif //__BSDF_HXX__
