@@ -194,6 +194,17 @@ public:
         // The image
         mHtml << "<td width=\"" << mThumbnailSize << "pixels\" valign=\"top\" align=\"center\">"
             << " <a href=\"" << aFileName << "\">";
+        mHtml << "<img src=\"" << aFileName << "\" "
+            << "width=\""<< mThumbnailSize <<"px\"  ";
+#if 1
+        if(aBorderColor == kGreen)
+            mHtml << "style=\"border:5px solid #0c0\" ";
+        else if(aBorderColor == kRed)
+            mHtml << "style=\"border:5px solid #f00\" ";
+        else
+            mHtml << "style=\"border:5px solid #fff\" ";
+        mHtml << "height=\""<< mThumbnailSize <<"px\" />";
+#else
         mHtml << "<div style=\"background: url(" << aFileName
             << "); background-size: 128px;";
         if(aBorderColor == kRed)
@@ -213,6 +224,7 @@ public:
             mHtml << "width:"<< mThumbnailSize <<"px; "
                 << "height:"<< mThumbnailSize <<"px;\"></div>";
         }
+#endif
         mHtml << "</a>" << std::endl;
 
         // The text
