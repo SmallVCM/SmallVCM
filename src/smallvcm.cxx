@@ -277,6 +277,11 @@ int main(int argc, const char *argv[])
         FourWaySplitNames[i] = acronym;
     }
 
+    int algorithmCount = 0;
+    for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
+        if(algorithmMask[algId]) algorithmCount++;
+    html_writer.mAlgorithmCount = algorithmCount;
+
     clock_t startTime = clock();
     for(int sceneId = 0; sceneId < sceneConfigCount; sceneId++)
     {
@@ -324,6 +329,7 @@ int main(int argc, const char *argv[])
         html_writer.AddFourWaySplit(FourWaySplitFiles,
             FourWaySplitNames, resolution.x);
     }
+    html_writer.Close();
     clock_t endTime = clock();
     printf("Whole run took %g s\n", float(endTime - startTime) / CLOCKS_PER_SEC);
 }

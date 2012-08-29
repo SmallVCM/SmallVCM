@@ -42,7 +42,10 @@ public:
 public:
     HtmlWriter(const std::string& aFileName) : mFileName(aFileName), mHtml(mFileName)
     {
-        mThumbnailSize = 128;
+        // Most browsers will cap number of columns to real value,
+        // so having something significantly larger works ok
+        mAlgorithmCount = 100;
+        mThumbnailSize  = 128;
     }
 
     ~HtmlWriter()
@@ -54,18 +57,23 @@ public:
     void Close()
     {
         mHtml << "</body>" << std::endl;
+        mHtml << "</html>" << std::endl;
     }
 
     void WriteHeader()
     {
-        mHtml << "<!DOCTYPE HTML PUBLIC "
+        mHtml << "<!DOCTYPE html PUBLIC "
             "\"-//W3C//DTD XHTML 1.0 Strict//EN\""
             " \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"
             << std::endl;
         mHtml << "<html xmlns=\"http://www.w3.org/1999/xhtml\">" << std::endl;
         mHtml << "<head>" << std::endl;
+        mHtml << "<title>Comparison of GI algorithms with Vertex Connection Merging</title>" << std::endl;
+        mHtml << "<meta http-equiv=\"Content-Language\" content=\"English\" />" << std::endl;
+        mHtml << "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />" << std::endl;
         mHtml << "<script type=\"text/javascript\" src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js\"></script>" << std::endl;
         mHtml << "<script type=\"text/javascript\">" << std::endl;
+        mHtml << "<!--" << std::endl;
         mHtml << "	(function($){" << std::endl;
         mHtml << "    $.fn.extend({" << std::endl;
         mHtml << "        //plugin name - qbeforeafter" << std::endl;
@@ -155,6 +163,7 @@ public:
         mHtml << "        }" << std::endl;
         mHtml << "    });" << std::endl;
         mHtml << "	})(jQuery);" << std::endl;
+        mHtml << "-->" << std::endl;
         mHtml << "</script>" << std::endl;
         mHtml << "" << std::endl;
         mHtml << "<script type=\"text/javascript\">" << std::endl;
@@ -179,9 +188,9 @@ public:
 
     void AddScene(const std::string &aSceneName)
     {
-        mHtml << "<table><tr><h2>" << aSceneName << "</h2></tr>" << std::endl;
+        mHtml << "<table><tr><td colspan=\""
+            << mAlgorithmCount << "\"><h2>" << aSceneName << "</h2></td></tr>" << std::endl;
         mHtml << "<tr>" << std::endl;
-        mAlgorithmCount = 0;
     }
 
     void AddRendering(
@@ -192,7 +201,7 @@ public:
         const std::string &aOtherInfo = "")
     {
         // The image
-        mHtml << "<td width=\"" << mThumbnailSize << "pixels\" valign=\"top\" align=\"center\">"
+        mHtml << "<td valign=\"top\" align=\"center\">"
             << " <a href=\"" << aFileName << "\">";
         mHtml << "<img src=\"" << aFileName << "\" "
             << "width=\""<< mThumbnailSize <<"px\"  ";
@@ -203,6 +212,7 @@ public:
             mHtml << "style=\"border:5px solid #f00\" ";
         else
             mHtml << "style=\"border:5px solid #fff\" ";
+        mHtml << " alt=\"" << aFileName << " (" << aTime << " s)\" ";
         mHtml << "height=\""<< mThumbnailSize <<"px\" />";
 #else
         mHtml << "<div style=\"background: url(" << aFileName
@@ -231,8 +241,6 @@ public:
         mHtml << "<small>" << aMethodName
             << " (" << aTime << " s)" << aOtherInfo
             << "</small></td>" << std::endl;
-
-        mAlgorithmCount++;
     }
 
     void AddFourWaySplit(
@@ -241,7 +249,7 @@ public:
         const int aSize)
     {
         mHtml << "</tr><tr>" << std::endl;
-        mHtml << "<td colspan=" << mAlgorithmCount << " align=\"center\">" << std::endl;
+        mHtml << "<td colspan=\"" << mAlgorithmCount << "\" align=\"center\">" << std::endl;
         mHtml << "<div class=\"cross_compare\" style=\"width:" << aSize
             << "px;height:" << aSize << "px;cursor:crosshair\">" << std::endl;
         for(int i=0; i<4; i++)
