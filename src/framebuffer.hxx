@@ -200,6 +200,17 @@ public:
             }
         }
     }
+
+    //////////////////////////////////////////////////////////////////////////
+    // Saving HDR
+    void SaveHDR(const char* aFilename)
+    {
+        std::ofstream hdr(aFilename, std::ios::binary);
+        hdr << "?#RADIANCE" << '\n';
+        hdr << "# SmallVCM" << '\n';
+        hdr << "FORMAT=32-bit_rle_rgbe" << '\n' << '\n';
+        hdr << "-Y " << mResY << " +X " << mResX << '\n';
+    }
 private:
     std::vector<Vec3f> mColor;
     Vec2f              mResolution;
