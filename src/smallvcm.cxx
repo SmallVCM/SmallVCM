@@ -341,6 +341,9 @@ int main(int argc, const char *argv[])
             // Html output
             fbuffer.SaveBMP(filename.c_str(), 2.2f);
             HtmlWriter::BorderColor bcolor = HtmlWriter::kNone;
+            if(algId == Config::kVertexConnectionMerging)
+                bcolor = HtmlWriter::kGreen;
+
             html_writer.AddRendering(config.GetName(),
                 filename, time, bcolor);
             for(int i=0; i<4; i++)
