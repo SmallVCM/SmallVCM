@@ -86,6 +86,8 @@ struct Config
     const Scene *mScene;
     Algorithm   mAlgorithm;
     int         mIterations;
+    float       mMaxTime;
+    bool        mUseMaxTime; // otherwise use iterations
     Framebuffer *mFramebuffer;
     int         mNumThreads;
     int         mBaseSeed;
@@ -103,6 +105,7 @@ float render(const Config &aConfig)
     renderers = new AbstractRendererPtr[aConfig.mNumThreads];
 
     int iterations = aConfig.mIterations;
+    bool use_time  = aConfig.mUseMaxTime;
     switch(aConfig.mAlgorithm)
     {
     case Config::kEyeLight:
@@ -110,6 +113,7 @@ float render(const Config &aConfig)
             renderers[i] = new EyeLight(*aConfig.mScene);
         // iterations have no meaning for kEyeLight
         iterations = 1;
+        use_time   = false;
         break;
     case Config::kPathTracing:
         for(int i=0; i<aConfig.mNumThreads; i++)
@@ -150,11 +154,26 @@ float render(const Config &aConfig)
     }
 
     clock_t startT = clock();
-#pragma omp parallel for
-    for(int iter=0; iter < iterations; iter++)
+    if(use_time)
     {
-        int threadId = omp_get_thread_num();
-        renderers[threadId]->RunIteration(iter);
+        int iter = 0;
+#pragma omp parallel
+        while(clock() < startT + aConfig.mMaxTime*CLOCKS_PER_SEC)
+        {
+            int threadId = omp_get_thread_num();
+            renderers[threadId]->RunIteration(iter);
+#pragma omp atomic
+            iter++;
+        }
+    }
+    else
+    {
+#pragma omp parallel for
+        for(int iter=0; iter < iterations; iter++)
+        {
+            int threadId = omp_get_thread_num();
+            renderers[threadId]->RunIteration(iter);
+        }
     }
     clock_t endT = clock();
 
@@ -199,11 +218,12 @@ struct SceneConfig
 
 int main(int argc, const char *argv[])
 {
-    int   base_iterations = 10;
-    //Vec2i resolution(512, 512);
-    Vec2i resolution(256, 256);
+    int   base_iterations = 1;
+    Vec2i resolution      = Vec2i(512, 512);
     int   max_path_length = 10;
     int   min_path_length = 0;
+    float max_time        = 30;
+    bool  use_max_time    = true;
 
     if(argc > 1)
         base_iterations = atoi(argv[1]);
@@ -238,6 +258,8 @@ int main(int argc, const char *argv[])
     Framebuffer fbuffer;
     Config      config;
     config.mIterations    = base_iterations;
+    config.mMaxTime       = max_time;
+    config.mUseMaxTime    = use_max_time;
     config.mFramebuffer   = &fbuffer;
     config.mNumThreads    = numThreads;
     config.mBaseSeed      = 1234;
