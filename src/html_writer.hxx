@@ -205,10 +205,12 @@ public:
     {
         // The image
         mHtml << "<td valign=\"top\" align=\"center\">"
+            << "<div style=\""
+            << "width:"<< mThumbnailSize + 10 <<"px;\">"
             << " <a href=\"" << aFileName << "\">";
+#if 1
         mHtml << "<img src=\"" << aFileName << "\" "
             << "width=\""<< mThumbnailSize <<"px\"  ";
-#if 1
         if(aBorderColor == kGreen)
             mHtml << "style=\"border:5px solid #0c0\" ";
         else if(aBorderColor == kRed)
@@ -243,7 +245,7 @@ public:
         // The text
         mHtml << "<br/><small>" << aMethodName
             << " (" << aTime << " s)" << aOtherInfo
-            << "</small></td>" << std::endl;
+            << "</small></div></td>" << std::endl;
     }
 
     void AddFourWaySplit(
