@@ -311,6 +311,8 @@ int main(int argc, const char *argv[])
             fflush(stdout);
             float time = render(config);
             printf("done in %g s\n", time);
+            config.mBaseSeed += config.mNumThreads;
+
             std::string filename = sceneFilename + "_" +
                 config.GetAcronym() + ".bmp";
 
