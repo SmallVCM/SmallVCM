@@ -25,10 +25,16 @@
 #ifndef __HTML_WRITER_HXX__
 #define __HTML_WRITER_HXX__
 
+// silence vsnprintf secure warning in MSVS
+#pragma warning(push)
+#pragma warning(disable : 4996)
+
 #include <vector>
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <cstdio>
+#include <cstdarg>
 
 class HtmlWriter
 {
@@ -91,6 +97,11 @@ public:
         mHtml << "                var img_cap_bl = i.children('img:eq(2)').attr('alt');" << std::endl;
         mHtml << "                var img_cap_br = i.children('img:eq(3)').attr('alt');" << std::endl;
         mHtml << "" << std::endl;
+        mHtml << "                var img_style_tl = i.children('img:eq(0)').attr('style');" << std::endl;
+        mHtml << "                var img_style_tr = i.children('img:eq(1)').attr('style');" << std::endl;
+        mHtml << "                var img_style_bl = i.children('img:eq(2)').attr('style');" << std::endl;
+        mHtml << "                var img_style_br = i.children('img:eq(3)').attr('style');" << std::endl;
+        mHtml << "" << std::endl;
         mHtml << "                var width = i.children('img:eq(0)').width();" << std::endl;
         mHtml << "                var height = i.children('img:eq(0)').height();" << std::endl;
         mHtml << "" << std::endl;
@@ -101,6 +112,11 @@ public:
         mHtml << "                i.append('<div class=\"ba-layer_tr\"></div>');" << std::endl;
         mHtml << "                i.append('<div class=\"ba-layer_bl\"></div>');" << std::endl;
         mHtml << "                i.append('<div class=\"ba-layer_br\"></div>');" << std::endl;
+        mHtml << "" << std::endl;
+        mHtml << "                i.append('<div class=\"ba-border_tl\" style=\"' + img_style_tl + '\"></div>');" << std::endl;
+        mHtml << "                i.append('<div class=\"ba-border_tr\" style=\"' + img_style_tr + '\"></div>');" << std::endl;
+        mHtml << "                i.append('<div class=\"ba-border_bl\" style=\"' + img_style_bl + '\"></div>');" << std::endl;
+        mHtml << "                i.append('<div class=\"ba-border_br\" style=\"' + img_style_br + '\"></div>');" << std::endl;
         mHtml << "" << std::endl;
         mHtml << "                i.append('<div class=\"ba-caption_tl\">' + img_cap_tl + '</div>');" << std::endl;
         mHtml << "                i.append('<div class=\"ba-caption_tr\">' + img_cap_tr + '</div>');" << std::endl;
@@ -129,6 +145,21 @@ public:
         mHtml << "                i.children('.ba-caption_tr').css({ bottom: height * 0.5, left:  width * 0.5 });" << std::endl;
         mHtml << "                i.children('.ba-caption_bl').css({ top:    height * 0.5, right: width * 0.5 });" << std::endl;
         mHtml << "                i.children('.ba-caption_br').css({ top:    height * 0.5, left:  width * 0.5 });" << std::endl;
+        mHtml << "                // Set border" << std::endl;
+        mHtml << "                bwidth = parseInt(i.children('.ba-border_tl').css(\"borderRightWidth\"), 10);" << std::endl;
+        mHtml << "                i.children('.ba-border_tl').width (width  * 0.5 - 1 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_tl').height(height * 0.5 - 1 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_tr').width (width  * 0.5 - 4 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_tr').height(height * 0.5 - 1 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_bl').width (width  * 0.5 - 1 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_bl').height(height * 0.5 - 4 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_br').width (width  * 0.5 - 4 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_br').height(height * 0.5 - 4 - 2*(bwidth-1));" << std::endl;
+        mHtml << "" << std::endl;
+        mHtml << "                i.children('.ba-border_tl').css({ top: 0,                left: 0              });" << std::endl;
+        mHtml << "                i.children('.ba-border_tr').css({ top: 0,                left: width * 0.5 + 2});" << std::endl;
+        mHtml << "                i.children('.ba-border_bl').css({ top: height * 0.5 + 2, left: 0              });" << std::endl;
+        mHtml << "                i.children('.ba-border_br').css({ top: height * 0.5 + 2, left: width * 0.5 + 2});" << std::endl;
         mHtml << "" << std::endl;
         mHtml << "            }).mousemove(function (e) {" << std::endl;
         mHtml << "" << std::endl;
@@ -141,24 +172,42 @@ public:
         mHtml << "                pos_imgY = i.position()['top'];" << std::endl;
         mHtml << "                pos_mouseX = e.pageX - right_border_width * 0.5;" << std::endl;
         mHtml << "                pos_mouseY = e.pageY - bottom_border_width * 0.5;" << std::endl;
-        mHtml << "                new_width  = pos_mouseX - pos_imgX;" << std::endl;
-        mHtml << "                new_height = pos_mouseY - pos_imgY;" << std::endl;
-        mHtml << "                img_width  = i.width();" << std::endl;
-        mHtml << "                img_height = i.height();" << std::endl;
+        mHtml << "                new_lwidth  = pos_mouseX - pos_imgX; // left width" << std::endl;
+        mHtml << "                new_theight = pos_mouseY - pos_imgY; // top height" << std::endl;
+        mHtml << "                img_width   = i.width();" << std::endl;
+        mHtml << "                img_height  = i.height();" << std::endl;
+        mHtml << "                new_rwidth  = img_width  - new_lwidth;  // right width" << std::endl;
+        mHtml << "                new_bheight = img_height - new_theight; // bottom height" << std::endl;
+        mHtml << "" << std::endl;
         mHtml << "                img_cap_tl = i.children('img:eq(0)').attr('alt');" << std::endl;
         mHtml << "                img_cap_tr = i.children('img:eq(1)').attr('alt');" << std::endl;
         mHtml << "                img_cap_bl = i.children('img:eq(2)').attr('alt');" << std::endl;
         mHtml << "                img_cap_br = i.children('img:eq(3)').attr('alt');" << std::endl;
         mHtml << "" << std::endl;
-        mHtml << "                i.children('.ba-layer_tl').width(new_width);" << std::endl;
-        mHtml << "                i.children('.ba-layer_tl').height(new_height);" << std::endl;
-        mHtml << "                i.children('.ba-layer_tr').height(new_height);" << std::endl;
-        mHtml << "                i.children('.ba-layer_bl').width(new_width);" << std::endl;
+        mHtml << "                i.children('.ba-layer_tl').width (new_lwidth );" << std::endl;
+        mHtml << "                i.children('.ba-layer_tl').height(new_theight);" << std::endl;
+        mHtml << "                i.children('.ba-layer_tr').height(new_theight);" << std::endl;
+        mHtml << "                i.children('.ba-layer_bl').width (new_lwidth );" << std::endl;
         mHtml << "" << std::endl;
-        mHtml << "                i.children('.ba-caption_tl').css({ bottom: img_height - new_height, right: img_width - new_width });" << std::endl;
-        mHtml << "                i.children('.ba-caption_tr').css({ bottom: img_height - new_height, left:  new_width });" << std::endl;
-        mHtml << "                i.children('.ba-caption_bl').css({ top:    new_height,              right: img_width - new_width });" << std::endl;
-        mHtml << "                i.children('.ba-caption_br').css({ top:    new_height,              left:  new_width });" << std::endl;
+        mHtml << "                i.children('.ba-caption_tl').css({ bottom: new_bheight, right: new_rwidth });" << std::endl;
+        mHtml << "                i.children('.ba-caption_tr').css({ bottom: new_bheight, left:  new_lwidth });" << std::endl;
+        mHtml << "                i.children('.ba-caption_bl').css({ top:    new_theight, right: new_rwidth });" << std::endl;
+        mHtml << "                i.children('.ba-caption_br').css({ top:    new_theight, left:  new_lwidth });" << std::endl;
+        mHtml << "                // Set border" << std::endl;
+        mHtml << "                bwidth = parseInt(i.children('.ba-border_tl').css(\"borderRightWidth\"), 10);" << std::endl;
+        mHtml << "                i.children('.ba-border_tl').width (new_lwidth  - 1 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_tl').height(new_theight - 1 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_tr').width (new_rwidth  - 4 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_tr').height(new_theight - 1 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_bl').width (new_lwidth  - 1 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_bl').height(new_bheight - 4 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_br').width (new_rwidth  - 4 - 2*(bwidth-1));" << std::endl;
+        mHtml << "                i.children('.ba-border_br').height(new_bheight - 4 - 2*(bwidth-1));" << std::endl;
+        mHtml << "" << std::endl;
+        mHtml << "                i.children('.ba-border_tl').css({ top: 0,               left: 0             });" << std::endl;
+        mHtml << "                i.children('.ba-border_tr').css({ top: 0,               left: new_lwidth + 2});" << std::endl;
+        mHtml << "                i.children('.ba-border_bl').css({ top: new_theight + 2, left: 0             });" << std::endl;
+        mHtml << "                i.children('.ba-border_br').css({ top: new_theight + 2, left: new_lwidth + 2});" << std::endl;
         mHtml << "            });" << std::endl;
         mHtml << "        }" << std::endl;
         mHtml << "    });" << std::endl;
@@ -176,6 +225,11 @@ public:
         mHtml << ".ba-layer_tr {position:absolute; top:0; left:0; z-index:2; border-bottom:3px solid #333;}" << std::endl;
         mHtml << ".ba-layer_bl {position:absolute; top:0; left:0; z-index:1; border-right:3px solid #333;}" << std::endl;
         mHtml << ".ba-layer_br {position:absolute; top:0; left:0; z-index:0;}" << std::endl;
+        mHtml << "" << std::endl;
+        mHtml << ".ba-border_tl {position:absolute; top:0; left:0; z-index:4;}" << std::endl;
+        mHtml << ".ba-border_tr {position:absolute; top:0; left:0; z-index:4;}" << std::endl;
+        mHtml << ".ba-border_bl {position:absolute; top:0; left:0; z-index:4;}" << std::endl;
+        mHtml << ".ba-border_br {position:absolute; top:0; left:0; z-index:4;}" << std::endl;
         mHtml << "" << std::endl;
         mHtml << ".ba-caption_tl {position:absolute; bottom:10px; right:10px; z-index:120; color:#fff; text-align:center; padding:5px; font-size:12px; font-family:arial; display:none;}" << std::endl;
         mHtml << ".ba-caption_tr {position:absolute; bottom:10px; left: 10px; z-index:120; color:#fff; text-align:center; padding:5px; font-size:12px; font-family:arial; display:none;}" << std::endl;
@@ -206,7 +260,7 @@ public:
         // The image
         mHtml << "<td valign=\"top\" align=\"center\">"
             << "<div style=\""
-            << "width:"<< mThumbnailSize + 10 <<"px;\">"
+            << "width:"<< mThumbnailSize + 10 <<"px;line-height:90%;\">"
             << " <a href=\"" << aFileName << "\">";
 #if 1
         mHtml << "<img src=\"" << aFileName << "\" "
@@ -217,7 +271,7 @@ public:
             mHtml << "style=\"border:5px solid #f00\" ";
         else
             mHtml << "style=\"border:5px solid #ccc\" ";
-        mHtml << " alt=\"" << aFileName << " (" << aTime << " s)\" ";
+        mHtml << " alt=\"" << aFileName << " (" << MakeMessage("%.2f", aTime) << " s)\" ";
         mHtml << "height=\""<< mThumbnailSize <<"px\" />";
 #else
         mHtml << "<div style=\"background: url(" << aFileName
@@ -244,13 +298,14 @@ public:
 
         // The text
         mHtml << "<br/><small>" << aMethodName
-            << " (" << aTime << " s)" << aOtherInfo
+            << " (" << MakeMessage("%.2f", aTime) << " s)" << aOtherInfo
             << "</small></div></td>" << std::endl;
     }
 
     void AddFourWaySplit(
         const std::string aMethodFiles[4],
         const std::string aMethodNames[4],
+        const int         aBorderColors[4],
         const int aSize)
     {
         mHtml << "</tr><tr>" << std::endl;
@@ -262,12 +317,47 @@ public:
             mHtml << "<img src=\"" << aMethodFiles[i]
             << "\" alt=\"" << aMethodNames[i]
             << "\" width=\"" << aSize
-            << "\" height=\"" << aSize << "\"/>" << std::endl;
+            << "\" height=\"" << aSize << "\" ";
+            if(aBorderColors[i] == kGreen)
+                mHtml << "style=\"border:2px solid #0c0\"/>" << std::endl;
+            else if(aBorderColors[i] == kRed)
+                mHtml << "style=\"border:2px solid #f00\"/>" << std::endl;
+            else
+                mHtml << "style=\"border:2px solid #ccc\"/>" << std::endl;
         }
         mHtml << "</div>" << std::endl;
         mHtml << "</td>" << std::endl;
         mHtml << "</tr></table>" << std::endl;
     }
+
+    // Taken from: http://www.tin.org/bin/man.cgi?section=3&topic=vsnprintf
+    std::string MakeMessage(const char *fmt, ...)
+    {
+        /* Guess we need no more than 100 bytes. */
+        int         size = 100;
+        std::string str;
+        va_list     ap;
+
+        while (1) {
+            str.resize(size);
+            /* Try to print in the allocated space. */
+            va_start(ap, fmt);
+            int n = vsnprintf((char*)str.c_str(), size, fmt, ap);
+            va_end(ap);
+            /* If that worked, return the string. */
+            if (n > -1 && n < size)
+            {
+                str.resize(n);
+                return str;
+            }
+            /* Else try again with more space. */
+            if (n > -1)     /* glibc 2.1 */
+                size = n+1; /* precisely what is needed */
+            else            /* glibc 2.0 */
+                size *= 2;  /* twice the old size */
+        }
+    }
+
 
 public:
     int           mAlgorithmCount;
@@ -275,5 +365,7 @@ public:
     std::string   mFileName;
     std::ofstream mHtml;
 };
+
+#pragma warning(pop)
 
 #endif //__HTML_WRITER_HXX__

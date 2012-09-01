@@ -96,7 +96,7 @@ struct Config
 };
 
 
-float render(const Config &aConfig)
+float render(const Config &aConfig, int *oUsedIterations = NULL)
 {
     omp_set_num_threads(aConfig.mNumThreads);
 
@@ -154,9 +154,9 @@ float render(const Config &aConfig)
     }
 
     clock_t startT = clock();
+    int iter = 0;
     if(use_time)
     {
-        int iter = 0;
 #pragma omp parallel
         while(clock() < startT + aConfig.mMaxTime*CLOCKS_PER_SEC)
         {
@@ -169,13 +169,15 @@ float render(const Config &aConfig)
     else
     {
 #pragma omp parallel for
-        for(int iter=0; iter < iterations; iter++)
+        for(iter=0; iter < iterations; iter++)
         {
             int threadId = omp_get_thread_num();
             renderers[threadId]->RunIteration(iter);
         }
     }
     clock_t endT = clock();
+
+    if(oUsedIterations) *oUsedIterations = iter+1;
 
     int usedRenderers = 0;
     for(int i=0; i<aConfig.mNumThreads; i++)
@@ -211,9 +213,8 @@ struct SceneConfig
     {}
 
     uint       mMask;
-    //Config::Algorithm
-    std::set<uint> mGoodResults;
-    std::set<uint> mPoorResults;
+    std::set<int> mGoodAlgorithm;
+    std::set<int> mPoorAlgorithm;
 };
 
 int main(int argc, const char *argv[])
@@ -222,8 +223,8 @@ int main(int argc, const char *argv[])
     Vec2i resolution      = Vec2i(512, 512);
     int   max_path_length = 10;
     int   min_path_length = 0;
-    float max_time        = 30;
-    bool  use_max_time    = true;
+    float max_time        = 60;
+    bool  use_max_time    = false;
 
     if(argc > 1)
         base_iterations = atoi(argv[1]);
@@ -252,6 +253,26 @@ int main(int argc, const char *argv[])
         SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightPoint),
         SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightBackground)
     };
+
+    // Set (subjective) good/poor/neutral algorithms, to get colors for report
+    sceneConfigs[0].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
+    sceneConfigs[0].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
+    sceneConfigs[0].mPoorAlgorithm.insert(Config::kBidirectionalPathTracing);
+
+    sceneConfigs[1].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
+    sceneConfigs[1].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
+    sceneConfigs[1].mPoorAlgorithm.insert(Config::kBidirectionalPathTracing);
+    sceneConfigs[1].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
+
+    sceneConfigs[2].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
+    sceneConfigs[2].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
+    sceneConfigs[2].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
+
+    sceneConfigs[3].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
+    sceneConfigs[3].mGoodAlgorithm.insert(Config::kBidirectionalPathTracing);
+    sceneConfigs[3].mPoorAlgorithm.insert(Config::kBidirectionalPhotonMapping);
+    sceneConfigs[3].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
+
 
     const int sceneConfigCount = sizeof(sceneConfigs) / sizeof(SceneConfig);
 
@@ -282,6 +303,7 @@ int main(int argc, const char *argv[])
 
     std::string FourWaySplitFiles[4];
     std::string FourWaySplitNames[4];
+    int         BorderColors[4];
     uint        FourWaySplitAlgorithms[4] = {
         Config::kProgressivePhotonMapping,
         Config::kBidirectionalPhotonMapping,
@@ -324,15 +346,15 @@ int main(int argc, const char *argv[])
         html_writer.AddScene(name);
         printf("Scene: %s\n", name.c_str());
 
-        int algorithmIdx = 0;
+        int numIterations;
         for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
         {
             if(!algorithmMask[algId]) continue;
             config.mAlgorithm = Config::Algorithm(algId);
             printf("Running %s... ", config.GetName());
             fflush(stdout);
-            float time = render(config);
-            printf("done in %g s\n", time);
+            float time = render(config, &numIterations);
+            printf("done in %.2f s\n", time);
             config.mBaseSeed += config.mNumThreads;
 
             std::string filename = sceneFilename + "_" +
@@ -341,11 +363,14 @@ int main(int argc, const char *argv[])
             // Html output
             fbuffer.SaveBMP(filename.c_str(), 2.2f);
             HtmlWriter::BorderColor bcolor = HtmlWriter::kNone;
-            if(algId == Config::kVertexConnectionMerging)
+            if(sceneConfigs[sceneId].mGoodAlgorithm.count(algId) > 0)
                 bcolor = HtmlWriter::kGreen;
+            if(sceneConfigs[sceneId].mPoorAlgorithm.count(algId) > 0)
+                bcolor = HtmlWriter::kRed;
 
             html_writer.AddRendering(config.GetName(),
-                filename, time, bcolor);
+                filename, time, bcolor,
+                html_writer.MakeMessage("<br/>Iterations: %d", numIterations));
             for(int i=0; i<4; i++)
             {
                 if(algId == FourWaySplitAlgorithms[i])
@@ -353,10 +378,21 @@ int main(int argc, const char *argv[])
             }
         }
 
+        for(int i=0; i<4; i++)
+        {
+            BorderColors[i] = HtmlWriter::kNone;
+            if(sceneConfigs[sceneId].mGoodAlgorithm.count(
+                FourWaySplitAlgorithms[i]) > 0)
+                BorderColors[i] = HtmlWriter::kGreen;
+            if(sceneConfigs[sceneId].mPoorAlgorithm.count(
+                FourWaySplitAlgorithms[i]) > 0)
+                BorderColors[i] = HtmlWriter::kRed;
+        }
+
         html_writer.AddFourWaySplit(FourWaySplitFiles,
-            FourWaySplitNames, resolution.x);
+            FourWaySplitNames, BorderColors, resolution.x);
     }
     html_writer.Close();
     clock_t endTime = clock();
-    printf("Whole run took %g s\n", float(endTime - startTime) / CLOCKS_PER_SEC);
+    printf("Whole run took %.2f s\n", float(endTime - startTime) / CLOCKS_PER_SEC);
 }
