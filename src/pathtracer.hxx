@@ -37,7 +37,7 @@ class PathTracer : public AbstractRenderer
 public:
     PathTracer(const Scene& aScene, int aSeed = 1234)
         : AbstractRenderer(aScene),
-        mRng(aSeed, 0)
+        mRng(aSeed, 1024)
     {
         Vec2i resolution(
             int(mScene.mCamera.mResolution.x),
