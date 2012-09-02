@@ -33,7 +33,8 @@
 template<typename T>
 T Sqr(const T& a) { return a*a; }
 
-typedef unsigned uint;
+typedef unsigned           uint;
+typedef unsigned long long uint64;
 
 //////////////////////////////////////////////////////////////////////////
 // Math section
