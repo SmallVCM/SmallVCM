@@ -70,5 +70,14 @@
     <ClInclude Include="src\html_writer.hxx">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\sobol_core.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\sobol.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\new-joe-kuo-6.21201.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -30,12 +30,20 @@
 #include "renderer.hxx"
 #include "bsdf.hxx"
 #include "rng.hxx"
+#include "sobol.hxx"
 
 class PathTracer : public AbstractRenderer
 {
 public:
-    PathTracer(const Scene& aScene, int aSeed = 1234) : AbstractRenderer(aScene), mRng(aSeed)
+    PathTracer(const Scene& aScene, int aSeed = 1234)
+        : AbstractRenderer(aScene),
+        mRng(aSeed, 0)
     {
+        Vec2i resolution(
+            int(mScene.mCamera.mResolution.x),
+            int(mScene.mCamera.mResolution.y));
+
+        mRng.SetupForResolution(resolution);
     }
 
     virtual void RunIteration(int aIteration)
@@ -49,10 +57,13 @@ public:
 
         for(int pixID = 0; pixID < resX * resY; pixID++)
         {
-            const int x = pixID % resX;
-            const int y = pixID / resX;
+            mRng.ResetByIndex(aIteration, pixID, BaseSobol::kCameraOnly);
 
-            const Vec2f sample = Vec2f(float(x), float(y)) + mRng.GetVec2f();
+            //const int x = pixID % resX;
+            //const int y = pixID / resX;
+
+            //const Vec2f sample = Vec2f(float(x), float(y)) + mRng.GetVec2f();
+            const Vec2f sample = mRng.GetCameraSample();
 
             Ray   ray = mScene.mCamera.GenerateRay(sample);
             Isect isect;
@@ -167,6 +178,7 @@ public:
                         }
                     }
                 }
+                else mRng.AdvanceDimensionBy(3);
 
                 // bounce
                 {
@@ -194,6 +206,7 @@ public:
                         }
                         pdf *= contProb;
                     }
+                    else mRng.AdvanceDimensionBy(1);
 
                     pathWeight *= factor * (cosThetaOut / pdf);
                     // We offset ray origin instead of setting tmin due to numeric
@@ -221,7 +234,8 @@ private:
     }
 
 private:
-    Rng         mRng;
+    //Rng         mRng;
+    BaseSobol mRng;
 };
 
 #endif //__PATHTRACER_HXX__

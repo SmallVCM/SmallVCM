@@ -224,7 +224,7 @@ int main(int argc, const char *argv[])
     int   max_path_length = 10;
     int   min_path_length = 0;
     float max_time        = 60;
-    bool  use_max_time    = false;
+    bool  use_max_time    = true;
 
     if(argc > 1)
         base_iterations = atoi(argv[1]);
@@ -292,13 +292,13 @@ int main(int argc, const char *argv[])
     int thumbnailSize = 128;
 
     int algorithmMask[7] = {
-        1, // kEyeLight
+        0, //1, // kEyeLight
         1, // kPathTracing
-        1, // kLightTracing
-        1, // kProgressivePhotonMapping
-        1, // kBidirectionalPhotonMapping
-        1, // kBidirectionalPathTracing
-        1  // kVertexConnectionMerging
+        0, //1, // kLightTracing
+        0, //1, // kProgressivePhotonMapping
+        0, //1, // kBidirectionalPhotonMapping
+        0, //1, // kBidirectionalPathTracing
+        0  //1  // kVertexConnectionMerging
     };
 
     std::string FourWaySplitFiles[4];

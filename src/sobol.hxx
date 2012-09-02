@@ -28,21 +28,23 @@
 #include <vector>
 #include <cmath>
 #include <random>
+#include "sobol_core.hxx"
 
 class BaseSobol
 {
 public:
     enum SobolMode
     {
-        // when there is only single traced path, like PT or LT
-        kIsSingle,
-        // used for any kind of bidirectional method, BPT, BPM, PM, VCM
-        kIsCamera,
-        kIsLight,
+        // When tracing only camera or only light paths
+        kCameraOnly,
+        kLightOnly,
+        // When tracing camera and light paths (BPT, VCM, PM)
+        kCameraInCombined,
+        kLightInCombined
     };
 public:
-    BaseSobol(int aSeed = 1234)
-        : mMatrices(52, 1024),
+    BaseSobol(int aSeed = 1234, uint mMaxDimension = 1024)
+        : mMatrices(52, mMaxDimension),
         mRng(aSeed)
     {
         mScramble = 0;
@@ -51,11 +53,22 @@ public:
 
     //////////////////////////////////////////////////////////////////////////
     // Specific Quasi-random methods
-
-    // Resets
-    void ResetAnyPixel(uint64 aIndex, SobolMode aMode)
+    void SetupForResolution(const Vec2i& aResolution)
     {
-        mIndex = aIndex;
+        mResolution = aResolution;
+
+        int maxRes = std::max(aResolution.x, aResolution.y);
+        int maxIdx = maxRes - 1;
+        for(mBitsForPixel = 0; maxIdx; maxIdx >>= 1, mBitsForPixel++);
+        mIndicesPerIteration = uint64(1) << uint64(mBitsForPixel << 1);
+    }
+
+    // Determines mIndex by iteration and path index
+    void ResetByIndex(uint aIteration, uint aIterIndex, SobolMode aMode)
+    {
+        mUseExplicitPixel = false;
+        mIndex = uint64(aIteration) * mIndicesPerIteration + aIterIndex;
+
         // Dimensions 0 and 1 are always reserved for image plane sampling,
         // and are sampled explicitly.
         // For single sampling, we simply continue on.
@@ -63,35 +76,47 @@ public:
         // is 3, 5, 7, 9... light samples are 2, 4, 6, 8..
         switch(aMode)
         {
-        case kIsSingle:
+        case kCameraOnly:
             mDimension = 2;
             mDimensionIncrement = 1;
             break;
-        case kIsCamera:
+        case kLightOnly: // without special camera handling
+            mDimension = 0;
+            mDimensionIncrement = 1;
+            break;
+        case kCameraInCombined:
             mDimension = 3;
             mDimensionIncrement = 2;
             break;
-        case kIsLight:
+        case kLightInCombined:
             mDimension = 2;
             mDimensionIncrement = 2;
             break;
         }
     }
 
-
-    void ResetGivenPixel(SobolMode /*aMode*/,
-        const Vec2i& /*aPixelCoords*/,
-        const Vec2i& /*aResolution*/)
+    // Determines mIndex by iteration and requested pixel coordinates
+    void ResetByPixel(uint /*aIteration*/, Vec2i /*aPixelCoords*/, SobolMode /*aMode*/)
     {
+        mUseExplicitPixel = true;
     }
 
 
-    Vec2f GetCameraSample(const Vec2i& aRes)
+    Vec2f GetCameraSample()
     {
-        float x01 = BaseUint(0) * (1.f / (uint(1) << 32));
-        float y01 = BaseUint(1) * (1.f / (uint(1) << 32));
-        Vec2f sample = Vec2f(x01 * aRes.x, y01 * aRes.y);
-
+        if(!mUseExplicitPixel)
+        {
+            float x01 = BaseUint(0) * (1.f / (1ull << 32));
+            float y01 = BaseUint(1) * (1.f / (1ull << 32));
+            return Vec2f(x01 * mResolution.x, y01 * mResolution.y);
+        }
+        else
+        {
+            float jitterX = BaseUint(0) * (1.f / (1ull << (32u - mBitsForPixel) ));
+            float jitterY = BaseUint(1) * (1.f / (1ull << (32u - mBitsForPixel) ));
+            return Vec2f(mExplicitPixelCoords.x + jitterX,
+                mExplicitPixelCoords.y + jitterY);
+        }
     }
 
     void AdvanceDimensionBy(const uint aAdvanceBy)
@@ -108,14 +133,14 @@ public:
 
     uint GetUint()
     {
-        uint result = BaseUint();
+        uint result = BaseUint(mDimension);
         mDimension += mDimensionIncrement;
         return result;
     }
 
     float GetFloat()
     {
-        return GetUint() * (1.f / (uint(1) << 32));
+        return GetUint() * (1.f / (1ull << 32));
     }
 
     Vec2f GetVec2f()
@@ -140,10 +165,21 @@ private:
         return mDistUint(mRng);
     }
 private:
+    // When we explicitly specify pixel to use
+    bool            mUseExplicitPixel;
+    Vec2i           mExplicitPixelCoords;
+
     uint64          mIndex;
     uint            mScramble;
     uint            mDimension;
     uint            mDimensionIncrement;
+
+    Vec2i           mResolution;
+    // How many bits are used to determine which pixel index belongs to.
+    // This is m in http://gruenschloss.org/sample-enum/sample-enum-src.zip
+    uint            mBitsForPixel;
+    // 2^(mBitsForPixel*2)
+    uint64          mIndicesPerIteration;
 
     sobol::Matrices mMatrices;
     // For backup, if we run out of dimensions

@@ -33,6 +33,7 @@
 
 #include <vector>
 #include "new-joe-kuo-6.21201.h"
+#include <cassert>
 
 namespace sobol
 {
@@ -43,27 +44,32 @@ public:
         : mNumberOfBits(aNumberOfBits),
         mNumberOfDimensions(aNumberOfDimensions)
     {
+        if(mNumberOfDimensions == 0) return;
+
+        assert(mNumberOfBits >= 32);
         mMatrices64.resize(mNumberOfBits * mNumberOfDimensions);
         mMatrices32.resize(mNumberOfBits * mNumberOfDimensions);
     }
 
     void GenerateMatrices()
     {
+        if(mNumberOfDimensions == 0) return;
+
         // First dimension
-        for(int i=0; i<mNumberOfBits; i++)
+        for(uint i=0; i<mNumberOfBits; i++)
         {
             mMatrices64[i] = uint64(1) << uint64(mNumberOfBits - 1 - i);
         }
 
         std::vector<uint64> m;
-        for(int dim = 1; dim < mNumberOfDimensions; dim++)
+        for(uint dim = 1; dim < mNumberOfDimensions; dim++)
         {
             // load initial direction numbers
-            int dirNumbers = SobolDirectionNumers[dim - 1];
+            int *dirNumbers = SobolDirectionNumers[dim - 1];
 
-            int s, a;
-            s = dirNumbers[0];
-            a = dirNumbers[1];
+            uint s, a;
+            s = (uint)dirNumbers[0];
+            a = (uint)dirNumbers[1];
 
             // the polynomial does not contain the x^s element,
             // so just add it to avoid special handling
@@ -72,27 +78,27 @@ public:
 
             if(mNumberOfBits <= s)
             {
-                for(int i=0; i<mNumberOfBits; i++)
+                for(uint i=0; i<mNumberOfBits; i++)
                     V[i] =
                     uint64(dirNumbers[i+2]) << uint64(mNumberOfBits - 1 - i);
             }
             else
             {
-                for(int i=0; i<s; i++)
+                for(uint i=0; i<s; i++)
                     V[i] =
                     uint64(dirNumbers[i+2]) << uint64(mNumberOfBits - 1 - i);
 
-                for(int i=s; i<mNumberOfBits; i++)
+                for(uint i=s; i<mNumberOfBits; i++)
                 {
                     V[i] = V[i-s] ^ (V[i-s] >> uint64(s));
-                    for (int k=0;k<s-1;k++)
+                    for (uint k=0;k<s-1;k++)
                         V[i] ^= (((a >> (s-2-k)) & 1) * V[i-k-1]);
                 }
             }
         }
 
         // Convert from 64b to 32b matrix
-        uint64 shiftBy = (mNumberOfBits > 32) ? (mNumberOfBits - 32) : 0;
+        uint64 shiftBy = mNumberOfBits - 32;
         for(size_t i=0; i < mMatrices64.size(); i++)
         {
             mMatrices32[i] = uint(mMatrices64[i] >> shiftBy);
@@ -107,7 +113,7 @@ public:
         assert(aDimension < mNumberOfDimensions);
 
         uint result = aScramble;
-        for(uint i = mNumberOfBits * mNumberOfDimensions;
+        for(uint i = mNumberOfBits * aDimension;
             aIndex; aIndex >>= 1, i++)
         {
             if(aIndex & 1)
@@ -123,8 +129,8 @@ public:
     {
         assert(aDimension < mNumberOfDimensions);
 
-        uint64 result = aScramble;
-        for(uint i = mNumberOfBits * mNumberOfDimensions;
+        uint64 result = aScramble >> (64 - mNumberOfBits);
+        for(uint i = mNumberOfBits * aDimension;
             aIndex; aIndex >>= 1, i++)
         {
             if(aIndex & 1)

@@ -85,6 +85,7 @@
     <ClInclude Include="src\frame.hxx" />
     <ClInclude Include="src\hashgrid.hxx" />
     <ClInclude Include="src\html_writer.hxx" />
+    <ClInclude Include="src\new-joe-kuo-6.21201.h" />
     <ClInclude Include="src\pathtracer.hxx" />
     <ClInclude Include="src\renderer.hxx" />
     <ClInclude Include="src\eyelight.hxx" />
@@ -97,6 +98,8 @@
     <ClInclude Include="src\ray.hxx" />
     <ClInclude Include="src\rng.hxx" />
     <ClInclude Include="src\scene.hxx" />
+    <ClInclude Include="src\sobol.hxx" />
+    <ClInclude Include="src\sobol_core.hxx" />
     <ClInclude Include="src\utils.hxx" />
     <ClInclude Include="src\vertexcm.hxx" />
   </ItemGroup>
