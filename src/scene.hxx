@@ -429,7 +429,7 @@ public:
         }
         else if((aBoxMask & kLightSun) == kLightSun)
         {
-            name    += " + Sun";
+            name    += " + Sun (directional)";
             acronym += "s";
         }
         else if((aBoxMask & kLightPoint) == kLightPoint)
@@ -439,7 +439,7 @@ public:
         }
         else if((aBoxMask & kLightBackground) == kLightBackground)
         {
-            name    += " + Background";
+            name    += " + Background (env. lighting)";
             acronym += "b";
         }
 
