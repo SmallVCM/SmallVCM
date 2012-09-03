@@ -224,7 +224,7 @@ int main(int argc, const char *argv[])
     int   max_path_length = 10;
     int   min_path_length = 0;
     float max_time        = 60;
-    bool  use_max_time    = false;
+    bool  use_max_time    = true;
 
     if(argc > 1)
         base_iterations = atoi(argv[1]);
