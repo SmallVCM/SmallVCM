@@ -265,7 +265,6 @@ int main(int argc, const char *argv[])
     sceneConfigs[1].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
 
     sceneConfigs[2].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
-    sceneConfigs[2].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
     sceneConfigs[2].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
 
     sceneConfigs[3].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
