@@ -66,8 +66,27 @@ public:
         mHtml << "</html>" << std::endl;
     }
 
+    /*
+     * The Javascript plugin is heavily modified version of plugin example:
+     * http://www.htmldrive.net/items/show/838/jQuery-different-Photo-comparing-Effect
+     *
+     * Original copyright reads:
+     * // Queness Before & After jQuery Plugin
+     * // Created by Kevin Liew from Queness.com
+     * // Permission is given to use this plugin in whatever way you want :)
+     */
     void WriteHeader()
     {
+        mHtml << "<!--"  << std::endl;
+        mHtml << "* The Javascript plugin is heavily modified version of plugin example:"  << std::endl;
+        mHtml << "* http://www.htmldrive.net/items/show/838/jQuery-different-Photo-comparing-Effect"  << std::endl;
+        mHtml << "*"  << std::endl;
+        mHtml << "* Original copyright reads:"  << std::endl;
+        mHtml << "* // Queness Before & After jQuery Plugin"  << std::endl;
+        mHtml << "* // Created by Kevin Liew from Queness.com"  << std::endl;
+        mHtml << "* // Permission is given to use this plugin in whatever way you want :)"  << std::endl;
+        mHtml << "-->" << std::endl;
+        mHtml << "" << std::endl;
         mHtml << "<!DOCTYPE html PUBLIC "
             "\"-//W3C//DTD XHTML 1.0 Strict//EN\""
             " \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"
