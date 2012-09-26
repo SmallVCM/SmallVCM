@@ -260,7 +260,7 @@ private:
         oLocalDirGen = SamplePowerCosHemisphereW(aRndTuple, aMaterial.mPhongExponent, NULL);
         // due to numeric issues in MIS, we actually need to compute all Pdfs exactly
         // the same way all the time!!!
-        const Vec3f reflLocalDirFixed = reflect001(mLocalDirFix);
+        const Vec3f reflLocalDirFixed = ReflectLocal(mLocalDirFix);
         {
             Frame frame;
             frame.SetFromZ(reflLocalDirFixed);
@@ -281,7 +281,7 @@ private:
     Vec3f SampleReflect(const Material &aMaterial, const Vec2f &aRndTuple,
         Vec3f &oLocalDirGen, float &oPdfW) const
     {
-        oLocalDirGen = reflect001(mLocalDirFix);
+        oLocalDirGen = ReflectLocal(mLocalDirFix);
 
         oPdfW += mProbabilities.reflProb;
         // BRDF is multiplied (outside) by cosine (oLocalDirGen.z),
@@ -368,7 +368,7 @@ private:
             return Vec3f(0);
 
         // assumes this is never called when rejectShadingCos(oLocalDirGen.z) is true
-        const Vec3f reflLocalDirIn = reflect001(mLocalDirFix);
+        const Vec3f reflLocalDirIn = ReflectLocal(mLocalDirFix);
         const float dot_R_Wi = Dot(reflLocalDirIn, aLocalDirGen);
 
         if(dot_R_Wi <= EPS_PHONG)
@@ -411,7 +411,7 @@ private:
         if(mProbabilities.phongProb == 0) return;
 
         // assumes this is never called when rejectShadingCos(oLocalDirGen.z) is true
-        const Vec3f reflLocalDirIn = reflect001(mLocalDirFix);
+        const Vec3f reflLocalDirIn = ReflectLocal(mLocalDirFix);
         const float dot_R_Wi = Dot(reflLocalDirIn, aLocalDirGen);
 
         if(dot_R_Wi <= EPS_PHONG)
