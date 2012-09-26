@@ -168,20 +168,20 @@ public:
         const Vec2f uv = SampleUniformTriangle(aPosRndTuple);
         oPosition = p0 + e1 * uv.x + e2 * uv.y;
 
-        Vec3f localOmegaOut;
-        localOmegaOut =
+        Vec3f localDirOut;
+        localDirOut =
             SampleCosHemisphereW(aDirRndTuple, &oEmissionPdfW);
 
         oEmissionPdfW *= mInvArea;
 
         // cannot really not emit the particle, so just bias it to the correct angle
-        localOmegaOut.z = std::max(localOmegaOut.z, EPS_COSINE);
-        oDirection      = mFrame.ToWorld(localOmegaOut);
+        localDirOut.z = std::max(localDirOut.z, EPS_COSINE);
+        oDirection      = mFrame.ToWorld(localDirOut);
 
         if(oDirectPdfA)    *oDirectPdfA    = mInvArea;
-        if(oCosThetaLight) *oCosThetaLight = localOmegaOut.z;
+        if(oCosThetaLight) *oCosThetaLight = localDirOut.z;
 
-        return mIntensity * localOmegaOut.z;
+        return mIntensity * localDirOut.z;
     }
 
     virtual Vec3f GetRadiance(

@@ -133,7 +133,7 @@ class VertexCM : public AbstractRenderer
                 return;
 
             // Retrieve light' incoming direction in world coordinates
-            const Vec3f lightDirection = aLightVertex.mBsdf.WorldOmegaFix();
+            const Vec3f lightDirection = aLightVertex.mBsdf.WorldDirFix();
 
             float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
             const Vec3f cameraBrdfFactor = mCameraBsdf.Evaluate(
