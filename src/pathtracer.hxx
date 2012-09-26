@@ -144,7 +144,7 @@ public:
                     if(!radiance.IsZero())
                     {
                         float brdfPdfW, cosThetaOut;
-                        const Vec3f factor = bsdf.EvaluateBrdfPdfW(mScene,
+                        const Vec3f factor = bsdf.Evaluate(mScene,
                             directionToLight, cosThetaOut, &brdfPdfW);
 
                         if(!factor.IsZero())
@@ -174,7 +174,7 @@ public:
                     float pdf, cosThetaOut;
                     uint  sampledEvent;
 
-                    Vec3f factor = bsdf.SampleBrdf(mScene, rndTriplet, ray.dir,
+                    Vec3f factor = bsdf.Sample(mScene, rndTriplet, ray.dir,
                         pdf, cosThetaOut, &sampledEvent);
 
                     if(factor.IsZero())

@@ -118,9 +118,8 @@ public:
      * of having sampled aWorldOmegaGen given mLocalOmegaFix (oDirectPdfW),
      * and of having sampled mLocalOmegaFix given aWorldOmegaGen (oReversePdfW).
      *
-     * Optionally can be limited to just some events.
      */
-    Vec3f EvaluateBrdfPdfW(const Scene &aScene, const Vec3f &aWorldOmegaGen,
+    Vec3f Evaluate(const Scene &aScene, const Vec3f &aWorldOmegaGen,
         float &oCosThetaGen, float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
     {
         Vec3f result(0);
@@ -148,7 +147,7 @@ public:
      * generated from mLocalOmegaFix. When aEvalRevPdf == true,
      * it provides PDF for the reverse direction.
      */
-    float EvaluatePdfW(
+    float Pdf(
         const Scene &aScene, const Vec3f &aWorldOmegaGen,
         const bool aEvalRevPdf = false) const
     {
@@ -161,9 +160,9 @@ public:
         float directPdfW  = 0;
         float reversePdfW = 0;
 
-        EvaluatePdfWDiffuse(mat, localOmegaGen,
+        PdfDiffuse(mat, localOmegaGen,
             &directPdfW, &reversePdfW);
-        EvaluatePdfWPhong(mat, localOmegaGen,
+        PdfPhong(mat, localOmegaGen,
             &directPdfW, &reversePdfW);
 
         return aEvalRevPdf ? reversePdfW : directPdfW;
@@ -178,7 +177,7 @@ public:
      * Can return event which has been sampled.
      * If result is Vec3f(0,0,0), then the sample should be discarded.
      */
-    Vec3f SampleBrdf(const Scene &aScene, const Vec3f &aRndTriplet, Vec3f &oWorldOmegaGen,
+    Vec3f Sample(const Scene &aScene, const Vec3f &aRndTriplet, Vec3f &oWorldOmegaGen,
         float &oPdfW, float &oCosThetaGen, uint *oSampledEvent = NULL) const
     {
         uint sampledEvent;
@@ -272,7 +271,7 @@ private:
         if(dot_R_Wi <= EPS_PHONG)
             return Vec3f(0.f);
 
-        EvaluatePdfWPhong(aMaterial, oLocalOmegaGen, &oPdfW);
+        PdfPhong(aMaterial, oLocalOmegaGen, &oPdfW);
 
         const Vec3f rho = aMaterial.mPhongReflectance *
             (aMaterial.mGlossiness + 2.f) * 0.5f * INV_PI_F;
@@ -391,7 +390,7 @@ private:
 
     //////////////////////////////////////////////////////////////////////////
     // Pdf rvaluating methods
-    void EvaluatePdfWDiffuse(const Material& aMaterial, const Vec3f& aLocalOmegaGen,
+    void PdfDiffuse(const Material& aMaterial, const Vec3f& aLocalOmegaGen,
         float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
     {
         if(mProbabilities.diffProb == 0)
@@ -406,7 +405,7 @@ private:
             std::max(0.f, mLocalOmegaFix.z * INV_PI_F);
     }
 
-    void EvaluatePdfWPhong(const Material& aMaterial, const Vec3f& aLocalOmegaGen,
+    void PdfPhong(const Material& aMaterial, const Vec3f& aLocalOmegaGen,
         float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
     {
         if(mProbabilities.phongProb == 0) return;

@@ -136,7 +136,7 @@ class VertexCM : public AbstractRenderer
             const Vec3f lightDirection = aLightVertex.mBsdf.WorldOmegaFix();
 
             float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
-            const Vec3f cameraBrdfFactor = mCameraBsdf.EvaluateBrdfPdfW(
+            const Vec3f cameraBrdfFactor = mCameraBsdf.Evaluate(
                 mVertexCM.mScene, lightDirection, cosCamera, &cameraBrdfDirPdfW,
                 &cameraBrdfRevPdfW);
 
@@ -636,7 +636,7 @@ private:
             return Vec3f(0);
 
         float brdfDirPdfW, brdfRevPdfW, cosToLight;
-        const Vec3f brdfFactor = aBsdf.EvaluateBrdfPdfW(mScene,
+        const Vec3f brdfFactor = aBsdf.Evaluate(mScene,
             directionToLight, cosToLight, &brdfDirPdfW, &brdfRevPdfW);
 
         if(brdfFactor.IsZero())
@@ -708,7 +708,7 @@ private:
 
         // evaluate brdf at camera vertex
         float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
-        const Vec3f cameraBrdfFactor = aCameraBsdf.EvaluateBrdfPdfW(
+        const Vec3f cameraBrdfFactor = aCameraBsdf.Evaluate(
             mScene, direction, cosCamera, &cameraBrdfDirPdfW,
             &cameraBrdfRevPdfW);
 
@@ -722,7 +722,7 @@ private:
 
         // evaluate brdf at light vertex
         float cosLight, lightBrdfDirPdfW, lightBrdfRevPdfW;
-        const Vec3f lightBrdfFactor = aLightVertex.mBsdf.EvaluateBrdfPdfW(
+        const Vec3f lightBrdfFactor = aLightVertex.mBsdf.Evaluate(
             mScene, -direction, cosLight, &lightBrdfDirPdfW,
             &lightBrdfRevPdfW);
 
@@ -835,7 +835,7 @@ private:
 
         // get the BRDF
         float cosToCamera, brdfDirPdfW, brdfRevPdfW;
-        const Vec3f brdfFactor = aBsdf.EvaluateBrdfPdfW(mScene,
+        const Vec3f brdfFactor = aBsdf.Evaluate(mScene,
             directionToCamera, cosToCamera, &brdfDirPdfW, &brdfRevPdfW);
         if(brdfFactor.IsZero())
             return;
@@ -885,7 +885,7 @@ private:
         float brdfDirPdfW, cosThetaOut;
         uint  sampledEvent;
 
-        Vec3f brdfFactor = aBsdf.SampleBrdf(mScene, rndTriplet, aoPathSample.mDirection,
+        Vec3f brdfFactor = aBsdf.Sample(mScene, rndTriplet, aoPathSample.mDirection,
             brdfDirPdfW, cosThetaOut, &sampledEvent);
 
         if(brdfFactor.IsZero())
@@ -897,7 +897,7 @@ private:
         // we evaluate the pdf
         float brdfRevPdfW = brdfDirPdfW;
         if((sampledEvent & LightBsdf::kSpecular) == 0)
-            brdfRevPdfW = aBsdf.EvaluatePdfW(mScene,
+            brdfRevPdfW = aBsdf.Pdf(mScene,
             aoPathSample.mDirection, true);
 
         // russian roulette
