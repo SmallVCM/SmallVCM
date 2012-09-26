@@ -257,7 +257,7 @@ private:
     Vec3f SamplePhong(const Material &aMaterial, const Vec2f &aRndTuple,
         Vec3f &oLocalDirGen, float &oPdfW) const
     {
-        oLocalDirGen = SamplePowerCosHemisphereW(aRndTuple, aMaterial.mGlossiness, NULL);
+        oLocalDirGen = SamplePowerCosHemisphereW(aRndTuple, aMaterial.mPhongExponent, NULL);
         // due to numeric issues in MIS, we actually need to compute all Pdfs exactly
         // the same way all the time!!!
         const Vec3f reflLocalDirFixed = reflect001(mLocalDirFix);
@@ -274,8 +274,8 @@ private:
         PdfPhong(aMaterial, oLocalDirGen, &oPdfW);
 
         const Vec3f rho = aMaterial.mPhongReflectance *
-            (aMaterial.mGlossiness + 2.f) * 0.5f * INV_PI_F;
-        return rho * std::pow(dot_R_Wi, aMaterial.mGlossiness);
+            (aMaterial.mPhongExponent + 2.f) * 0.5f * INV_PI_F;
+        return rho * std::pow(dot_R_Wi, aMaterial.mPhongExponent);
     }
 
     Vec3f SampleReflect(const Material &aMaterial, const Vec2f &aRndTuple,
@@ -378,14 +378,14 @@ private:
         {
             // the sampling is symmetric
             const float pdfW = EvalPowerCosHemispherePdfW(reflLocalDirIn, aLocalDirGen,
-                aMaterial.mGlossiness) * mProbabilities.phongProb;
+                aMaterial.mPhongExponent) * mProbabilities.phongProb;
             if(oDirectPdfW)  *oDirectPdfW  += pdfW;
             if(oReversePdfW) *oReversePdfW += pdfW;
         }
 
         const Vec3f rho = aMaterial.mPhongReflectance *
-            (aMaterial.mGlossiness + 2.f) * 0.5f * INV_PI_F;
-        return rho * std::pow(dot_R_Wi, aMaterial.mGlossiness);
+            (aMaterial.mPhongExponent + 2.f) * 0.5f * INV_PI_F;
+        return rho * std::pow(dot_R_Wi, aMaterial.mPhongExponent);
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -421,7 +421,7 @@ private:
         {
             // the sampling is symmetric
             const float pdfW = EvalPowerCosHemispherePdfW(reflLocalDirIn, aLocalDirGen,
-                aMaterial.mGlossiness) * mProbabilities.phongProb;
+                aMaterial.mPhongExponent) * mProbabilities.phongProb;
             if(oDirectPdfW)  *oDirectPdfW  += pdfW;
             if(oReversePdfW) *oReversePdfW += pdfW;
         }

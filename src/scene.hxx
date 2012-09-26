@@ -152,7 +152,7 @@ public:
         mat.Reset();
         mat.mDiffuseReflectance = Vec3f(0.1f);
         mat.mPhongReflectance   = Vec3f(0.7f);
-        mat.mGlossiness         = 90.f;
+        mat.mPhongExponent         = 90.f;
         mMaterials.push_back(mat);
 
         // 3) diffuse green left wall
