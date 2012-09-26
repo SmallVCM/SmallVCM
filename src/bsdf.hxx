@@ -377,7 +377,7 @@ private:
         if(oDirectPdfW || oReversePdfW)
         {
             // the sampling is symmetric
-            const float pdfW = EvalPowerCosHemispherePdfW(reflLocalDirIn, aLocalDirGen,
+            const float pdfW = PowerCosHemispherePdfW(reflLocalDirIn, aLocalDirGen,
                 aMaterial.mPhongExponent) * mProbabilities.phongProb;
             if(oDirectPdfW)  *oDirectPdfW  += pdfW;
             if(oReversePdfW) *oReversePdfW += pdfW;
@@ -420,7 +420,7 @@ private:
         if(oDirectPdfW || oReversePdfW)
         {
             // the sampling is symmetric
-            const float pdfW = EvalPowerCosHemispherePdfW(reflLocalDirIn, aLocalDirGen,
+            const float pdfW = PowerCosHemispherePdfW(reflLocalDirIn, aLocalDirGen,
                 aMaterial.mPhongExponent) * mProbabilities.phongProb;
             if(oDirectPdfW)  *oDirectPdfW  += pdfW;
             if(oReversePdfW) *oReversePdfW += pdfW;

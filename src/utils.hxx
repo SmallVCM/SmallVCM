@@ -99,7 +99,7 @@ Vec3f SamplePowerCosHemisphereW(
         term2);
 }
 
-float EvalPowerCosHemispherePdfW(
+float PowerCosHemispherePdfW(
     const Vec3f  &aNormal,
     const Vec3f  &aDirection,
     const float  aPower)
@@ -151,7 +151,7 @@ Vec2f SampleConcentricDisc(
     return res;
 }
 
-float EvalConcentricDiscPdfA()
+float ConcentricDiscPdfA()
 {
     return INV_PI_F;
 }
@@ -180,7 +180,7 @@ Vec3f SampleCosHemisphereW(
     return ret;
 }
 
-float EvalCosHemispherePdfW(
+float CosHemispherePdfW(
     const Vec3f  &aNormal,
     const Vec3f  &aDirection)
 {
@@ -221,7 +221,7 @@ Vec3f SampleUniformSphereW(
     return ret;
 }
 
-float EvalUniformSpherePdfW()
+float UniformSpherePdfW()
 {
     //return (1.f / (4.f * PI_F));
     return INV_PI_F * 0.25f;

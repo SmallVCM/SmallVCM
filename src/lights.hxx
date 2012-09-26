@@ -200,7 +200,7 @@ public:
         if(oEmissionPdfW)
         {
             *oEmissionPdfW =
-                EvalCosHemispherePdfW(mFrame.Normal(), -aRayDirection);
+                CosHemispherePdfW(mFrame.Normal(), -aRayDirection);
             *oEmissionPdfW *= mInvArea;
         }
 
@@ -244,7 +244,7 @@ public:
         if(oCosAtLight) *oCosAtLight = 1.f;
         if(oEmissionPdfW)
         {
-            *oEmissionPdfW = EvalConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
+            *oEmissionPdfW = ConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
         }
         return mIntensity;
     }
@@ -266,7 +266,7 @@ public:
             -mFrame.Normal() + mFrame.Binormal() * xy.x + mFrame.Tangent() * xy.y);
 
         oDirection = mFrame.Normal();
-        oEmissionPdfW = EvalConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
+        oEmissionPdfW = ConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
 
         if(oDirectPdfA)    *oDirectPdfA = 1.f;
         // This is not used for infinite or delta lights
@@ -323,7 +323,7 @@ public:
         if(oCosAtLight) *oCosAtLight = 1.f;
         if(oEmissionPdfW)
         {
-            *oEmissionPdfW = EvalUniformSpherePdfW();
+            *oEmissionPdfW = UniformSpherePdfW();
         }
         return mIntensity;
     }
@@ -397,7 +397,7 @@ public:
         oDistance = 1e36f;
         if(oEmissionPdfW)
             *oEmissionPdfW = oDirectPdfW *
-            EvalConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
+            ConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
         if(oCosAtLight) *oCosAtLight = 1.f;
 
         return radiance;
@@ -429,7 +429,7 @@ public:
             -oDirection + frame.Binormal() * xy.x + frame.Tangent() * xy.y);
         //oPosition = Vec3f(-1.109054f, -2.15064538f, -1.087019148f);
 
-        oEmissionPdfW = directPdf * EvalConcentricDiscPdfA() *
+        oEmissionPdfW = directPdf * ConcentricDiscPdfA() *
             aSceneSphere.mInvSceneRadiusSqr;
 
         // for background we lie about Pdf being in area measure
@@ -449,10 +449,10 @@ public:
     {
         // Replace this with image lookup (proper pdf and such)
         // use aRayDirection
-        float directPdf = EvalUniformSpherePdfW();
+        float directPdf = UniformSpherePdfW();
         Vec3f radiance  = mBackgroundColor * mScale;
 
-        const float positionPdf = EvalConcentricDiscPdfA() *
+        const float positionPdf = ConcentricDiscPdfA() *
             aSceneSphere.mInvSceneRadiusSqr;
 
         if(oDirectPdfA)   *oDirectPdfA   = directPdf;
