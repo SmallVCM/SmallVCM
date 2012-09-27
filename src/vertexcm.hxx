@@ -35,11 +35,11 @@
 // This allows to easily turn on/off parts of algorithm,
 // to evaluate relative contributions. Algorithm does not
 // produce correct results unless all five are on
-#define DIR_CON   1 //!< Direct connection of light particles to camera
+#define DIR_CON   1 //!< Direct connection of light vertices to camera
 #define ON_HIT    1 //!< Contribution when area light/background hit randomly
-#define DIR_LIGHT 1 //!< Direct connection of camera particles to lights
-#define VC        1 //!< Connection between light and camera particles
-#define VM        1 //!< Merging between light and camera particles
+#define DIR_LIGHT 1 //!< Direct connection of camera vertices to lights
+#define VC        1 //!< Connection between light and camera vertices
+#define VM        1 //!< Merging between light and camera vertices
 
 class VertexCM : public AbstractRenderer
 {
@@ -100,10 +100,10 @@ class VertexCM : public AbstractRenderer
 
     /* \brief Range query used for Ppm, Bpm, and Vcm
      *
-     * Is used by HashGrid, when a particle is found within
+     * Is used by HashGrid, when a vertex is found within
      * range (given by hash grid), Process() is called
      * and vertex merge is performed. Bsdf of the camera
-     * particle is used.
+     * vertex is used.
      */
     class RangeQuery
     {
@@ -145,8 +145,8 @@ class VertexCM : public AbstractRenderer
 
             cameraBrdfDirPdfW *= mCameraBsdf.ContinuationProb();
             // Even though this is pdf from camera brdf, the continuation probability
-            // must come from light brdf, because that would govern it if light particle
-            // actually bounced
+            // must come from light brdf, because that would govern it if light path
+            // actually continued
             cameraBrdfRevPdfW *= aLightVertex.mBsdf.ContinuationProb();
 
             const float wLight = aLightVertex.d0 * mVertexCM.mMisVcWeightFactor +
@@ -174,17 +174,17 @@ class VertexCM : public AbstractRenderer
 public:
     enum AlgorithmType
     {
-        // light particles contribute to camera,
+        // light vertices contribute to camera,
         // No MIS weights (d0, d1vm, d1vc all ignored)
         kLightTrace = 0,
-        // Camera and light particles merged on first non-specular camera bounce.
+        // Camera and light vertices merged on first non-specular camera bounce.
         // Cannot handle mixed specular + non-specular materials.
         // No MIS weights (d0, d1vm, d1vc all ignored)
         kPpm,
-        // Camera and light particles merged on along full path.
+        // Camera and light vertices merged on along full path.
         // d0 and d1vm used for MIS
         kBpm,
-        // Standard bidirection path tracing
+        // Standard bidirectional path tracing
         // d0 and d1vc used for MIS
         kBpt,
         // Vertex connection and mering
@@ -330,7 +330,7 @@ public:
                     lightSample.d1vm /= Mis(std::abs(bsdf.CosThetaFix()));
                 }
 
-                // Store particle, purely delta bsdf cannot be merged or
+                // Store vertex, purely delta bsdf cannot be merged or
                 // connected, so we don't store these
                 if(!bsdf.IsDelta() && (mUseVC || mUseVM))
                 {
@@ -383,7 +383,7 @@ public:
         // Generate camera paths
         //////////////////////////////////////////////////////////////////////////
 
-        // Light tracing does not use any camera particles at all
+        // Light tracing does not use any camera vertices at all
         for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly); pathIdx++)
         {
             PathElement cameraSample;
@@ -458,7 +458,7 @@ public:
                     }
                 }
 
-                // [Vertex Connection] Connect to light particles
+                // [Vertex Connection] Connect to light vertices
                 if(!bsdf.IsDelta() && mUseVC && VC)
                 {
                     // Each lightpath is assigned to one eyepath ,as in standard BPT.
@@ -489,7 +489,7 @@ public:
                     }
                 }
 
-                // [Vertex Merging] Merge with light particles
+                // [Vertex Merging] Merge with light vertices
                 if(!bsdf.IsDelta() && mUseVM && VM)
                 {
                     RangeQuery query(*this, hitPoint, bsdf, cameraSample);
@@ -766,7 +766,7 @@ private:
     //////////////////////////////////////////////////////////////////////////
     /* \brief Generates new light sample
      *
-     * Emits particle from light, storing it in oLightSample.
+     * Samples light emission
      */
     void GenerateLightSample(PathElement &oLightSample)
     {
