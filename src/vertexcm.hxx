@@ -32,15 +32,6 @@
 #include "rng.hxx"
 #include "hashgrid.hxx"
 
-// This allows to easily turn on/off parts of algorithm,
-// to evaluate relative contributions. Algorithm does not
-// produce correct results unless all five are on
-#define DIR_CON   1 //!< Direct connection of light vertices to camera
-#define ON_HIT    1 //!< Contribution when area light/background hit randomly
-#define DIR_LIGHT 1 //!< Direct connection of camera vertices to lights
-#define VC        1 //!< Connection between light and camera vertices
-#define VM        1 //!< Merging between light and camera vertices
-
 class VertexCM : public AbstractRenderer
 {
     /* \brief Path element is used for tracing
@@ -348,7 +339,7 @@ public:
                 }
 
                 // Contribute directly to camera, purely delta bsdf cannot be connected
-                if(!bsdf.IsDelta() && (mUseVC || mLightTraceOnly) && DIR_CON)
+                if(!bsdf.IsDelta() && (mUseVC || mLightTraceOnly))
                 {
                     if(lightSample.mPathLength + 1 >= mMinPathLength)
                         DirectContribution(lightSample, hitPoint, bsdf);
@@ -372,7 +363,7 @@ public:
         //////////////////////////////////////////////////////////////////////////
 
         // Only build grid when merging (Vcm, Bpm, and Ppm)
-        if(mUseVM && VM)
+        if(mUseVM)
         {
             // The number of cells is somewhat arbitrary, but seems to work ok
             mHashGrid.Reserve(pathCount);
@@ -404,7 +395,7 @@ public:
 
                 if(!mScene.Intersect(ray, isect))
                 {
-                    if(mScene.GetBackground() != NULL && ON_HIT)
+                    if(mScene.GetBackground() != NULL)
                     {
                         if(cameraSample.mPathLength >= mMinPathLength)
                         {
@@ -433,7 +424,7 @@ public:
 
                 // directly hit some light
                 // lights do not reflect light, so we stop after this
-                if(isect.lightID >= 0 && ON_HIT)
+                if(isect.lightID >= 0)
                 {
                     const AbstractLight *light = mScene.GetLightPtr(isect.lightID);
                     if(cameraSample.mPathLength >= mMinPathLength)
@@ -449,7 +440,7 @@ public:
                     break;
 
                 // [Vertex Connection] Connect to lights
-                if(!bsdf.IsDelta() && mUseVC && DIR_LIGHT)
+                if(!bsdf.IsDelta() && mUseVC)
                 {
                     if(cameraSample.mPathLength + 1>= mMinPathLength)
                     {
@@ -459,7 +450,7 @@ public:
                 }
 
                 // [Vertex Connection] Connect to light vertices
-                if(!bsdf.IsDelta() && mUseVC && VC)
+                if(!bsdf.IsDelta() && mUseVC)
                 {
                     // Each lightpath is assigned to one eyepath ,as in standard BPT.
                     // This gives range in which are the lightvertices
@@ -490,7 +481,7 @@ public:
                 }
 
                 // [Vertex Merging] Merge with light vertices
-                if(!bsdf.IsDelta() && mUseVM && VM)
+                if(!bsdf.IsDelta() && mUseVM)
                 {
                     RangeQuery query(*this, hitPoint, bsdf, cameraSample);
                     mHashGrid.Process(mLightVertices, query);
