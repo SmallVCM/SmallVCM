@@ -44,7 +44,7 @@
 // For PDF computation, we need to know which direction is given (Fix),
 // and which is the generated (Gen) direction. This is important even
 // when simply evaluating Bsdf.
-// In BPT, we call EvaluateBrdfPdf when directly connecting to light/camera.
+// In BPT, we call EvaluateBsdfPdf when directly connecting to light/camera.
 // This gives us both directions required for evaluating Bsdf.
 // However, for MIS we also need to know probabilities of having sampled
 // this path via Bsdf sampling, and we need that for both possible directions.
@@ -53,7 +53,7 @@
 //
 // The Bsdf is also templated by direction of tracing, whether from camera
 // (Bsdf<false>) or from light (Bsdf<true>). This is identical to Veach's
-// Adjoint BRDF (except the name is more straightforward).
+// Adjoint BSDF (except the name is more straightforward).
 // For us this is only used when refracting.
 
 #define EPS_PHONG 1e-3f
@@ -240,7 +240,7 @@ private:
     //////////////////////////////////////////////////////////////////////////
     // Sampling methods
     // All sampling methods take material, 2 random numbers [0-1[,
-    // and return BRDF factor, generated direction in local coordinates,
+    // and return BSDF factor, generated direction in local coordinates,
     // and PDF
     Vec3f SampleDiffuse(const Material &aMaterial, const Vec2f &aRndTuple,
         Vec3f &oLocalDirGen, float &oPdfW) const
@@ -284,7 +284,7 @@ private:
         oLocalDirGen = ReflectLocal(mLocalDirFix);
 
         oPdfW += mProbabilities.reflProb;
-        // BRDF is multiplied (outside) by cosine (oLocalDirGen.z),
+        // BSDF is multiplied (outside) by cosine (oLocalDirGen.z),
         // for mirror this shouldn't be done, so we pre-divide here instead
         return mReflectCoeff * aMaterial.mMirrorReflectance /
             std::abs(oLocalDirGen.z);

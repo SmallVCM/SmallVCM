@@ -44,13 +44,13 @@ class VertexCM : public AbstractRenderer
         Vec3f mOrigin;     //!< Path origin
         Vec3f mDirection;  //!< Where to go next
         Vec3f mWeight;     //!< Path weight
-        uint  mPathLength    : 20; //!< Number of path segments, including this
+        uint  mPathLength    : 30; //!< Number of path segments, including this
         uint  mIsFiniteLight :  1; //!< Just generate by finite light
         uint  mSpecularPath  :  1; //!< All bounces so far were specular
 
         // We compute MIS in a cumulative fashion. 1 variable is used,
         // plus 1 for each used method (connection, merging).
-        // Please see the accompanying writeup for derivation.
+        // Please see the VCM implementation tech report for derivation.
         float d0;   //!< Common helper variable for MIS
         float d1vc; //!< Helper variable for vertex connection MIS
         float d1vm; //!< Helper variable for vertex merging MIS
@@ -126,24 +126,24 @@ class VertexCM : public AbstractRenderer
             // Retrieve light' incoming direction in world coordinates
             const Vec3f lightDirection = aLightVertex.mBsdf.WorldDirFix();
 
-            float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
-            const Vec3f cameraBrdfFactor = mCameraBsdf.Evaluate(
-                mVertexCM.mScene, lightDirection, cosCamera, &cameraBrdfDirPdfW,
-                &cameraBrdfRevPdfW);
+            float cosCamera, cameraBsdfDirPdfW, cameraBsdfRevPdfW;
+            const Vec3f cameraBsdfFactor = mCameraBsdf.Evaluate(
+                mVertexCM.mScene, lightDirection, cosCamera, &cameraBsdfDirPdfW,
+                &cameraBsdfRevPdfW);
 
-            if(cameraBrdfFactor.IsZero())
+            if(cameraBsdfFactor.IsZero())
                 return;
 
-            cameraBrdfDirPdfW *= mCameraBsdf.ContinuationProb();
-            // Even though this is pdf from camera brdf, the continuation probability
-            // must come from light brdf, because that would govern it if light path
+            cameraBsdfDirPdfW *= mCameraBsdf.ContinuationProb();
+            // Even though this is pdf from camera BSDF, the continuation probability
+            // must come from light BSDF, because that would govern it if light path
             // actually continued
-            cameraBrdfRevPdfW *= aLightVertex.mBsdf.ContinuationProb();
+            cameraBsdfRevPdfW *= aLightVertex.mBsdf.ContinuationProb();
 
             const float wLight = aLightVertex.d0 * mVertexCM.mMisVcWeightFactor +
-                aLightVertex.d1vm * mVertexCM.Mis(cameraBrdfDirPdfW);
+                aLightVertex.d1vm * mVertexCM.Mis(cameraBsdfDirPdfW);
             const float wCamera = mCameraSample.d0 * mVertexCM.mMisVcWeightFactor +
-                mCameraSample.d1vm * mVertexCM.Mis(cameraBrdfRevPdfW);
+                mCameraSample.d1vm * mVertexCM.Mis(cameraBsdfRevPdfW);
 
             float weight = 1.f;
 
@@ -151,7 +151,7 @@ class VertexCM : public AbstractRenderer
             if(!mVertexCM.mPpm)
                 weight = 1.f / (wLight + 1.f + wCamera);
 
-            mContrib += weight * cameraBrdfFactor * aLightVertex.mWeight;
+            mContrib += weight * cameraBsdfFactor * aLightVertex.mWeight;
         }
 
         const Vec3f& GetContrib() const { return mContrib; }
@@ -626,22 +626,22 @@ private:
         if(radiance.IsZero())
             return Vec3f(0);
 
-        float brdfDirPdfW, brdfRevPdfW, cosToLight;
-        const Vec3f brdfFactor = aBsdf.Evaluate(mScene,
-            directionToLight, cosToLight, &brdfDirPdfW, &brdfRevPdfW);
+        float bsdfDirPdfW, bsdfRevPdfW, cosToLight;
+        const Vec3f bsdfFactor = aBsdf.Evaluate(mScene,
+            directionToLight, cosToLight, &bsdfDirPdfW, &bsdfRevPdfW);
 
-        if(brdfFactor.IsZero())
+        if(bsdfFactor.IsZero())
             return Vec3f(0);
 
         const float continuationProbability = aBsdf.ContinuationProb();
         // If the light is delta light, we can never hit it
-        // by brdf sampling, so the probability of this path is 0
+        // by BSDF sampling, so the probability of this path is 0
         if(light->IsDelta())
-            brdfDirPdfW = 0.f;
+            bsdfDirPdfW = 0.f;
         else
-            brdfDirPdfW *= continuationProbability;
+            bsdfDirPdfW *= continuationProbability;
 
-        brdfRevPdfW *= continuationProbability;
+        bsdfRevPdfW *= continuationProbability;
 
         // What we ultimately want to do is
         // ratio = emissionPdfA / directPdfA
@@ -662,13 +662,13 @@ private:
         // would simply cancel out. We therefore multiply only directPdfW and only
         // where needed
 
-        const float wLight  = Mis(brdfDirPdfW / (lightPickProb * directPdfW));
+        const float wLight  = Mis(bsdfDirPdfW / (lightPickProb * directPdfW));
         const float wCamera = Mis(emissionPdfW * cosToLight / (directPdfW * cosAtLight)) * (
-            mMisVmWeightFactor + aCameraSample.d0 + aCameraSample.d1vc * Mis(brdfRevPdfW));
+            mMisVmWeightFactor + aCameraSample.d0 + aCameraSample.d1vc * Mis(bsdfRevPdfW));
         const float misWeight = 1.f / (wLight + 1.f + wCamera);
 
         const Vec3f contrib =
-            (misWeight * cosToLight / (lightPickProb * directPdfW)) * (radiance * brdfFactor);
+            (misWeight * cosToLight / (lightPickProb * directPdfW)) * (radiance * bsdfFactor);
 
         if(contrib.IsZero())
             return Vec3f(0);
@@ -697,33 +697,33 @@ private:
         float  distance   = std::sqrt(dist2);
         direction        /= distance;
 
-        // evaluate brdf at camera vertex
-        float cosCamera, cameraBrdfDirPdfW, cameraBrdfRevPdfW;
-        const Vec3f cameraBrdfFactor = aCameraBsdf.Evaluate(
-            mScene, direction, cosCamera, &cameraBrdfDirPdfW,
-            &cameraBrdfRevPdfW);
+        // evaluate BSDF at camera vertex
+        float cosCamera, cameraBsdfDirPdfW, cameraBsdfRevPdfW;
+        const Vec3f cameraBsdfFactor = aCameraBsdf.Evaluate(
+            mScene, direction, cosCamera, &cameraBsdfDirPdfW,
+            &cameraBsdfRevPdfW);
 
-        if(cameraBrdfFactor.IsZero())
+        if(cameraBsdfFactor.IsZero())
             return Vec3f(0);
 
         // camera continuation probability (for russian roulette)
         const float cameraCont = aCameraBsdf.ContinuationProb();
-        cameraBrdfDirPdfW *= cameraCont;
-        cameraBrdfRevPdfW *= cameraCont;
+        cameraBsdfDirPdfW *= cameraCont;
+        cameraBsdfRevPdfW *= cameraCont;
 
-        // evaluate brdf at light vertex
-        float cosLight, lightBrdfDirPdfW, lightBrdfRevPdfW;
-        const Vec3f lightBrdfFactor = aLightVertex.mBsdf.Evaluate(
-            mScene, -direction, cosLight, &lightBrdfDirPdfW,
-            &lightBrdfRevPdfW);
+        // evaluate BSDF at light vertex
+        float cosLight, lightBsdfDirPdfW, lightBsdfRevPdfW;
+        const Vec3f lightBsdfFactor = aLightVertex.mBsdf.Evaluate(
+            mScene, -direction, cosLight, &lightBsdfDirPdfW,
+            &lightBsdfRevPdfW);
 
-        if(lightBrdfFactor.IsZero())
+        if(lightBsdfFactor.IsZero())
             return Vec3f(0);
 
         // light continuation probability (for russian roulette)
         const float lightCont = aLightVertex.mBsdf.ContinuationProb();
-        lightBrdfDirPdfW *= lightCont;
-        lightBrdfRevPdfW *= lightCont;
+        lightBsdfDirPdfW *= lightCont;
+        lightBsdfRevPdfW *= lightCont;
 
         // compute geometry term
         const float geometryTerm = cosLight * cosCamera / dist2;
@@ -731,18 +731,18 @@ private:
             return Vec3f(0);
 
         // convert pdfs to area pdf
-        const float cameraBrdfDirPdfA = PdfWtoA(cameraBrdfDirPdfW, distance, cosLight);
-        const float lightBrdfDirPdfA  = PdfWtoA(lightBrdfDirPdfW,  distance, cosCamera);
+        const float cameraBsdfDirPdfA = PdfWtoA(cameraBsdfDirPdfW, distance, cosLight);
+        const float lightBsdfDirPdfA  = PdfWtoA(lightBsdfDirPdfW,  distance, cosCamera);
 
         // MIS weights
-        const float wLight = Mis(cameraBrdfDirPdfA) * (
-            mMisVmWeightFactor + aLightVertex.d0 + aLightVertex.d1vc * Mis(lightBrdfRevPdfW));
-        const float wCamera = Mis(lightBrdfDirPdfA) * (
-            mMisVmWeightFactor + aCameraSample.d0 + aCameraSample.d1vc * Mis(cameraBrdfRevPdfW));
+        const float wLight = Mis(cameraBsdfDirPdfA) * (
+            mMisVmWeightFactor + aLightVertex.d0 + aLightVertex.d1vc * Mis(lightBsdfRevPdfW));
+        const float wCamera = Mis(lightBsdfDirPdfA) * (
+            mMisVmWeightFactor + aCameraSample.d0 + aCameraSample.d1vc * Mis(cameraBsdfRevPdfW));
 
         const float misWeight = 1.f / (wLight + 1.f + wCamera);
 
-        const Vec3f contrib = (misWeight * geometryTerm) * cameraBrdfFactor * lightBrdfFactor;
+        const Vec3f contrib = (misWeight * geometryTerm) * cameraBsdfFactor * lightBsdfFactor;
         if(contrib.IsZero())
             return Vec3f(0);
 
@@ -824,14 +824,14 @@ private:
         const float distance            = std::sqrt(distEye2);
         directionToCamera  /= distance;
 
-        // get the BRDF
-        float cosToCamera, brdfDirPdfW, brdfRevPdfW;
-        const Vec3f brdfFactor = aBsdf.Evaluate(mScene,
-            directionToCamera, cosToCamera, &brdfDirPdfW, &brdfRevPdfW);
-        if(brdfFactor.IsZero())
+        // get the BSDF
+        float cosToCamera, bsdfDirPdfW, bsdfRevPdfW;
+        const Vec3f bsdfFactor = aBsdf.Evaluate(mScene,
+            directionToCamera, cosToCamera, &bsdfDirPdfW, &bsdfRevPdfW);
+        if(bsdfFactor.IsZero())
             return;
 
-        brdfRevPdfW *= aBsdf.ContinuationProb();
+        bsdfRevPdfW *= aBsdf.ContinuationProb();
 
         // PDF of ray from camera hitting here (w.r.t. real resolution)
         const float cosAtCamera = Dot(camera.mForward, -directionToCamera);
@@ -842,13 +842,13 @@ private:
         // MIS weights, we need cameraPdfA w.r.t. normalised device coordinate
         // so we divide by (resolution.x * resolution.y)
         const float wLight = Mis(cameraPdfA / mScreenPixelCount) * (
-            mMisVmWeightFactor + aLightSample.d0 + aLightSample.d1vc * Mis(brdfRevPdfW));
+            mMisVmWeightFactor + aLightSample.d0 + aLightSample.d1vc * Mis(bsdfRevPdfW));
 
         const float misWeight = mLightTraceOnly ? 1.f :
             (1.f / (wLight + 1.f));
 
         const float fluxToRadianceFactor = cameraPdfA;
-        const Vec3f contrib = misWeight * fluxToRadianceFactor * brdfFactor;
+        const Vec3f contrib = misWeight * fluxToRadianceFactor * bsdfFactor;
         if(!contrib.IsZero())
         {
             if(mScene.Occluded(aHitpoint, directionToCamera, distance))
@@ -873,22 +873,22 @@ private:
     {
         // xy for direction, z is for component. No rescaling happens
         Vec3f rndTriplet  = mRng.GetVec3f();
-        float brdfDirPdfW, cosThetaOut;
+        float bsdfDirPdfW, cosThetaOut;
         uint  sampledEvent;
 
-        Vec3f brdfFactor = aBsdf.Sample(mScene, rndTriplet, aoPathSample.mDirection,
-            brdfDirPdfW, cosThetaOut, &sampledEvent);
+        Vec3f bsdfFactor = aBsdf.Sample(mScene, rndTriplet, aoPathSample.mDirection,
+            bsdfDirPdfW, cosThetaOut, &sampledEvent);
 
-        if(brdfFactor.IsZero())
+        if(bsdfFactor.IsZero())
             return false;
 
         // If we sampled specular event, then the reverese probability
         // cannot be evaluated, but we know it is exactly the same as
         // direct probability, so just set it. If non-specular event happened,
         // we evaluate the pdf
-        float brdfRevPdfW = brdfDirPdfW;
+        float bsdfRevPdfW = bsdfDirPdfW;
         if((sampledEvent & LightBsdf::kSpecular) == 0)
-            brdfRevPdfW = aBsdf.Pdf(mScene,
+            bsdfRevPdfW = aBsdf.Pdf(mScene,
             aoPathSample.mDirection, true);
 
         // russian roulette
@@ -896,37 +896,37 @@ private:
         if(mRng.GetFloat() > contProb)
             return false;
 
-        brdfDirPdfW *= contProb;
-        brdfRevPdfW *= contProb;
+        bsdfDirPdfW *= contProb;
+        bsdfRevPdfW *= contProb;
 
         // New MIS weights
         if(sampledEvent & LightBsdf::kSpecular)
         {
             aoPathSample.d0 = 0.f;
             aoPathSample.d1vc *=
-                Mis(cosThetaOut / brdfDirPdfW) * Mis(brdfRevPdfW);
+                Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
             aoPathSample.d1vm *=
-                Mis(cosThetaOut / brdfDirPdfW) * Mis(brdfRevPdfW);
+                Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
 
             aoPathSample.mSpecularPath &= 1;
         }
         else
         {
-            aoPathSample.d1vc = Mis(cosThetaOut / brdfDirPdfW) * (
-                aoPathSample.d1vc * Mis(brdfRevPdfW) +
+            aoPathSample.d1vc = Mis(cosThetaOut / bsdfDirPdfW) * (
+                aoPathSample.d1vc * Mis(bsdfRevPdfW) +
                 aoPathSample.d0 + mMisVmWeightFactor);
 
-            aoPathSample.d1vm = Mis(cosThetaOut / brdfDirPdfW) * (
-                aoPathSample.d1vm * Mis(brdfRevPdfW) +
+            aoPathSample.d1vm = Mis(cosThetaOut / bsdfDirPdfW) * (
+                aoPathSample.d1vm * Mis(bsdfRevPdfW) +
                 aoPathSample.d0 * mMisVcWeightFactor + 1.f);
 
-            aoPathSample.d0 = Mis(1.f / brdfDirPdfW);
+            aoPathSample.d0 = Mis(1.f / bsdfDirPdfW);
 
             aoPathSample.mSpecularPath &= 0;
         }
 
         aoPathSample.mOrigin  = aHitPoint;
-        aoPathSample.mWeight *= brdfFactor * (cosThetaOut / brdfDirPdfW);
+        aoPathSample.mWeight *= bsdfFactor * (cosThetaOut / bsdfDirPdfW);
         return true;
     }
 private:

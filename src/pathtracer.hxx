@@ -143,9 +143,9 @@ public:
 
                     if(!radiance.IsZero())
                     {
-                        float brdfPdfW, cosThetaOut;
+                        float bsdfPdfW, cosThetaOut;
                         const Vec3f factor = bsdf.Evaluate(mScene,
-                            directionToLight, cosThetaOut, &brdfPdfW);
+                            directionToLight, cosThetaOut, &bsdfPdfW);
 
                         if(!factor.IsZero())
                         {
@@ -153,8 +153,8 @@ public:
                             if(!light->IsDelta())
                             {
                                 const float contProb = bsdf.ContinuationProb();
-                                brdfPdfW *= contProb;
-                                weight = Mis2(directPdfW * lightPickProb, brdfPdfW);
+                                bsdfPdfW *= contProb;
+                                weight = Mis2(directPdfW * lightPickProb, bsdfPdfW);
                             }
 
                             Vec3f contrib = (weight * cosThetaOut / (lightPickProb * directPdfW)) *
@@ -180,7 +180,7 @@ public:
                     if(factor.IsZero())
                         break;
 
-                    // russian roulette
+                    // Russian roulette
                     const float contProb = bsdf.ContinuationProb();
 
                     lastSpecular = (sampledEvent & BSDF<true>::kSpecular) != 0;
