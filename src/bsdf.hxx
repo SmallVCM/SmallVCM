@@ -34,7 +34,7 @@
 #include "utils.hxx"
 
 //////////////////////////////////////////////////////////////////////////
-// Bsdf, most magic happens here
+// BSDF, most magic happens here
 //
 // One of important conventions is prefixing direction with World when
 // are in world coordinates and with Local when they are in local frame,
@@ -43,16 +43,16 @@
 // Another important convention if suffix Fix and Gen.
 // For PDF computation, we need to know which direction is given (Fix),
 // and which is the generated (Gen) direction. This is important even
-// when simply evaluating Bsdf.
-// In BPT, we call EvaluateBsdfPdf when directly connecting to light/camera.
-// This gives us both directions required for evaluating Bsdf.
+// when simply evaluating BSDF.
+// In BPT, we call Evaluate() when directly connecting to light/camera.
+// This gives us both directions required for evaluating BSDF.
 // However, for MIS we also need to know probabilities of having sampled
-// this path via Bsdf sampling, and we need that for both possible directions.
+// this path via BSDF sampling, and we need that for both possible directions.
 // The Fix/Gen convention (along with Direct and Reverse for PDF) clearly
 // establishes which PDF is which.
 //
-// The Bsdf is also templated by direction of tracing, whether from camera
-// (Bsdf<false>) or from light (Bsdf<true>). This is identical to Veach's
+// The BSDF is also templated by direction of tracing, whether from camera
+// (BSDF<false>) or from light (BSDF<true>). This is identical to Veach's
 // Adjoint BSDF (except the name is more straightforward).
 // For us this is only used when refracting.
 
@@ -110,9 +110,9 @@ public:
         mMaterialID = aIsect.matID;
     }
 
-    /* \brief Given a direction, evaluates Bsdf
+    /* \brief Given a direction, evaluates BSDF
      *
-     * Returns value of Bsdf, as well as cosine for the
+     * Returns value of BSDF, as well as cosine for the
      * aWorldDirGen direction.
      * Can return probability (w.r.t. solid angle W),
      * of having sampled aWorldDirGen given mLocalDirFix (oDirectPdfW),
@@ -168,12 +168,12 @@ public:
         return aEvalRevPdf ? reversePdfW : directPdfW;
     }
 
-    /* \brief Given 3 random numbers, samples new direction from Bsdf.
+    /* \brief Given 3 random numbers, samples new direction from BSDF.
      *
-     * Uses z component of random triplet to pick Bsdf component from
+     * Uses z component of random triplet to pick BSDF component from
      * which it will sample direction. If non-specular component is chosen,
-     * it will also evaluate the other (non-specular) Bsdf components.
-     * Return Bsdf factor for given direction, as well as PDF choosing that direction.
+     * it will also evaluate the other (non-specular) BSDF components.
+     * Return BSDF factor for given direction, as well as PDF choosing that direction.
      * Can return event which has been sampled.
      * If result is Vec3f(0,0,0), then the sample should be discarded.
      */

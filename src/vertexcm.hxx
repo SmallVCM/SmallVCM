@@ -66,7 +66,7 @@ class VertexCM : public AbstractRenderer
         Vec3f mWeight;     //!< Weight (multiply contribution)
         uint  mPathLength; //!< How many segments between source and vertex
 
-        /* \brief Bsdf at vertex position
+        /* \brief BSDF at vertex position
          *
          * This stores all required local information, including incoming
          * direction.
@@ -86,14 +86,14 @@ class VertexCM : public AbstractRenderer
     typedef PathVertex<false> CameraVertex;
     typedef PathVertex<true>  LightVertex;
 
-    typedef BSDF<false>       CameraBsdf;
-    typedef BSDF<true>        LightBsdf;
+    typedef BSDF<false>       CameraBSDF;
+    typedef BSDF<true>        LightBSDF;
 
     /* \brief Range query used for Ppm, Bpm, and Vcm
      *
      * Is used by HashGrid, when a vertex is found within
      * range (given by hash grid), Process() is called
-     * and vertex merge is performed. Bsdf of the camera
+     * and vertex merge is performed. BSDF of the camera
      * vertex is used.
      */
     class RangeQuery
@@ -102,7 +102,7 @@ class VertexCM : public AbstractRenderer
         RangeQuery(
             const VertexCM    &aVertexCM,
             const Vec3f       &aCameraPosition,
-            const CameraBsdf  &aCameraBsdf,
+            const CameraBSDF  &aCameraBsdf,
             const PathElement &aCameraSample)
             : mVertexCM(aVertexCM),
             mCameraPosition(aCameraPosition),
@@ -158,7 +158,7 @@ class VertexCM : public AbstractRenderer
     private:
         const VertexCM    &mVertexCM;
         const Vec3f       &mCameraPosition;
-        const CameraBsdf  &mCameraBsdf;
+        const CameraBSDF  &mCameraBsdf;
         const PathElement &mCameraSample;
         Vec3f             mContrib;
     };
@@ -231,7 +231,7 @@ public:
                 {
                     printf(
                         "*WARNING* Our Ppm implementation cannot handle materials mixing\n"
-                        "Specular and NonSpecular Bsdfs. The extension would be\n"
+                        "Specular and NonSpecular BSDFs. The extension would be\n"
                         "fairly straightforward. In BounceSample for CameraSample\n"
                         "limit the considered events to Specular only.\n"
                         "Merging will use non-specular components, bounce will be specular.\n"
@@ -305,7 +305,7 @@ public:
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
                 isect.dist += EPS_RAY;
 
-                LightBsdf bsdf(ray, isect, mScene);
+                LightBSDF bsdf(ray, isect, mScene);
                 if(!bsdf.IsValid())
                     break;
 
@@ -410,7 +410,7 @@ public:
                 const Vec3f hitPoint = ray.org + ray.dir * isect.dist;
                 isect.dist += EPS_RAY;
 
-                CameraBsdf bsdf(ray, isect, mScene);
+                CameraBSDF bsdf(ray, isect, mScene);
                 if(!bsdf.IsValid())
                     break;
 
@@ -604,7 +604,7 @@ private:
     Vec3f DirectIllumination(
         const PathElement  &aCameraSample,
         const Vec3f        &aHitpoint,
-        const CameraBsdf   &aBsdf)
+        const CameraBSDF   &aBsdf)
     {
         // We sample lights uniformly
         const int   lightCount    = mScene.GetLightCount();
@@ -687,7 +687,7 @@ private:
      */
     Vec3f ConnectVertices(
         const LightVertex   &aLightVertex,
-        const CameraBsdf    &aCameraBsdf,
+        const CameraBSDF    &aCameraBsdf,
         const Vec3f         &aCameraHitpoint,
         const PathElement   &aCameraSample) const
     {
@@ -806,7 +806,7 @@ private:
     void DirectContribution(
         const PathElement  &aLightSample,
         const Vec3f        &aHitpoint,
-        const LightBsdf    &aBsdf)
+        const LightBSDF    &aBsdf)
     {
         const Camera &camera    = mScene.mCamera;
         Vec3f directionToCamera = camera.mPosition - aHitpoint;
@@ -860,10 +860,10 @@ private:
     }
 
 
-    /* \brief Bounces sample according to Bsdf, returns false when terminating
+    /* \brief Bounces sample according to BSDF, returns false when terminating
      *
      * Can bounce both light and camera samples, the difference is only
-     * in Bsdf.
+     * in BSDF.
      */
     template<bool tLightSample>
     bool BounceSample(
@@ -887,7 +887,7 @@ private:
         // direct probability, so just set it. If non-specular event happened,
         // we evaluate the pdf
         float bsdfRevPdfW = bsdfDirPdfW;
-        if((sampledEvent & LightBsdf::kSpecular) == 0)
+        if((sampledEvent & LightBSDF::kSpecular) == 0)
             bsdfRevPdfW = aBsdf.Pdf(mScene,
             aoPathSample.mDirection, true);
 
@@ -900,7 +900,7 @@ private:
         bsdfRevPdfW *= contProb;
 
         // New MIS weights
-        if(sampledEvent & LightBsdf::kSpecular)
+        if(sampledEvent & LightBSDF::kSpecular)
         {
             aoPathSample.d0 = 0.f;
             aoPathSample.d1vc *=
