@@ -5,6 +5,5 @@
 *.sdf
 *.opensdf
 SmallVCM.vcxproj.user
-/Release/*
-/Debug/*
+/build/*
 /ipch/*
