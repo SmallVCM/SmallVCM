@@ -40,9 +40,12 @@ float Luminance(const Vec3f& aRGB)
         0.072169f * aRGB.z;
 }
 
-float FresnelDielectric(float aCosInc, float mIOR)
+float FresnelDielectric(
+    float aCosInc,
+    float mIOR)
 {
-    if(mIOR < 0) return 1.f;
+    if(mIOR < 0)
+        return 1.f;
 
     float etaIncOverEtaTrans;
 
@@ -121,23 +124,30 @@ Vec2f SampleConcentricDisc(
     float a = 2*aSamples.x - 1;   /* (a,b) is now on [-1,1]^2 */
     float b = 2*aSamples.y - 1;
 
-    if (a > -b) {     /* region 1 or 2 */
-        if (a > b) {  /* region 1, also |a| > |b| */
+    if(a > -b)      /* region 1 or 2 */
+    {
+        if(a > b)   /* region 1, also |a| > |b| */
+        {
             r = a;
             phi = (PI_F/4.f) * (b/a);
         }
-        else       {  /* region 2, also |b| > |a| */
+        else        /* region 2, also |b| > |a| */
+        {
             r = b;
             phi = (PI_F/4.f) * (2.f - (a/b));
         }
     }
-    else {        /* region 3 or 4 */
-        if (a < b) {  /* region 3, also |a| >= |b|, a != 0 */
+    else            /* region 3 or 4 */
+    {
+        if(a < b)   /* region 3, also |a| >= |b|, a != 0 */
+        {
             r = -a;
             phi = (PI_F/4.f) * (4.f + (b/a));
         }
-        else       {  /* region 4, |b| >= |a|, but a==0 and b==0 could occur. */
+        else        /* region 4, |b| >= |a|, but a==0 and b==0 could occur. */
+        {
             r = -b;
+
             if (b != 0)
                 phi = (PI_F/4.f) * (6.f - (a/b));
             else
@@ -189,8 +199,7 @@ float CosHemispherePdfW(
 
 // Sample Triangle
 // returns barycentric coordinates
-Vec2f SampleUniformTriangle(
-    const Vec2f &aSamples)
+Vec2f SampleUniformTriangle(const Vec2f &aSamples)
 {
     const float term = std::sqrt(aSamples.x);
 

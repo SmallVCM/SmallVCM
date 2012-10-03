@@ -37,17 +37,25 @@
 class Scene
 {
 public:
-    Scene() : mGeometry(NULL), mBackground(NULL) {};
+    Scene() :
+        mGeometry(NULL),
+        mBackground(NULL)
+    {}
+
     ~Scene()
     {
         delete mGeometry;
+
         for(size_t i=0; i<mLights.size(); i++)
             delete mLights[i];
     }
 
-    bool Intersect(const Ray& aRay, Isect& oResult) const
+    bool Intersect(
+        const Ray &aRay,
+        Isect     &oResult) const
     {
         bool hit = mGeometry->Intersect(aRay, oResult);
+
         if(hit)
         {
             oResult.lightID = -1;
@@ -57,10 +65,14 @@ public:
             if(it != mMaterial2Light.end())
                 oResult.lightID = it->second;
         }
+
         return hit;
     }
 
-    bool Occluded(const Vec3f& aPoint, const Vec3f& aDir, float aTMax) const
+    bool Occluded(
+        const Vec3f &aPoint,
+        const Vec3f &aDir,
+        float aTMax) const
     {
         Ray ray;
         ray.org  = aPoint + aDir * EPS_RAY;
@@ -117,19 +129,23 @@ public:
         kDefault           = (kLightCeiling | kBothSmallSpheres),
     };
 
-    void LoadCornellBox(const Vec2i &aResolution, uint aBoxMask = kDefault)
+    void LoadCornellBox(
+        const Vec2i &aResolution,
+        uint aBoxMask = kDefault)
     {
         if((aBoxMask & kBothLargeSpheres) == kBothLargeSpheres)
         {
             printf("Cannot have both large balls, using mirror\n\n");
             aBoxMask &= ~kLargeGlassSphere;
         }
+
         bool light_ceiling    = (aBoxMask & kLightCeiling)    != 0;
         bool light_sun        = (aBoxMask & kLightSun)        != 0;
         bool light_point      = (aBoxMask & kLightPoint)      != 0;
         bool light_background = (aBoxMask & kLightBackground) != 0;
 
         bool light_box = true;
+
         // because it looks really weird with it
         if(light_point)
             light_box = false;
@@ -375,11 +391,13 @@ public:
         mSceneSphere.mInvSceneRadiusSqr = 1.f / Sqr(mSceneSphere.mSceneRadius);
     }
 
-
-    std::string GetSceneName(uint aBoxMask, std::string *oAcronym = NULL)
+    std::string GetSceneName(
+        uint        aBoxMask,
+        std::string *oAcronym = NULL)
     {
         std::string name;
         std::string acronym;
+
         // Floor type
         if((aBoxMask & kGlossyFloor) == kGlossyFloor)
         {
@@ -446,16 +464,16 @@ public:
         if(oAcronym) *oAcronym = acronym;
         return name;
     }
-private:
 
 public:
+
     AbstractGeometry      *mGeometry;
     Camera                mCamera;
     std::vector<Material> mMaterials;
     std::vector<AbstractLight*>   mLights;
-    std::map<int, int> mMaterial2Light;
-    SceneSphere        mSceneSphere;
-    BackgroundLight*   mBackground;
+    std::map<int, int>    mMaterial2Light;
+    SceneSphere           mSceneSphere;
+    BackgroundLight*      mBackground;
 };
 
 #endif //__SCENE_HXX__

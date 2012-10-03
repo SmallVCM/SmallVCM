@@ -33,9 +33,9 @@
 class EyeLight : public AbstractRenderer
 {
 public:
+
     EyeLight(const Scene& aScene) : AbstractRenderer(aScene)
-    {
-    }
+    {}
 
     virtual void RunIteration(int)
     {
@@ -58,15 +58,16 @@ public:
             if(mScene.Intersect(ray, isect))
             {
                 float dotLN = Dot(isect.normal, -ray.dir);
+
                 if(dotLN > 0)
                     mFramebuffer.AddColor(sample, Vec3f(dotLN));
                 else
                     mFramebuffer.AddColor(sample, Vec3f(-dotLN, 0, 0));
             }
         }
+
         mIterations++;
     }
-private:
 };
 
 #endif //__EYELIGHT_HXX__

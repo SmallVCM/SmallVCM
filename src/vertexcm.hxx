@@ -64,7 +64,7 @@ class VertexCM : public AbstractRenderer
     {
         Vec3f mHitpoint;   //!< Position of the vertex
         Vec3f mWeight;     //!< Weight (multiply contribution)
-        uint  mPathLength; //!< How many segments between source and vertex
+        uint  mPathLength; //!< Number of segments between source and vertex
 
         /* \brief BSDF at vertex position
          *
@@ -89,7 +89,7 @@ class VertexCM : public AbstractRenderer
     typedef BSDF<false>       CameraBSDF;
     typedef BSDF<true>        LightBSDF;
 
-    /* \brief Range query used for Ppm, Bpm, and Vcm
+    /* \brief Range query used for PPM, BPT, and VCM
      *
      * Is used by HashGrid, when a vertex is found within
      * range (given by hash grid), Process() is called
@@ -99,31 +99,31 @@ class VertexCM : public AbstractRenderer
     class RangeQuery
     {
     public:
+
         RangeQuery(
             const VertexCM    &aVertexCM,
             const Vec3f       &aCameraPosition,
             const CameraBSDF  &aCameraBsdf,
-            const PathElement &aCameraSample)
-            : mVertexCM(aVertexCM),
+            const PathElement &aCameraSample
+        ) : 
+            mVertexCM(aVertexCM),
             mCameraPosition(aCameraPosition),
             mCameraBsdf(aCameraBsdf),
             mCameraSample(aCameraSample),
             mContrib(0)
-        {
-
-        }
+        {}
 
         const Vec3f& GetPosition() const { return mCameraPosition; }
 
+        const Vec3f& GetContrib() const { return mContrib; }
+
         void Process(const LightVertex& aLightVertex)
         {
-            if((aLightVertex.mPathLength + mCameraSample.mPathLength >
-                mVertexCM.mMaxPathLength) ||
-                (aLightVertex.mPathLength + mCameraSample.mPathLength <
-                mVertexCM.mMinPathLength))
-                return;
+            if((aLightVertex.mPathLength + mCameraSample.mPathLength > mVertexCM.mMaxPathLength) ||
+               (aLightVertex.mPathLength + mCameraSample.mPathLength < mVertexCM.mMinPathLength))
+                 return;
 
-            // Retrieve light' incoming direction in world coordinates
+            // Retrieve light incoming direction in world coordinates
             const Vec3f lightDirection = aLightVertex.mBsdf.WorldDirFix();
 
             float cosCamera, cameraBsdfDirPdfW, cameraBsdfRevPdfW;
@@ -135,6 +135,7 @@ class VertexCM : public AbstractRenderer
                 return;
 
             cameraBsdfDirPdfW *= mCameraBsdf.ContinuationProb();
+
             // Even though this is pdf from camera BSDF, the continuation probability
             // must come from light BSDF, because that would govern it if light path
             // actually continued
@@ -145,24 +146,25 @@ class VertexCM : public AbstractRenderer
             const float wCamera = mCameraSample.d0 * mVertexCM.mMisVcWeightFactor +
                 mCameraSample.d1vm * mVertexCM.Mis(cameraBsdfRevPdfW);
 
-            float weight = 1.f;
-
             // Ppm merges, but does not have MIS weights
-            if(!mVertexCM.mPpm)
-                weight = 1.f / (wLight + 1.f + wCamera);
+            const float weight = mVertexCM.mPpm ?
+                1.f :
+                1.f / (wLight + 1.f + wCamera);
 
             mContrib += weight * cameraBsdfFactor * aLightVertex.mWeight;
         }
 
-        const Vec3f& GetContrib() const { return mContrib; }
     private:
+
         const VertexCM    &mVertexCM;
         const Vec3f       &mCameraPosition;
         const CameraBSDF  &mCameraBsdf;
         const PathElement &mCameraSample;
         Vec3f             mContrib;
     };
+
 public:
+
     enum AlgorithmType
     {
         // light vertices contribute to camera,
@@ -182,14 +184,21 @@ public:
         // d0, d1vm, and d1vc used for MIS
         kVcm
     };
+
 public:
-    VertexCM(const Scene& aScene, AlgorithmType aAlgorithm,
-        int aSeed = 1234) : AbstractRenderer(aScene), mRng(aSeed)
+
+    VertexCM(
+        const Scene&  aScene,
+        AlgorithmType aAlgorithm,
+        int           aSeed = 1234
+    ) :
+        AbstractRenderer(aScene),
+        mRng(aSeed),
+        mLightTraceOnly(false),
+        mUseVC(false),
+        mUseVM(false),
+        mPpm(false)
     {
-        mLightTraceOnly = false;
-        mUseVC          = false;
-        mUseVM          = false;
-        mPpm            = false;
         switch(aAlgorithm)
         {
         case kLightTrace:
@@ -218,15 +227,18 @@ public:
         {
             // We will check the scene to make sure it does not contain mixed
             // specular and non-specular materials
-            for(int i=0; i<mScene.GetMaterialCount(); i++)
+            for(int i = 0; i < mScene.GetMaterialCount(); ++i)
             {
                 const Material &mat = mScene.GetMaterial(i);
+
                 const bool hasNonSpecular =
                     (mat.mDiffuseReflectance.Max() > 0) ||
                     (mat.mPhongReflectance.Max() > 0);
+
                 const bool hasSpecular =
                     (mat.mMirrorReflectance.Max() > 0) ||
                     (mat.mIOR > 0);
+
                 if(hasNonSpecular && hasSpecular)
                 {
                     printf(
@@ -236,7 +248,9 @@ public:
                         "limit the considered events to Specular only.\n"
                         "Merging will use non-specular components, bounce will be specular.\n"
                         "If there is no specular component, the ray will terminate.\n\n");
+
                     printf("We are now switching from *Ppm* to *Bpm*, which can handle the scene\n\n");
+
                     mPpm = false;
                 }
             }
@@ -253,21 +267,21 @@ public:
         const int resX = int(mScene.mCamera.mResolution.x);
         const int resY = int(mScene.mCamera.mResolution.y);
         const int pathCount = resX * resY;
-        mScreenPixelCount   = float(resX * resY);
-        mLightPathCount     = float(resX * resY);
+        mScreenPixelCount = float(resX * resY);
+        mLightPathCount   = float(resX * resY);
 
         // Setup our radius, 1st iteration has aIteration == 0, thus offset
         float radius = mBaseRadius;
         radius /= std::pow(float(aIteration + 1), 0.5f * (1 - mPhotonAlpha));
         // Purely for numeric stability
-        radius       = std::max(radius, 1e-7f);
+        radius = std::max(radius, 1e-7f);
         const float radiusSqr = Sqr(radius);
 
         // Factor used to normalise vertex merging contribution.
         // We divide the summed up energy by disk radius and number of light paths
         mVmNormalization = 1.f / (radiusSqr * PI_F * mLightPathCount);
 
-        // set up Vm and Vc weight factors
+        // Set up VC and VM weight factors
         const float baseVmWeightFactor = (PI_F * radiusSqr) * pathCount;
         mMisVmWeightFactor = mUseVM ? Mis(baseVmWeightFactor)       : 0.f;
         mMisVcWeightFactor = mUseVC ? Mis(1.f / baseVmWeightFactor) : 0.f;
@@ -294,7 +308,7 @@ public:
             {
                 // We offset ray origin instead of setting tmin due to numeric
                 // issues in ray-sphere intersection. The isect.dist has to be
-                // extended by this EPS_RAY after hitpoint is determined
+                // extended by this EPS_RAY after hit point is determined
                 Ray ray(lightSample.mOrigin + lightSample.mDirection * EPS_RAY,
                     lightSample.mDirection, 0);
                 Isect isect(1e36f);
@@ -362,7 +376,7 @@ public:
         // Build hash grid
         //////////////////////////////////////////////////////////////////////////
 
-        // Only build grid when merging (Vcm, Bpm, and Ppm)
+        // Only build grid when merging (VCM, BPM, and Ppm)
         if(mUseVM)
         {
             // The number of cells is somewhat arbitrary, but seems to work ok
@@ -375,20 +389,19 @@ public:
         //////////////////////////////////////////////////////////////////////////
 
         // Light tracing does not use any camera vertices at all
-        for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly); pathIdx++)
+        for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly); ++pathIdx)
         {
             PathElement cameraSample;
-            const Vec2f screenSample =
-                GenerateCameraSample(pathIdx, cameraSample);
+            const Vec2f screenSample = GenerateCameraSample(pathIdx, cameraSample);
             Vec3f color(0);
 
-            //////////////////////////////////////////////////////////////////////////
+            //////////////////////////////////////////////////////////////////////
             // Trace camera path
             for(;; ++cameraSample.mPathLength)
             {
                 // We offset ray origin instead of setting tmin due to numeric
                 // issues in ray-sphere intersection. The isect.dist has to be
-                // extended by this EPS_RAY after hitpoint is determined
+                // extended by this EPS_RAY after hit point is determined
                 Ray ray(cameraSample.mOrigin + cameraSample.mDirection * EPS_RAY,
                     cameraSample.mDirection, 0);
                 Isect isect(1e36f);
@@ -404,6 +417,7 @@ public:
                                 Vec3f(0), ray.dir);
                         }
                     }
+
                     break;
                 }
 
@@ -415,23 +429,23 @@ public:
                     break;
 
                 // Update MIS constants
-                {
-                    cameraSample.d0   *= Mis(Sqr(isect.dist));
-                    cameraSample.d0   /= Mis(std::abs(bsdf.CosThetaFix()));
-                    cameraSample.d1vc /= Mis(std::abs(bsdf.CosThetaFix()));
-                    cameraSample.d1vm /= Mis(std::abs(bsdf.CosThetaFix()));
-                }
+                cameraSample.d0   *= Mis(Sqr(isect.dist));
+                cameraSample.d0   /= Mis(std::abs(bsdf.CosThetaFix()));
+                cameraSample.d1vc /= Mis(std::abs(bsdf.CosThetaFix()));
+                cameraSample.d1vm /= Mis(std::abs(bsdf.CosThetaFix()));
 
                 // directly hit some light
                 // lights do not reflect light, so we stop after this
                 if(isect.lightID >= 0)
                 {
                     const AbstractLight *light = mScene.GetLightPtr(isect.lightID);
+                
                     if(cameraSample.mPathLength >= mMinPathLength)
                     {
                         color += cameraSample.mWeight *
                             LightOnHit(light, cameraSample, hitPoint, ray.dir);
                     }
+                    
                     break;
                 }
 
@@ -439,7 +453,8 @@ public:
                 if(cameraSample.mPathLength >= mMaxPathLength)
                     break;
 
-                // [Vertex Connection] Connect to lights
+                ////////////////////////////////////////////////////////////////
+                // Vertex connection: connect to lights
                 if(!bsdf.IsDelta() && mUseVC)
                 {
                     if(cameraSample.mPathLength + 1>= mMinPathLength)
@@ -449,12 +464,13 @@ public:
                     }
                 }
 
-                // [Vertex Connection] Connect to light vertices
+                ////////////////////////////////////////////////////////////////
+                // Vertex connection: connect to light vertices
                 if(!bsdf.IsDelta() && mUseVC)
                 {
-                    // Each lightpath is assigned to one eyepath ,as in standard BPT.
-                    // This gives range in which are the lightvertices
-                    // corresponding to the current eye path.
+                    // Each light path is assigned to one eye path, as in
+                    // traditional BPT. This gives range in which are the light
+                    // vertices corresponding to the current eye path.
                     // It is also possible to connect to vertices
                     // from any light path, but MIS should be revisited.
                     const Vec2i range(
@@ -465,28 +481,30 @@ public:
                     {
                         const LightVertex &lightVertex = mLightVertices[i];
                         if(lightVertex.mPathLength + 1 +
-                            cameraSample.mPathLength < mMinPathLength)
+                           cameraSample.mPathLength < mMinPathLength)
                             continue;
+
                         // light vertices are stored in increasing path length
                         // order, once we go above the max path length, we can
                         // skip the rest
                         if(lightVertex.mPathLength + 1 +
-                            cameraSample.mPathLength > mMaxPathLength)
+                           cameraSample.mPathLength > mMaxPathLength)
                             break;
 
                         color += cameraSample.mWeight * lightVertex.mWeight *
-                            ConnectVertices(lightVertex, bsdf, hitPoint,
-                            cameraSample);
+                            ConnectVertices(lightVertex, bsdf, hitPoint, cameraSample);
                     }
                 }
 
-                // [Vertex Merging] Merge with light vertices
+                ////////////////////////////////////////////////////////////////
+                // Vertex merging: merge with light vertices
                 if(!bsdf.IsDelta() && mUseVM)
                 {
                     RangeQuery query(*this, hitPoint, bsdf, cameraSample);
                     mHashGrid.Process(mLightVertices, query);
                     color += cameraSample.mWeight * mVmNormalization * query.GetContrib();
-                    // Ppm merges only on first non-specular bounce
+
+                    // PPM merges only on first non-specular bounce
                     if(mPpm)
                         break;
                 }
@@ -502,6 +520,7 @@ public:
     }
 
 private:
+
     // Mis power, we use balance heuristic
     float Mis(float aPdf) const
     {
@@ -510,23 +529,24 @@ private:
     }
 
     //////////////////////////////////////////////////////////////////////////
-    // Methods that handle camera tracing
+    // Camera tracing methods
     //////////////////////////////////////////////////////////////////////////
+
     /* \brief Given a pixel index, generates new camera sample
      */
     Vec2f GenerateCameraSample(
-        const int    aPixelIndex,
-        PathElement  &oCameraSample)
+        const int   aPixelIndex,
+        PathElement &oCameraSample)
     {
         const Camera &camera    = mScene.mCamera;
         const int resX = int(camera.mResolution.x);
         const int resY = int(camera.mResolution.y);
 
-        // Determine pixel xy
+        // Determine pixel (x, y)
         const int x = aPixelIndex % resX;
         const int y = aPixelIndex / resX;
 
-        // Jitter the pixel
+        // Jitter pixel position
         const Vec2f sample = Vec2f(float(x), float(y)) + mRng.GetVec2f();
 
         // Generate primary ray and find its pdf
@@ -572,6 +592,7 @@ private:
         float directPdfA, emissionPdfW;
         const Vec3f radiance = aLight->GetRadiance(mScene.mSceneSphere,
             aRayDirection, aHitpoint, &directPdfA, &emissionPdfW);
+
         if(radiance.IsZero())
             return Vec3f(0);
 
@@ -634,33 +655,25 @@ private:
             return Vec3f(0);
 
         const float continuationProbability = aBsdf.ContinuationProb();
+        
         // If the light is delta light, we can never hit it
         // by BSDF sampling, so the probability of this path is 0
-        if(light->IsDelta())
-            bsdfDirPdfW = 0.f;
-        else
-            bsdfDirPdfW *= continuationProbability;
+        bsdfDirPdfW *= light->IsDelta() ? 0.f : continuationProbability;
 
         bsdfRevPdfW *= continuationProbability;
 
         // What we ultimately want to do is
-        // ratio = emissionPdfA / directPdfA
-        // What we have is:
-        // emissionPdfW, and directPdfW = directPdfA * dist^2 / cosAtLight
-        // Expanding we get:
-        // emissionPdfA = emissionPdfW * cosToLight / dist^2
-        // directPdfA   = directPdfW * cosAtLight / dist^2
-        // ratio = (emissionPdfW * cosToLight / dist^2) / (directPdfW * cosAtLight / dist^2)
-        // ratio = (emissionPdfW * cosToLight) / (directPdfW * cosAtLight)
+        //    ratio = emissionPdfA / directPdfA
+        // What we have is
+        //    emissionPdfW, and directPdfW = directPdfA * dist^2 / cosAtLight
+        // Expanding we get
+        //    emissionPdfA = emissionPdfW * cosToLight / dist^2
+        //    directPdfA   = directPdfW * cosAtLight / dist^2
+        //    ratio = (emissionPdfW * cosToLight / dist^2) / (directPdfW * cosAtLight / dist^2)
+        //    ratio = (emissionPdfW * cosToLight) / (directPdfW * cosAtLight)
 
-        // also note, we do multiply by lightPickProb only for wLight,
-        // as it does cancel out in wCamera
-
-        // WARNING: emissionPdfW and directPdfW should be multiplied by
-        // lightPickProb at this point. But to limit the numberic issues, we do NOT
-        // do this, as wCamera = emissionPdf/directPdf and there the lightPickProb
-        // would simply cancel out. We therefore multiply only directPdfW and only
-        // where needed
+        // Also note that we multiply by lightPickProb only for wLight,
+        // as it cancels out in wCamera
 
         const float wLight  = Mis(bsdfDirPdfW / (lightPickProb * directPdfW));
         const float wCamera = Mis(emissionPdfW * cosToLight / (directPdfW * cosAtLight)) * (
@@ -670,10 +683,7 @@ private:
         const Vec3f contrib =
             (misWeight * cosToLight / (lightPickProb * directPdfW)) * (radiance * bsdfFactor);
 
-        if(contrib.IsZero())
-            return Vec3f(0);
-
-        if(mScene.Occluded(aHitpoint, directionToLight, distance))
+        if(contrib.IsZero() || mScene.Occluded(aHitpoint, directionToLight, distance))
             return Vec3f(0);
 
         return contrib;
@@ -691,13 +701,13 @@ private:
         const Vec3f         &aCameraHitpoint,
         const PathElement   &aCameraSample) const
     {
-        // get the connection
+        // Get the connection
         Vec3f direction   = aLightVertex.mHitpoint - aCameraHitpoint;
         const float dist2 = direction.LenSqr();
         float  distance   = std::sqrt(dist2);
         direction        /= distance;
 
-        // evaluate BSDF at camera vertex
+        // Evaluate BSDF at camera vertex
         float cosCamera, cameraBsdfDirPdfW, cameraBsdfRevPdfW;
         const Vec3f cameraBsdfFactor = aCameraBsdf.Evaluate(
             mScene, direction, cosCamera, &cameraBsdfDirPdfW,
@@ -706,12 +716,12 @@ private:
         if(cameraBsdfFactor.IsZero())
             return Vec3f(0);
 
-        // camera continuation probability (for russian roulette)
+        // Camera continuation probability (for Russian roulette)
         const float cameraCont = aCameraBsdf.ContinuationProb();
         cameraBsdfDirPdfW *= cameraCont;
         cameraBsdfRevPdfW *= cameraCont;
 
-        // evaluate BSDF at light vertex
+        // Evaluate BSDF at light vertex
         float cosLight, lightBsdfDirPdfW, lightBsdfRevPdfW;
         const Vec3f lightBsdfFactor = aLightVertex.mBsdf.Evaluate(
             mScene, -direction, cosLight, &lightBsdfDirPdfW,
@@ -720,7 +730,7 @@ private:
         if(lightBsdfFactor.IsZero())
             return Vec3f(0);
 
-        // light continuation probability (for russian roulette)
+        // Light continuation probability (for Russian roulette)
         const float lightCont = aLightVertex.mBsdf.ContinuationProb();
         lightBsdfDirPdfW *= lightCont;
         lightBsdfRevPdfW *= lightCont;
@@ -730,7 +740,7 @@ private:
         if(geometryTerm < 0)
             return Vec3f(0);
 
-        // convert pdfs to area pdf
+        // Convert pdfs to area pdf
         const float cameraBsdfDirPdfA = PdfWtoA(cameraBsdfDirPdfW, distance, cosLight);
         const float lightBsdfDirPdfA  = PdfWtoA(lightBsdfDirPdfW,  distance, cosCamera);
 
@@ -743,18 +753,16 @@ private:
         const float misWeight = 1.f / (wLight + 1.f + wCamera);
 
         const Vec3f contrib = (misWeight * geometryTerm) * cameraBsdfFactor * lightBsdfFactor;
-        if(contrib.IsZero())
-            return Vec3f(0);
-
-        if(mScene.Occluded(aCameraHitpoint, direction, distance))
+        if(contrib.IsZero() || mScene.Occluded(aCameraHitpoint, direction, distance))
             return Vec3f(0);
 
         return contrib;
     }
 
     //////////////////////////////////////////////////////////////////////////
-    // Methods that handle light tracing
+    // Light tracing methods
     //////////////////////////////////////////////////////////////////////////
+
     /* \brief Generates new light sample
      *
      * Samples light emission
@@ -784,6 +792,7 @@ private:
         oLightSample.mIsFiniteLight = light->IsFinite() ? 1 : 0;
 
         oLightSample.d0 = Mis(directPdfW / emissionPdfW);
+
         if(!light->IsDelta())
         {
             const float usedCosLight = light->IsFinite() ? cosLight : 1.f;
@@ -804,9 +813,9 @@ private:
      * to scale the radiance (obviously, as nothing is returned).
      */
     void DirectContribution(
-        const PathElement  &aLightSample,
-        const Vec3f        &aHitpoint,
-        const LightBSDF    &aBsdf)
+        const PathElement &aLightSample,
+        const Vec3f       &aHitpoint,
+        const LightBSDF   &aBsdf)
     {
         const Camera &camera    = mScene.mCamera;
         Vec3f directionToCamera = camera.mPosition - aHitpoint;
@@ -839,16 +848,16 @@ private:
             camera.mPixelArea);
         const float cameraPdfA = PdfWtoA(cameraPdfW, distance, cosToCamera);
 
-        // MIS weights, we need cameraPdfA w.r.t. normalised device coordinate
+        // MIS weights, we need cameraPdfA w.r.t. normalized device coordinate,
         // so we divide by (resolution.x * resolution.y)
         const float wLight = Mis(cameraPdfA / mScreenPixelCount) * (
             mMisVmWeightFactor + aLightSample.d0 + aLightSample.d1vc * Mis(bsdfRevPdfW));
 
-        const float misWeight = mLightTraceOnly ? 1.f :
-            (1.f / (wLight + 1.f));
+        const float misWeight = mLightTraceOnly ? 1.f : (1.f / (wLight + 1.f));
 
         const float fluxToRadianceFactor = cameraPdfA;
         const Vec3f contrib = misWeight * fluxToRadianceFactor * bsdfFactor;
+
         if(!contrib.IsZero())
         {
             if(mScene.Occluded(aHitpoint, directionToCamera, distance))
@@ -858,7 +867,6 @@ private:
                 contrib * aLightSample.mWeight / mLightPathCount);
         }
     }
-
 
     /* \brief Bounces sample according to BSDF, returns false when terminating
      *
@@ -871,7 +879,7 @@ private:
         const Vec3f              &aHitPoint,
         PathElement              &aoPathSample)
     {
-        // xy for direction, z is for component. No rescaling happens
+        // x,y for direction, z for component. No rescaling happens
         Vec3f rndTriplet  = mRng.GetVec3f();
         float bsdfDirPdfW, cosThetaOut;
         uint  sampledEvent;
@@ -882,7 +890,7 @@ private:
         if(bsdfFactor.IsZero())
             return false;
 
-        // If we sampled specular event, then the reverese probability
+        // If we sampled specular event, then the reverse probability
         // cannot be evaluated, but we know it is exactly the same as
         // direct probability, so just set it. If non-specular event happened,
         // we evaluate the pdf
@@ -891,7 +899,7 @@ private:
             bsdfRevPdfW = aBsdf.Pdf(mScene,
             aoPathSample.mDirection, true);
 
-        // russian roulette
+        // Russian roulette
         const float contProb = aBsdf.ContinuationProb();
         if(mRng.GetFloat() > contProb)
             return false;
@@ -929,28 +937,30 @@ private:
         aoPathSample.mWeight *= bsdfFactor * (cosThetaOut / bsdfDirPdfW);
         return true;
     }
+
 private:
-    bool        mUseVM; //!< Vertex merging (of some form) is used
-    bool        mUseVC; //!< Vertex connection (bpt) is used
-    bool        mLightTraceOnly; //!< Do only light tracing
-    bool        mPpm; //!< Do Ppm, same terminates camera after first merge
 
-    float       mPhotonAlpha; //!< Governs reduction rate
-    float       mBaseRadius;  //!< Initial merge radius, 0.002f of scene diameter
-    float       mMisVmWeightFactor; //!< Weight of vertex merging (used in vc)
-    float       mMisVcWeightFactor; //!< Weight of vertex conn (used in vm)
-    float       mScreenPixelCount;  //!< Number of pixels
-    float       mLightPathCount;    //!< Number of light paths
-    float       mVmNormalization;   //!< 1 / (Pi * radius^2 * light_path_count)
+    bool  mUseVM; //!< Vertex merging (of some form) is used
+    bool  mUseVC; //!< Vertex connection (bpt) is used
+    bool  mLightTraceOnly; //!< Do only light tracing
+    bool  mPpm; //!< Do Ppm, same terminates camera after first merge
 
+    float mPhotonAlpha; //!< Governs reduction rate
+    float mBaseRadius;  //!< Initial merge radius, 0.002f of scene diameter
+    float mMisVmWeightFactor; //!< Weight of vertex merging (used in vc)
+    float mMisVcWeightFactor; //!< Weight of vertex conn (used in vm)
+    float mScreenPixelCount;  //!< Number of pixels
+    float mLightPathCount;    //!< Number of light paths
+    float mVmNormalization;   //!< 1 / (Pi * radius^2 * light_path_count)
 
     std::vector<LightVertex> mLightVertices; //!< Stored light vertices
-    // For lightpath belonging to pixel index [x] it stores
-    // where it's light vertices end (begin is at [x-1])
-    std::vector<int>         mPathEnds;
-    HashGrid                 mHashGrid;
 
-    Rng         mRng;
+    // For light path belonging to pixel index [x] it stores
+    // where it's light vertices end (begin is at [x-1])
+    std::vector<int> mPathEnds;
+    HashGrid         mHashGrid;
+
+    Rng              mRng;
 };
 
 #endif //__VERTEXCM_HXX__

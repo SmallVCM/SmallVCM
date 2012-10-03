@@ -84,12 +84,18 @@ public:
 public:
     BSDF():mMaterialID(-1){};
 
-    BSDF(const Ray& aRay, const Isect& aIsect, const Scene& aScene)
+    BSDF(
+        const Ray   &aRay,
+        const Isect &aIsect,
+        const Scene &aScene)
     {
         Setup(aRay, aIsect, aScene);
     }
 
-    void Setup(const Ray& aRay, const Isect& aIsect, const Scene& aScene)
+    void Setup(
+        const Ray   &aRay,
+        const Isect &aIsect,
+        const Scene &aScene)
     {
         mMaterialID = -1;
         mFrame.SetFromZ(aIsect.normal);
@@ -119,14 +125,20 @@ public:
      * and of having sampled mLocalDirFix given aWorldDirGen (oReversePdfW).
      *
      */
-    Vec3f Evaluate(const Scene &aScene, const Vec3f &aWorldDirGen,
-        float &oCosThetaGen, float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
+    Vec3f Evaluate(
+        const Scene &aScene,
+        const Vec3f &aWorldDirGen,
+        float       &oCosThetaGen,
+        float       *oDirectPdfW = NULL,
+        float       *oReversePdfW = NULL) const
     {
         Vec3f result(0);
+
         if(oDirectPdfW)  *oDirectPdfW = 0;
         if(oReversePdfW) *oReversePdfW = 0;
 
         const Vec3f localDirGen = mFrame.ToLocal(aWorldDirGen);
+
         if(localDirGen.z * mLocalDirFix.z < 0)
             return result;
 
@@ -134,10 +146,9 @@ public:
 
         const Material &mat = aScene.GetMaterial(mMaterialID);
 
-        result += EvaluateDiffuse(mat, localDirGen,
-            oDirectPdfW, oReversePdfW);
-        result += EvaluatePhong(mat, localDirGen,
-            oDirectPdfW, oReversePdfW);
+        result += EvaluateDiffuse(mat, localDirGen, oDirectPdfW, oReversePdfW);
+        result += EvaluatePhong(mat, localDirGen, oDirectPdfW, oReversePdfW);
+
         return result;
     }
 
@@ -148,10 +159,12 @@ public:
      * it provides PDF for the reverse direction.
      */
     float Pdf(
-        const Scene &aScene, const Vec3f &aWorldDirGen,
-        const bool aEvalRevPdf = false) const
+        const Scene &aScene,
+        const Vec3f &aWorldDirGen,
+        const bool  aEvalRevPdf = false) const
     {
         const Vec3f localDirGen = mFrame.ToLocal(aWorldDirGen);
+
         if(localDirGen.z * mLocalDirFix.z < 0)
             return 0;
 
@@ -160,10 +173,8 @@ public:
         float directPdfW  = 0;
         float reversePdfW = 0;
 
-        PdfDiffuse(mat, localDirGen,
-            &directPdfW, &reversePdfW);
-        PdfPhong(mat, localDirGen,
-            &directPdfW, &reversePdfW);
+        PdfDiffuse(mat, localDirGen, &directPdfW, &reversePdfW);
+        PdfPhong(mat, localDirGen, &directPdfW, &reversePdfW);
 
         return aEvalRevPdf ? reversePdfW : directPdfW;
     }
@@ -177,21 +188,27 @@ public:
      * Can return event which has been sampled.
      * If result is Vec3f(0,0,0), then the sample should be discarded.
      */
-    Vec3f Sample(const Scene &aScene, const Vec3f &aRndTriplet, Vec3f &oWorldDirGen,
-        float &oPdfW, float &oCosThetaGen, uint *oSampledEvent = NULL) const
+    Vec3f Sample(
+        const Scene &aScene,
+        const Vec3f &aRndTriplet,
+        Vec3f       &oWorldDirGen,
+        float       &oPdfW,
+        float       &oCosThetaGen,
+        uint        *oSampledEvent = NULL) const
     {
         uint sampledEvent;
+
         if(aRndTriplet.z < mProbabilities.diffProb)
             sampledEvent = kDiffuse;
         else if(aRndTriplet.z < mProbabilities.diffProb + mProbabilities.phongProb)
             sampledEvent = kPhong;
-        else if(aRndTriplet.z < mProbabilities.diffProb + mProbabilities.phongProb +
-            mProbabilities.reflProb)
+        else if(aRndTriplet.z < mProbabilities.diffProb + mProbabilities.phongProb + mProbabilities.reflProb)
             sampledEvent = kReflect;
         else
             sampledEvent = kRefract;
 
-        if(oSampledEvent) *oSampledEvent = sampledEvent;
+        if(oSampledEvent)
+            *oSampledEvent = sampledEvent;
 
         const Material &mat = aScene.GetMaterial(mMaterialID);
 
@@ -202,24 +219,33 @@ public:
         if(sampledEvent == kDiffuse)
         {
             result += SampleDiffuse(mat, aRndTriplet.GetXY(), localDirGen, oPdfW);
-            if(result.IsZero()) return Vec3f(0);
+            
+            if(result.IsZero())
+                return Vec3f(0);
+            
             result += EvaluatePhong(mat, localDirGen, &oPdfW);
         }
         else if(sampledEvent == kPhong)
         {
             result += SamplePhong(mat, aRndTriplet.GetXY(), localDirGen, oPdfW);
-            if(result.IsZero()) return Vec3f(0);
+            
+            if(result.IsZero())
+                return Vec3f(0);
+            
             result += EvaluateDiffuse(mat, localDirGen, &oPdfW);
         }
         else if(sampledEvent == kReflect)
         {
             result += SampleReflect(mat, aRndTriplet.GetXY(), localDirGen, oPdfW);
-            if(result.IsZero()) return Vec3f(0);
+
+            if(result.IsZero())
+                return Vec3f(0);
         }
         else
         {
             result += SampleRefract(mat, aRndTriplet.GetXY(), localDirGen, oPdfW);
-            if(result.IsZero()) return Vec3f(0);
+            if(result.IsZero())
+                return Vec3f(0);
         }
 
         oCosThetaGen   = std::abs(localDirGen.z);
@@ -231,22 +257,29 @@ public:
     }
 
 
-    bool         IsValid()          const  { return mMaterialID >= 0;               }
-    bool         IsDelta()          const  { return mIsDelta;                       }
-    float        ContinuationProb() const  { return mContinuationProb;              }
-    float        CosThetaFix()      const  { return mLocalDirFix.z;               }
-    Vec3f        WorldDirFix()    const  { return mFrame.ToWorld(mLocalDirFix); }
+    bool  IsValid() const           { return mMaterialID >= 0;             }
+    bool  IsDelta() const           { return mIsDelta;                     }
+    float ContinuationProb() const  { return mContinuationProb;            }
+    float CosThetaFix() const       { return mLocalDirFix.z;               }
+    Vec3f WorldDirFix() const       { return mFrame.ToWorld(mLocalDirFix); }
+
 private:
-    //////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////
     // Sampling methods
     // All sampling methods take material, 2 random numbers [0-1[,
-    // and return BSDF factor, generated direction in local coordinates,
-    // and PDF
-    Vec3f SampleDiffuse(const Material &aMaterial, const Vec2f &aRndTuple,
-        Vec3f &oLocalDirGen, float &oPdfW) const
+    // and return BSDF factor, generated direction in local coordinates, and PDF
+    ////////////////////////////////////////////////////////////////////////////
+
+    Vec3f SampleDiffuse(
+        const Material &aMaterial,
+        const Vec2f    &aRndTuple,
+        Vec3f          &oLocalDirGen,
+        float          &oPdfW) const
     {
         if(mLocalDirFix.z < EPS_COSINE)
             return Vec3f(0);
+
         float unweightedPdfW;
         oLocalDirGen = SampleCosHemisphereW(aRndTuple, &unweightedPdfW);
         oPdfW += unweightedPdfW * mProbabilities.diffProb;
@@ -254,12 +287,16 @@ private:
         return aMaterial.mDiffuseReflectance * INV_PI_F;
     }
 
-    Vec3f SamplePhong(const Material &aMaterial, const Vec2f &aRndTuple,
-        Vec3f &oLocalDirGen, float &oPdfW) const
+    Vec3f SamplePhong(
+        const Material &aMaterial,
+        const Vec2f    &aRndTuple,
+        Vec3f          &oLocalDirGen,
+        float          &oPdfW) const
     {
         oLocalDirGen = SamplePowerCosHemisphereW(aRndTuple, aMaterial.mPhongExponent, NULL);
-        // due to numeric issues in MIS, we actually need to compute all Pdfs exactly
-        // the same way all the time!!!
+
+        // Due to numeric issues in MIS, we actually need to compute all pdfs
+        // exactly the same way all the time!!!
         const Vec3f reflLocalDirFixed = ReflectLocal(mLocalDirFix);
         {
             Frame frame;
@@ -268,6 +305,7 @@ private:
         }
 
         const float dot_R_Wi = Dot(reflLocalDirFixed, oLocalDirGen);
+
         if(dot_R_Wi <= EPS_PHONG)
             return Vec3f(0.f);
 
@@ -275,11 +313,15 @@ private:
 
         const Vec3f rho = aMaterial.mPhongReflectance *
             (aMaterial.mPhongExponent + 2.f) * 0.5f * INV_PI_F;
+
         return rho * std::pow(dot_R_Wi, aMaterial.mPhongExponent);
     }
 
-    Vec3f SampleReflect(const Material &aMaterial, const Vec2f &aRndTuple,
-        Vec3f &oLocalDirGen, float &oPdfW) const
+    Vec3f SampleReflect(
+        const Material &aMaterial,
+        const Vec2f    &aRndTuple,
+        Vec3f          &oLocalDirGen,
+        float          &oPdfW) const
     {
         oLocalDirGen = ReflectLocal(mLocalDirFix);
 
@@ -290,8 +332,11 @@ private:
             std::abs(oLocalDirGen.z);
     }
 
-    Vec3f SampleRefract(const Material &aMaterial, const Vec2f &aRndTuple,
-        Vec3f &oLocalDirGen, float &oPdfW) const
+    Vec3f SampleRefract(
+        const Material &aMaterial,
+        const Vec2f    &aRndTuple,
+        Vec3f          &oLocalDirGen,
+        float          &oPdfW) const
     {
         if(aMaterial.mIOR < 0)
             return Vec3f(0);
@@ -336,34 +381,45 @@ private:
                 return Vec3f(refractCoeff / std::abs(cosT));
         }
         //else total internal reflection, do nothing
+
         oPdfW += 0.f;
         return Vec3f(0.f);
     }
 
-    //////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
     // Evaluation methods
-    Vec3f EvaluateDiffuse(const Material& aMaterial, const Vec3f& aLocalDirGen,
-        float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
+    ////////////////////////////////////////////////////////////////////////////
+
+    Vec3f EvaluateDiffuse(
+        const Material &aMaterial,
+        const Vec3f    &aLocalDirGen,
+        float          *oDirectPdfW = NULL,
+        float          *oReversePdfW = NULL) const
     {
-        if(mProbabilities.diffProb == 0) return Vec3f(0);
+        if(mProbabilities.diffProb == 0)
+            return Vec3f(0);
+
         if(mLocalDirFix.z < EPS_COSINE || aLocalDirGen.z < EPS_COSINE)
             return Vec3f(0);
 
         if(oDirectPdfW)
-            *oDirectPdfW  += mProbabilities.diffProb *
-            std::max(0.f, aLocalDirGen.z * INV_PI_F);
+            *oDirectPdfW += mProbabilities.diffProb * std::max(0.f, aLocalDirGen.z * INV_PI_F);
 
         if(oReversePdfW)
-            *oReversePdfW += mProbabilities.diffProb *
-            std::max(0.f, mLocalDirFix.z * INV_PI_F);
+            *oReversePdfW += mProbabilities.diffProb * std::max(0.f, mLocalDirFix.z * INV_PI_F);
 
         return aMaterial.mDiffuseReflectance * INV_PI_F;
     }
 
-    Vec3f EvaluatePhong(const Material& aMaterial, const Vec3f& aLocalDirGen,
-        float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
+    Vec3f EvaluatePhong(
+        const Material &aMaterial,
+        const Vec3f    &aLocalDirGen,
+        float          *oDirectPdfW = NULL,
+        float          *oReversePdfW = NULL) const
     {
-        if(mProbabilities.phongProb == 0) return Vec3f(0);
+        if(mProbabilities.phongProb == 0)
+            return Vec3f(0);
+
         if(mLocalDirFix.z < EPS_COSINE || aLocalDirGen.z < EPS_COSINE)
             return Vec3f(0);
 
@@ -377,21 +433,31 @@ private:
         if(oDirectPdfW || oReversePdfW)
         {
             // the sampling is symmetric
-            const float pdfW = PowerCosHemispherePdfW(reflLocalDirIn, aLocalDirGen,
-                aMaterial.mPhongExponent) * mProbabilities.phongProb;
-            if(oDirectPdfW)  *oDirectPdfW  += pdfW;
-            if(oReversePdfW) *oReversePdfW += pdfW;
+            const float pdfW = mProbabilities.phongProb *
+                PowerCosHemispherePdfW(reflLocalDirIn, aLocalDirGen, aMaterial.mPhongExponent);
+
+            if(oDirectPdfW)
+                *oDirectPdfW  += pdfW;
+
+            if(oReversePdfW)
+                *oReversePdfW += pdfW;
         }
 
         const Vec3f rho = aMaterial.mPhongReflectance *
             (aMaterial.mPhongExponent + 2.f) * 0.5f * INV_PI_F;
+
         return rho * std::pow(dot_R_Wi, aMaterial.mPhongExponent);
     }
 
-    //////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
     // Pdf methods
-    void PdfDiffuse(const Material& aMaterial, const Vec3f& aLocalDirGen,
-        float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
+    ////////////////////////////////////////////////////////////////////////////
+
+    void PdfDiffuse(
+        const Material &aMaterial,
+        const Vec3f    &aLocalDirGen,
+        float          *oDirectPdfW = NULL,
+        float          *oReversePdfW = NULL) const
     {
         if(mProbabilities.diffProb == 0)
             return;
@@ -405,10 +471,14 @@ private:
             std::max(0.f, mLocalDirFix.z * INV_PI_F);
     }
 
-    void PdfPhong(const Material& aMaterial, const Vec3f& aLocalDirGen,
-        float *oDirectPdfW = NULL, float *oReversePdfW = NULL) const
+    void PdfPhong(
+        const Material &aMaterial,
+        const Vec3f    &aLocalDirGen,
+        float          *oDirectPdfW = NULL,
+        float          *oReversePdfW = NULL) const
     {
-        if(mProbabilities.phongProb == 0) return;
+        if(mProbabilities.phongProb == 0)
+            return;
 
         // assumes this is never called when rejectShadingCos(oLocalDirGen.z) is true
         const Vec3f reflLocalDirIn = ReflectLocal(mLocalDirFix);
@@ -422,13 +492,19 @@ private:
             // the sampling is symmetric
             const float pdfW = PowerCosHemispherePdfW(reflLocalDirIn, aLocalDirGen,
                 aMaterial.mPhongExponent) * mProbabilities.phongProb;
-            if(oDirectPdfW)  *oDirectPdfW  += pdfW;
-            if(oReversePdfW) *oReversePdfW += pdfW;
+
+            if(oDirectPdfW)
+                *oDirectPdfW  += pdfW;
+
+            if(oReversePdfW)
+                *oReversePdfW += pdfW;
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
     // Albedo methods
+    ////////////////////////////////////////////////////////////////////////////
+
     float AlbedoDiffuse(const Material& aMaterial) const
     {
         return Luminance(aMaterial.mDiffuseReflectance);
@@ -449,8 +525,9 @@ private:
         return 1.f;
     }
 
-    void GetComponentProbabilities(const Material& aMaterial,
-        ComponentProbabilities& oProbabilities)
+    void GetComponentProbabilities(
+        const Material         &aMaterial,
+        ComponentProbabilities &oProbabilities)
     {
         mReflectCoeff = FresnelDielectric(mLocalDirFix.z, aMaterial.mIOR);
 
@@ -483,15 +560,16 @@ private:
                 aMaterial.mPhongReflectance +
                 mReflectCoeff * aMaterial.mMirrorReflectance).Max() +
                 (1.f - mReflectCoeff);
+
             mContinuationProb = std::min(1.f, std::max(0.f, mContinuationProb));
         }
     }
 
 private:
-    int   mMaterialID;    //!< Id of scene material, < 0 ~ invalid
-    Frame mFrame;         //!< Local frame of reference
-    Vec3f mLocalDirFix; //!< Incoming (fixed) direction, in local
-    bool  mIsDelta;       //!< True when material is purely specular
+    int   mMaterialID;       //!< Id of scene material, < 0 ~ invalid
+    Frame mFrame;            //!< Local frame of reference
+    Vec3f mLocalDirFix;      //!< Incoming (fixed) direction, in local
+    bool  mIsDelta;          //!< True when material is purely specular
     ComponentProbabilities mProbabilities; //!< Sampling probabilities
     float mContinuationProb; //!< Russian roulette probability
     float mReflectCoeff;     //!< Fresnel reflection coefficient (for glass)

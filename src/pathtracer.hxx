@@ -34,9 +34,13 @@
 class PathTracer : public AbstractRenderer
 {
 public:
-    PathTracer(const Scene& aScene, int aSeed = 1234) : AbstractRenderer(aScene), mRng(aSeed)
-    {
-    }
+
+    PathTracer(
+        const Scene& aScene,
+        int aSeed = 1234
+    ) :
+        AbstractRenderer(aScene), mRng(aSeed)
+    {}
 
     virtual void RunIteration(int aIteration)
     {
@@ -211,17 +215,24 @@ public:
     }
 
 private:
+
     // Mis power (1 for balance heuristic)
-    float Mis(float aPdf) const { return aPdf; }
+    float Mis(float aPdf) const
+    {
+        return aPdf;
+    }
 
     // Mis weight for 2 pdfs
-    float Mis2(float aSamplePdf, float aOtherPdf) const
+    float Mis2(
+        float aSamplePdf,
+        float aOtherPdf) const
     {
         return Mis(aSamplePdf) / (Mis(aSamplePdf) + Mis(aOtherPdf));
     }
 
 private:
-    Rng         mRng;
+
+    Rng mRng;
 };
 
 #endif //__PATHTRACER_HXX__

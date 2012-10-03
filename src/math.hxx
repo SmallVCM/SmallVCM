@@ -41,6 +41,7 @@ template<typename T>
 class Vec2x
 {
 public:
+
     Vec2x(){}
     Vec2x(T a):x(a),y(a){}
     Vec2x(T a, T b):x(a),y(b){}
@@ -75,17 +76,18 @@ public:
     { T res(0); for(int i=0; i<2; i++) res += a.Get(i) * b.Get(i); return res; }
 
 public:
+
     T x, y;
 };
 
 typedef Vec2x<float> Vec2f;
 typedef Vec2x<int>   Vec2i;
 
-
 template<typename T>
 class Vec3x
 {
 public:
+
     Vec3x(){}
     Vec3x(T a):x(a),y(a),z(a){}
     Vec3x(T a, T b, T c):x(a),y(b),z(c){}
@@ -94,6 +96,7 @@ public:
     T&       Get(int a)       { return reinterpret_cast<T*>(this)[a]; }
     Vec2x<T> GetXY() const    { return Vec2x<T>(x, y); }
     T        Max()   const    { T res = Get(0); for(int i=1; i<3; i++) res = std::max(res, Get(i)); return res;}
+    
     bool     IsZero() const
     {
         for(int i=0; i<3; i++)
@@ -130,14 +133,18 @@ public:
 
     float    LenSqr() const   { return Dot(*this, *this);   }
     float    Length() const   { return std::sqrt(LenSqr()); }
+
 public:
+
     T x, y, z;
 };
 
 typedef Vec3x<float> Vec3f;
 typedef Vec3x<int>   Vec3i;
 
-Vec3f Cross(const Vec3f& a, const Vec3f& b)
+Vec3f Cross(
+    const Vec3f &a,
+    const Vec3f &b)
 {
     Vec3f res;
     res.x = a.y * b.z - a.z * b.y;
@@ -156,6 +163,7 @@ Vec3f Normalize(const Vec3f& a)
 class Mat4f
 {
 public:
+
     Mat4f(){}
     Mat4f(float a){ for(int i=0; i<16; i++) GetPtr()[i] = a; }
 
@@ -167,12 +175,17 @@ public:
 
     void SetRow(int r, float a, float b, float c, float d)
     {
-        Get(r, 0) = a; Get(r, 1) = b; Get(r, 2) = c; Get(r, 3) = d;
+        Get(r, 0) = a;
+        Get(r, 1) = b;
+        Get(r, 2) = c;
+        Get(r, 3) = d;
     }
 
     void SetRow(int r, const Vec3f &a, float b)
     {
-        for(int i=0; i<3; i++) Get(r, i) = a.Get(i);
+        for(int i=0; i<3; i++)
+            Get(r, i) = a.Get(i);
+
         Get(r, 3) = b;
     }
 
@@ -182,28 +195,34 @@ public:
         for(int r=0; r<3; r++)
             for(int c=0; c<3; c++)
                 res.Get(r) += aVec.Get(c) * Get(r, c);
+
         return res;
     }
 
     Vec3f TransformPoint(const Vec3f& aVec) const
     {
         float w = Get(3,3);
+
         for(int c=0; c<3; c++)
             w += Get(3, c) * aVec.Get(c);
+
         const float invW = 1.f / w;
 
         Vec3f res(0);
+
         for(int r=0; r<3; r++)
         {
             res.Get(r) = Get(r, 3);
+
             for(int c=0; c<3; c++)
                 res.Get(r) += aVec.Get(c) * Get(r, c);
+
             res.Get(r) *= invW;
         }
         return res;
     }
 
-    static Mat4f Zero()     { Mat4f res(0); return res; }
+    static Mat4f Zero() { Mat4f res(0); return res; }
 
     static Mat4f Indetity()
     {
@@ -228,7 +247,10 @@ public:
         return res;
     }
 
-    static Mat4f Perspective(float aFov, float aNear, float aFar)
+    static Mat4f Perspective(
+        float aFov,
+        float aNear,
+        float aFar)
     {
         // Camera points towards -z.  0 < near < far.
         // Matrix maps z range [-near, -far] to [-1, 1], after homogeneous division.
@@ -240,9 +262,11 @@ public:
         r.m10 = 0.0f; r.m11 = -f;   r.m12 = 0.0f;               r.m13 = 0.0f;
         r.m20 = 0.0f; r.m21 = 0.0f; r.m22 = (aNear + aFar) * d; r.m23 = 2.0f * aNear * aFar * d;
         r.m30 = 0.0f; r.m31 = 0.0f; r.m32 = -1.0f;              r.m33 = 0.0f;
+
         return r;
     }
 public:
+
     // m_row_col; stored column major
     float m00, m10, m20, m30;
     float m01, m11, m21, m31;
@@ -257,6 +281,7 @@ Mat4f operator*(const Mat4f& left, const Mat4f& right)
         for(int col=0; col<4; col++)
             for(int i=0; i<4; i++)
                 res.Get(row, col) += left.Get(row, i) * right.Get(i, col);
+
     return res;
 }
 

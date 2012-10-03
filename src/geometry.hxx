@@ -36,12 +36,17 @@
 class AbstractGeometry
 {
 public:
+
     virtual ~AbstractGeometry(){};
+
     // Finds the closest intersection
     virtual bool Intersect (const Ray& aRay, Isect& oResult) const = 0;
+
     // Finds any intersection, default calls Intersect
     virtual bool IntersectP(const Ray& aRay, Isect& oResult) const
-    { return Intersect(aRay, oResult); }
+    {
+        return Intersect(aRay, oResult);
+    }
 
     // Grows given bounding box by this object
     virtual void GrowBBox(Vec3f &aoBBoxMin, Vec3f &aoBBoxMax) = 0;
@@ -50,6 +55,7 @@ public:
 class GeometryList : public AbstractGeometry
 {
 public:
+
     virtual ~GeometryList()
     {
         for(int i=0; i<(int)mGeometry.size(); i++)
@@ -59,9 +65,11 @@ public:
     virtual bool Intersect(const Ray& aRay, Isect& oResult) const
     {
         bool anyIntersection = false;
+
         for(int i=0; i<(int)mGeometry.size(); i++)
         {
             bool hit = mGeometry[i]->Intersect(aRay, oResult);
+
             if(hit)
                 anyIntersection = hit;
         }
@@ -69,7 +77,9 @@ public:
         return anyIntersection;
     }
 
-    virtual bool IntersectP(const Ray& aRay, Isect& oResult) const
+    virtual bool IntersectP(
+        const Ray &aRay,
+        Isect     &oResult) const
     {
         for(int i=0; i<(int)mGeometry.size(); i++)
         {
@@ -80,26 +90,41 @@ public:
         return false;
     }
 
-    virtual void GrowBBox(Vec3f &aoBBoxMin, Vec3f &aoBBoxMax)
+    virtual void GrowBBox(
+        Vec3f &aoBBoxMin,
+        Vec3f &aoBBoxMax)
     {
         for(int i=0; i<(int)mGeometry.size(); i++)
             mGeometry[i]->GrowBBox(aoBBoxMin, aoBBoxMax);
     }
+
 public:
+
     std::vector<AbstractGeometry*> mGeometry;
 };
 
 class Triangle : public AbstractGeometry
 {
 public:
+
     Triangle(){}
-    Triangle(const Vec3f& p0, const Vec3f& p1, const Vec3f& p2, int aMatID)
+
+    Triangle(
+        const Vec3f &p0,
+        const Vec3f &p1,
+        const Vec3f &p2,
+        int         aMatID)
     {
-        p[0] = p0; p[1] = p1; p[2] = p2; matID = aMatID;
-        mNormal   = Normalize(Cross(p[1] - p[0], p[2] - p[0]));
+        p[0] = p0;
+        p[1] = p1;
+        p[2] = p2;
+        matID = aMatID;
+        mNormal = Normalize(Cross(p[1] - p[0], p[2] - p[0]));
     }
 
-    virtual bool Intersect(const Ray& aRay, Isect& oResult) const
+    virtual bool Intersect(
+        const Ray &aRay,
+        Isect     &oResult) const
     {
         const Vec3f ao = p[0] - aRay.org;
         const Vec3f bo = p[1] - aRay.org;
@@ -113,8 +138,8 @@ public:
         const float v1d = Dot(v1, aRay.dir);
         const float v2d = Dot(v2, aRay.dir);
 
-        if(((v0d < 0.f) && (v1d < 0.f) && (v2d < 0.f)) ||
-            ((v0d >= 0.f) && (v1d >= 0.f) && (v2d >= 0.f)))
+        if(((v0d < 0.f)  && (v1d < 0.f)  && (v2d < 0.f)) ||
+           ((v0d >= 0.f) && (v1d >= 0.f) && (v2d >= 0.f)))
         {
             const float distance = Dot(mNormal, ao) / Dot(mNormal, aRay.dir);
 
@@ -130,16 +155,22 @@ public:
         return false;
     }
 
-    virtual void GrowBBox(Vec3f &aoBBoxMin, Vec3f &aoBBoxMax)
+    virtual void GrowBBox(
+        Vec3f &aoBBoxMin,
+        Vec3f &aoBBoxMax)
     {
         for(int i=0; i<3; i++)
+        {
             for(int j=0; j<3; j++)
             {
                 aoBBoxMin.Get(j) = std::min(aoBBoxMin.Get(j), p[i].Get(j));
                 aoBBoxMax.Get(j) = std::max(aoBBoxMax.Get(j), p[i].Get(j));
             }
+        }
     }
+
 public:
+
     Vec3f p[3];
     int   matID;
     Vec3f mNormal;
@@ -148,8 +179,13 @@ public:
 class Sphere : public AbstractGeometry
 {
 public:
+
     Sphere(){}
-    Sphere(const Vec3f& aCenter, float aRadius, int aMatID)
+    
+    Sphere(
+        const Vec3f &aCenter,
+        float       aRadius,
+        int         aMatID)
     {
         center = aCenter;
         radius = aRadius;
@@ -158,7 +194,10 @@ public:
 
     // Taken from:
     // http://wiki.cgsociety.org/index.php/Ray_Sphere_Intersection
-    virtual bool Intersect(const Ray& aRay, Isect& oResult) const
+
+    virtual bool Intersect(
+        const Ray &aRay,
+        Isect     &oResult) const
     {
         // we transform ray origin into object space (center == origin)
         const Vec3f transformedOrigin = aRay.org - center;
@@ -183,11 +222,13 @@ public:
         if(t0 > t1) std::swap(t0, t1);
 
         float resT;
+
         if(t0 > aRay.tmin && t0 < oResult.dist)
             resT = float(t0);
         else if(t1 > aRay.tmin && t1 < oResult.dist)
             resT = float(t1);
-        else return false;
+        else
+            return false;
 
         oResult.dist   = resT;
         oResult.matID  = matID;
@@ -195,14 +236,18 @@ public:
         return true;
     }
 
-    virtual void GrowBBox(Vec3f &aoBBoxMin, Vec3f &aoBBoxMax)
+    virtual void GrowBBox(
+        Vec3f &aoBBoxMin,
+        Vec3f &aoBBoxMax)
     {
         for(int i=0; i<8; i++)
         {
             Vec3f p = center;
             Vec3f half(radius);
+
             for(int j=0; j<3; j++)
                 if(i & (1 << j)) half.Get(j) = -half.Get(j);
+            
             p += half;
 
             for(int j=0; j<3; j++)
@@ -212,7 +257,9 @@ public:
             }
         }
     }
+
 public:
+
     Vec3f center;
     float radius;
     int   matID;

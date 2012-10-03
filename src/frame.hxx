@@ -32,17 +32,20 @@
 class Frame
 {
 public:
+
     Frame()
     {
         mX = Vec3f(1,0,0);
         mY = Vec3f(0,1,0);
         mZ = Vec3f(0,0,1);
     };
+
     Frame(
         const Vec3f& x,
         const Vec3f& y,
-        const Vec3f& z)
-        : mX(x),
+        const Vec3f& z
+    ) :
+        mX(x),
         mY(y),
         mZ(z)
     {}
@@ -68,7 +71,9 @@ public:
     const Vec3f& Binormal() const { return mX; }
     const Vec3f& Tangent () const { return mY; }
     const Vec3f& Normal  () const { return mZ; }
+
 public:
+
     Vec3f mX, mY, mZ;
 };
 

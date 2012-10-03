@@ -42,6 +42,7 @@ struct SceneSphere
 class AbstractLight
 {
 public:
+
     /* \brief Illuminates a given point in the scene.
      *
      * Given a point and two random samples (e.g., for position on area lights),
@@ -99,6 +100,7 @@ public:
 
     // Whether the light has a finite extent (area, point) or not (directional, env. map)
     virtual bool IsFinite() const = 0;
+
     // Whether the light has delta function (point, directional) or not (area)
     virtual bool IsDelta() const = 0;
 };
@@ -107,7 +109,11 @@ public:
 class AreaLight : public AbstractLight
 {
 public:
-    AreaLight(const Vec3f& aP0, const Vec3f& aP1, const Vec3f& aP2)
+
+    AreaLight(
+        const Vec3f &aP0,
+        const Vec3f &aP1,
+        const Vec3f &aP2)
     {
         p0 = aP0;
         e1 = aP1 - aP0;
@@ -147,11 +153,12 @@ public:
 
         oDirectPdfW = mInvArea * distSqr / cosNormalDir;
 
-        if(oCosAtLight) *oCosAtLight = cosNormalDir;
+        if(oCosAtLight)
+            *oCosAtLight = cosNormalDir;
+
         if(oEmissionPdfW)
-        {
             *oEmissionPdfW = mInvArea * cosNormalDir * INV_PI_F;
-        }
+
         return mIntensity;
     }
 
@@ -168,9 +175,7 @@ public:
         const Vec2f uv = SampleUniformTriangle(aPosRndTuple);
         oPosition = p0 + e1 * uv.x + e2 * uv.y;
 
-        Vec3f localDirOut;
-        localDirOut =
-            SampleCosHemisphereW(aDirRndTuple, &oEmissionPdfW);
+        Vec3f localDirOut = SampleCosHemisphereW(aDirRndTuple, &oEmissionPdfW);
 
         oEmissionPdfW *= mInvArea;
 
@@ -178,8 +183,11 @@ public:
         localDirOut.z = std::max(localDirOut.z, EPS_COSINE);
         oDirection      = mFrame.ToWorld(localDirOut);
 
-        if(oDirectPdfA)    *oDirectPdfA    = mInvArea;
-        if(oCosThetaLight) *oCosThetaLight = localDirOut.z;
+        if(oDirectPdfA)
+            *oDirectPdfA = mInvArea;
+
+        if(oCosThetaLight)
+            *oCosThetaLight = localDirOut.z;
 
         return mIntensity * localDirOut.z;
     }
@@ -192,26 +200,29 @@ public:
         float             *oEmissionPdfW = NULL) const
     {
         const float cosOutL = std::max(0.f, Dot(mFrame.Normal(), -aRayDirection));
+
         if(cosOutL == 0)
             return Vec3f(0);
 
-        if(oDirectPdfA) *oDirectPdfA = mInvArea;
+        if(oDirectPdfA)
+            *oDirectPdfA = mInvArea;
 
         if(oEmissionPdfW)
         {
-            *oEmissionPdfW =
-                CosHemispherePdfW(mFrame.Normal(), -aRayDirection);
+            *oEmissionPdfW = CosHemispherePdfW(mFrame.Normal(), -aRayDirection);
             *oEmissionPdfW *= mInvArea;
         }
 
         return mIntensity;
     }
     // Whether the light has a finite extent (area, point) or not (directional, env. map)
-    virtual bool IsFinite() const { return true; };
+    virtual bool IsFinite() const { return true; }
+
     // Whether the light has delta function (point, directional) or not (area)
-    virtual bool IsDelta() const { return false; };
+    virtual bool IsDelta() const { return false; }
 
 public:
+
     Vec3f p0, e1, e2;
     Frame mFrame;
     Vec3f mIntensity;
@@ -241,11 +252,12 @@ public:
         oDistance             = 1e36f;
         oDirectPdfW           = 1.f;
 
-        if(oCosAtLight) *oCosAtLight = 1.f;
+        if(oCosAtLight)
+            *oCosAtLight = 1.f;
+
         if(oEmissionPdfW)
-        {
             *oEmissionPdfW = ConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
-        }
+
         return mIntensity;
     }
 
@@ -268,9 +280,12 @@ public:
         oDirection = mFrame.Normal();
         oEmissionPdfW = ConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
 
-        if(oDirectPdfA)    *oDirectPdfA = 1.f;
-        // This is not used for infinite or delta lights
-        if(oCosThetaLight) *oCosThetaLight = 1.f;
+        if(oDirectPdfA)
+            *oDirectPdfA = 1.f;
+
+        // Not used for infinite or delta lights
+        if(oCosThetaLight)
+            *oCosThetaLight = 1.f;
 
         return mIntensity;
     }
@@ -284,12 +299,15 @@ public:
     {
         return Vec3f(0);
     }
+
     // Whether the light has a finite extent (area, point) or not (directional, env. map)
-    virtual bool IsFinite() const { return false; };
+    virtual bool IsFinite() const { return false; }
+    
     // Whether the light has delta function (point, directional) or not (area)
-    virtual bool IsDelta() const  { return true; };
+    virtual bool IsDelta() const  { return true; }
 
 public:
+
     Frame mFrame;
     Vec3f mIntensity;
 };
@@ -299,6 +317,7 @@ public:
 class PointLight : public AbstractLight
 {
 public:
+
     PointLight(const Vec3f& aPosition)
     {
         mPosition = aPosition;
@@ -314,17 +333,18 @@ public:
         float             *oEmissionPdfW = NULL,
         float             *oCosAtLight = NULL) const
     {
-        oDirectionToLight     = mPosition - aReceivingPosition;
-        const float distSqr   = oDirectionToLight.LenSqr();
-        oDirectPdfW           = distSqr;
-        oDistance             = std::sqrt(distSqr);
-        oDirectionToLight     = oDirectionToLight / oDistance;
+        oDirectionToLight   = mPosition - aReceivingPosition;
+        const float distSqr = oDirectionToLight.LenSqr();
+        oDirectPdfW         = distSqr;
+        oDistance           = std::sqrt(distSqr);
+        oDirectionToLight   = oDirectionToLight / oDistance;
 
-        if(oCosAtLight) *oCosAtLight = 1.f;
+        if(oCosAtLight)
+            *oCosAtLight = 1.f;
+
         if(oEmissionPdfW)
-        {
             *oEmissionPdfW = UniformSpherePdfW();
-        }
+
         return mIntensity;
     }
 
@@ -341,9 +361,12 @@ public:
         oPosition  = mPosition;
         oDirection = SampleUniformSphereW(aDirRndTuple, &oEmissionPdfW);
 
-        if(oDirectPdfA)    *oDirectPdfA = 1.f;
-        // This is not used for infinite or delta lights
-        if(oCosThetaLight) *oCosThetaLight = 1.f;
+        if(oDirectPdfA)
+            *oDirectPdfA = 1.f;
+
+        // Not used for infinite or delta lights
+        if(oCosThetaLight)
+            *oCosThetaLight = 1.f;
 
         return mIntensity;
     }
@@ -357,12 +380,15 @@ public:
     {
         return Vec3f(0);
     }
+    
     // Whether the light has a finite extent (area, point) or not (directional, env. map)
-    virtual bool IsFinite() const { return true;  };
+    virtual bool IsFinite() const { return true; }
+    
     // Whether the light has delta function (point, directional) or not (area)
-    virtual bool IsDelta() const  { return true; };
+    virtual bool IsDelta() const  { return true; }
 
 public:
+
     Vec3f mPosition;
     Vec3f mIntensity;
 };
@@ -390,15 +416,18 @@ public:
     {
         // Replace these two lines with image sampling
         oDirectionToLight = SampleUniformSphereW(aRndTuple, &oDirectPdfW);
+
         //oDirectionToLight = Vec3f(0.16123600f, -0.98195398f, 0.098840252f);
         Vec3f radiance = mBackgroundColor * mScale;
 
         // This stays even with image sampling
         oDistance = 1e36f;
         if(oEmissionPdfW)
-            *oEmissionPdfW = oDirectPdfW *
-            ConcentricDiscPdfA() * aSceneSphere.mInvSceneRadiusSqr;
-        if(oCosAtLight) *oCosAtLight = 1.f;
+            *oEmissionPdfW = oDirectPdfW * ConcentricDiscPdfA() *
+                aSceneSphere.mInvSceneRadiusSqr;
+
+        if(oCosAtLight)
+            *oCosAtLight = 1.f;
 
         return radiance;
     }
@@ -414,28 +443,33 @@ public:
         float             *oCosThetaLight) const
     {
         float directPdf;
+
         // Replace these two lines with image sampling
         oDirection = SampleUniformSphereW(aDirRndTuple, &directPdf);
         //oDirection = -Vec3f(0.16123600f, -0.98195398f, 0.098840252f);
         Vec3f radiance = mBackgroundColor * mScale;
 
-        // This stays even with image sampling
+        // Stays even with image sampling
         const Vec2f xy = SampleConcentricDisc(aPosRndTuple);
 
         Frame frame;
         frame.SetFromZ(oDirection);
-        oPosition = aSceneSphere.mSceneCenter +
-            aSceneSphere.mSceneRadius * (
+        
+        oPosition = aSceneSphere.mSceneCenter + aSceneSphere.mSceneRadius * (
             -oDirection + frame.Binormal() * xy.x + frame.Tangent() * xy.y);
+
         //oPosition = Vec3f(-1.109054f, -2.15064538f, -1.087019148f);
 
         oEmissionPdfW = directPdf * ConcentricDiscPdfA() *
             aSceneSphere.mInvSceneRadiusSqr;
 
-        // for background we lie about Pdf being in area measure
-        if(oDirectPdfA)    *oDirectPdfA    = directPdf;
-        // This is not used for infinite or delta lights
-        if(oCosThetaLight) *oCosThetaLight = 1.f;
+        // For background we lie about Pdf being in area measure
+        if(oDirectPdfA)
+            *oDirectPdfA = directPdf;
+        
+        // Not used for infinite or delta lights
+        if(oCosThetaLight)
+            *oCosThetaLight = 1.f;
 
         return radiance;
     }
@@ -455,15 +489,23 @@ public:
         const float positionPdf = ConcentricDiscPdfA() *
             aSceneSphere.mInvSceneRadiusSqr;
 
-        if(oDirectPdfA)   *oDirectPdfA   = directPdf;
-        if(oEmissionPdfW) *oEmissionPdfW = directPdf * positionPdf;
+        if(oDirectPdfA)
+            *oDirectPdfA   = directPdf;
+
+        if(oEmissionPdfW)
+            *oEmissionPdfW = directPdf * positionPdf;
+        
         return radiance;
     }
+
     // Whether the light has a finite extent (area, point) or not (directional, env. map)
-    virtual bool IsFinite() const { return false; };
+    virtual bool IsFinite() const { return false; }
+    
     // Whether the light has delta function (point, directional) or not (area)
-    virtual bool IsDelta() const  { return false; };
+    virtual bool IsDelta() const  { return false; }
+
 public:
+
     Vec3f mBackgroundColor;
     float mScale;
 };

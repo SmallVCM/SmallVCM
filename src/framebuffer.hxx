@@ -34,14 +34,20 @@
 class Framebuffer
 {
 public:
+
     Framebuffer(){};
 
     //////////////////////////////////////////////////////////////////////////
     // Accumulation
-    void AddColor(const Vec2f& aSample, const Vec3f& aColor)
+    void AddColor(
+        const Vec2f& aSample,
+        const Vec3f& aColor)
     {
-        if(aSample.x < 0 || aSample.x >= mResolution.x) return;
-        if(aSample.y < 0 || aSample.y >= mResolution.y) return;
+        if(aSample.x < 0 || aSample.x >= mResolution.x)
+            return;
+
+        if(aSample.y < 0 || aSample.y >= mResolution.y)
+            return;
 
         int x = int(aSample.x);
         int y = int(aSample.y);
@@ -82,6 +88,7 @@ public:
     float TotalLuminance()
     {
         float lum = 0;
+
         for(int y=0; y<mResY; y++)
         {
             for(int x=0; x<mResX; x++)
@@ -89,12 +96,15 @@ public:
                 lum += Luminance(mColor[x + y*mResX]);
             }
         }
+
         return lum;
     }
 
     //////////////////////////////////////////////////////////////////////////
     // Saving
-    void SavePPM(const char* aFilename, float aGamma = 1.f)
+    void SavePPM(
+        const char *aFilename,
+        float       aGamma = 1.f)
     {
         const float invGamma = 1.f / aGamma;
 
@@ -156,7 +166,9 @@ public:
         uint   mImportantColors; //!< 0 - all are important
     };
 
-    void SaveBMP(const char* aFilename, float aGamma = 1.f)
+    void SaveBMP(
+        const char *aFilename,
+        float       aGamma = 1.f)
     {
         std::ofstream bmp(aFilename, std::ios::binary);
         BmpHeader header;
@@ -233,7 +245,9 @@ public:
             }
         }
     }
+
 private:
+
     std::vector<Vec3f> mColor;
     Vec2f              mResolution;
     int                mResX;

@@ -38,7 +38,9 @@ public:
     }
 
     template<typename tParticle>
-    void Build(const std::vector<tParticle> &aParticles, float aRadius)
+    void Build(
+        const std::vector<tParticle> &aParticles,
+        float aRadius)
     {
         mRadius      = aRadius;
         mRadiusSqr   = Sqr(mRadius);
@@ -47,6 +49,7 @@ public:
 
         mBBoxMin = Vec3f( 1e36f);
         mBBoxMax = Vec3f(-1e36f);
+
         for(size_t i=0; i<aParticles.size(); i++)
         {
             const Vec3f &pos = aParticles[i].GetPosition();
@@ -104,7 +107,9 @@ public:
     }
 
     template<typename tParticle, typename tQuery>
-    void Process(const std::vector<tParticle> &aParticles, tQuery& aQuery)
+    void Process(
+        const std::vector<tParticle> &aParticles,
+        tQuery& aQuery)
     {
         const Vec3f queryPos = aQuery.GetPosition();
 
@@ -133,6 +138,7 @@ public:
         const int  pzo = pz + (fractCoord.z < 0.5f ? -1 : +1);
 
         int found = 0;
+
         for(int j=0; j<8; j++)
         {
             Vec2i activeRange;
@@ -161,7 +167,9 @@ public:
             }
         }
     }
+
 private:
+
     Vec2i GetCellRange(int aCellIndex) const
     {
         if(aCellIndex == 0) return Vec2i(0, mCellEnds[0]);
@@ -181,14 +189,19 @@ private:
     int GetCellIndex(const Vec3f &aPoint) const
     {
         const Vec3f distMin = aPoint - mBBoxMin;
+
         const Vec3f coordF(
             std::floor(mInvCellSize * distMin.x),
             std::floor(mInvCellSize * distMin.y),
             std::floor(mInvCellSize * distMin.z));
+
         const Vec3i coordI  = Vec3i(int(coordF.x), int(coordF.y), int(coordF.z));
+
         return GetCellIndex(coordI);
     }
+
 private:
+
     Vec3f mBBoxMin;
     Vec3f mBBoxMax;
     std::vector<int> mIndices;
