@@ -58,7 +58,8 @@ struct Config
 
     const char* GetName()
     {
-        static const char* algorithmNames[7] = {
+        static const char* algorithmNames[7] =
+        {
             "Eye Light",
             "Path Tracing",
             "Light Tracing",
@@ -69,7 +70,8 @@ struct Config
         };
 
         if(mAlgorithm < 0 || mAlgorithm > 7)
-            return "Uknown algorithm";
+            return "Unknown algorithm";
+
         return algorithmNames[mAlgorithm];
     }
 
@@ -79,7 +81,7 @@ struct Config
             "el", "pt", "lt", "ppm", "bpm", "bpt", "vcm" };
 
         if(mAlgorithm < 0 || mAlgorithm > 7)
-            return "uknown";
+            return "unknown";
         return algorithmNames[mAlgorithm];
     }
 
@@ -106,6 +108,7 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
 
     int iterations = aConfig.mIterations;
     bool use_time  = aConfig.mUseMaxTime;
+
     switch(aConfig.mAlgorithm)
     {
     case Config::kEyeLight:
@@ -117,33 +120,32 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
         break;
     case Config::kPathTracing:
         for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new PathTracer(*aConfig.mScene,
-            aConfig.mBaseSeed + i);
+            renderers[i] = new PathTracer(*aConfig.mScene, aConfig.mBaseSeed + i);
         break;
     case Config::kLightTracing:
         for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kLightTrace, aConfig.mBaseSeed + i);
+            renderers[i] = new VertexCM(
+                *aConfig.mScene, VertexCM::kLightTrace, aConfig.mBaseSeed + i);
         break;
     case Config::kProgressivePhotonMapping:
         for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kPpm, aConfig.mBaseSeed + i);
+            renderers[i] = new VertexCM(
+                *aConfig.mScene, VertexCM::kPpm, aConfig.mBaseSeed + i);
         break;
     case Config::kBidirectionalPhotonMapping:
         for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kBpm, aConfig.mBaseSeed + i);
+            renderers[i] = new VertexCM(
+                *aConfig.mScene, VertexCM::kBpm, aConfig.mBaseSeed + i);
         break;
     case Config::kBidirectionalPathTracing:
         for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kBpt, aConfig.mBaseSeed + i);
+            renderers[i] = new VertexCM(
+                *aConfig.mScene,VertexCM::kBpt, aConfig.mBaseSeed + i);
         break;
     case Config::kVertexConnectionMerging:
         for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kVcm, aConfig.mBaseSeed + i);
+            renderers[i] = new VertexCM(
+                *aConfig.mScene, VertexCM::kVcm, aConfig.mBaseSeed + i);
         break;
     }
 
@@ -155,34 +157,41 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
 
     clock_t startT = clock();
     int iter = 0;
+
     if(use_time)
     {
-#pragma omp parallel
+        #pragma omp parallel
         while(clock() < startT + aConfig.mMaxTime*CLOCKS_PER_SEC)
         {
             int threadId = omp_get_thread_num();
             renderers[threadId]->RunIteration(iter);
-#pragma omp atomic
+            
+            #pragma omp atomic
             iter++;
         }
     }
     else
     {
-#pragma omp parallel for
+        #pragma omp parallel for
         for(iter=0; iter < iterations; iter++)
         {
             int threadId = omp_get_thread_num();
             renderers[threadId]->RunIteration(iter);
         }
     }
+
     clock_t endT = clock();
 
-    if(oUsedIterations) *oUsedIterations = iter+1;
+    if(oUsedIterations)
+        *oUsedIterations = iter+1;
 
     int usedRenderers = 0;
+
     for(int i=0; i<aConfig.mNumThreads; i++)
     {
-        if(!renderers[i]->WasUsed()) continue;
+        if(!renderers[i]->WasUsed())
+            continue;
+
         if(usedRenderers == 0)
         {
             renderers[i]->GetFramebuffer(*aConfig.mFramebuffer);
@@ -193,6 +202,7 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
             renderers[i]->GetFramebuffer(tmp);
             aConfig.mFramebuffer->Add(tmp);
         }
+
         usedRenderers++;
     }
 
@@ -200,6 +210,7 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
 
     for(int i=0; i<aConfig.mNumThreads; i++)
         delete renderers[i];
+
     delete [] renderers;
 
     return float(endT - startT) / CLOCKS_PER_SEC;
@@ -207,12 +218,14 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
 
 struct SceneConfig
 {
-    SceneConfig(){};
-    SceneConfig(uint aMask)
-        : mMask(aMask)
+    SceneConfig()
     {}
 
-    uint       mMask;
+    SceneConfig(uint aMask) :
+        mMask(aMask)
+    {}
+
+    uint mMask;
     std::set<int> mGoodAlgorithm;
     std::set<int> mPoorAlgorithm;
 };
@@ -287,11 +300,12 @@ int main(int argc, const char *argv[])
     config.mMaxPathLength = max_path_length;
     config.mMinPathLength = min_path_length;
 
-    HtmlWriter html_writer("report.html");
+    HtmlWriter html_writer("report/index.html");
     html_writer.WriteHeader();
     int thumbnailSize = 128;
 
-    int algorithmMask[7] = {
+    int algorithmMask[7] =
+    {
         1, // kEyeLight
         1, // kPathTracing
         1, // kLightTracing
@@ -304,7 +318,8 @@ int main(int argc, const char *argv[])
     std::string FourWaySplitFiles[4];
     std::string FourWaySplitNames[4];
     int         BorderColors[4];
-    uint        FourWaySplitAlgorithms[4] = {
+    uint        FourWaySplitAlgorithms[4] =
+    {
         Config::kProgressivePhotonMapping,
         Config::kBidirectionalPhotonMapping,
         Config::kBidirectionalPathTracing,
@@ -314,19 +329,26 @@ int main(int argc, const char *argv[])
     for(int i=0; i<4; i++)
     {
         config.mAlgorithm = Config::Algorithm(FourWaySplitAlgorithms[i]);
+        
         std::string acronym = config.GetAcronym();
+
         for(uint j=0; j<acronym.length(); j++)
             if(acronym[j] >= 'a' && acronym[j] <= 'z')
                 acronym[j] += 'A' - 'a';
+
         FourWaySplitNames[i] = acronym;
     }
 
     int algorithmCount = 0;
+
     for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
-        if(algorithmMask[algId]) algorithmCount++;
+        if(algorithmMask[algId])
+            algorithmCount++;
+
     html_writer.mAlgorithmCount = algorithmCount;
 
     clock_t startTime = clock();
+
     for(int sceneId = 0; sceneId < sceneConfigCount; sceneId++)
     {
         uint mask = sceneConfigs[sceneId].mMask;
@@ -347,6 +369,7 @@ int main(int argc, const char *argv[])
         printf("Scene: %s\n", name.c_str());
 
         int numIterations;
+
         for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
         {
             if(!algorithmMask[algId]) continue;
@@ -357,20 +380,21 @@ int main(int argc, const char *argv[])
             printf("done in %.2f s\n", time);
             config.mBaseSeed += config.mNumThreads;
 
-            std::string filename = sceneFilename + "_" +
-                config.GetAcronym() + ".bmp";
+            std::string filename = sceneFilename + "_" + config.GetAcronym() + ".bmp";
 
-            // Html output
-            fbuffer.SaveBMP(filename.c_str(), 2.2f);
+            // HTML output
+            fbuffer.SaveBMP(("report/" + filename).c_str(), 2.2f);
             HtmlWriter::BorderColor bcolor = HtmlWriter::kNone;
+
             if(sceneConfigs[sceneId].mGoodAlgorithm.count(algId) > 0)
                 bcolor = HtmlWriter::kGreen;
+            
             if(sceneConfigs[sceneId].mPoorAlgorithm.count(algId) > 0)
                 bcolor = HtmlWriter::kRed;
 
-            html_writer.AddRendering(config.GetName(),
-                filename, time, bcolor,
+            html_writer.AddRendering(config.GetName(), filename, time, bcolor,
                 html_writer.MakeMessage("<br/>Iterations: %d", numIterations));
+
             for(int i=0; i<4; i++)
             {
                 if(algId == FourWaySplitAlgorithms[i])
@@ -381,9 +405,11 @@ int main(int argc, const char *argv[])
         for(int i=0; i<4; i++)
         {
             BorderColors[i] = HtmlWriter::kNone;
+
             if(sceneConfigs[sceneId].mGoodAlgorithm.count(
                 FourWaySplitAlgorithms[i]) > 0)
                 BorderColors[i] = HtmlWriter::kGreen;
+
             if(sceneConfigs[sceneId].mPoorAlgorithm.count(
                 FourWaySplitAlgorithms[i]) > 0)
                 BorderColors[i] = HtmlWriter::kRed;
@@ -392,7 +418,9 @@ int main(int argc, const char *argv[])
         html_writer.AddFourWaySplit(FourWaySplitFiles,
             FourWaySplitNames, BorderColors, resolution.x);
     }
+
     html_writer.Close();
+    
     clock_t endTime = clock();
     printf("Whole run took %.2f s\n", float(endTime - startTime) / CLOCKS_PER_SEC);
 }
