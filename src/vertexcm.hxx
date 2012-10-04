@@ -39,7 +39,7 @@ class VertexCM : public AbstractRenderer
     {
         Vec3f mOrigin;             // Path origin
         Vec3f mDirection;          // Where to go next
-        Vec3f mWeight;             // Path weight
+        Vec3f mThroughput;         // Path throughput (multiplied by camera importance)
         uint  mPathLength    : 30; // Number of path segments, including this
         uint  mIsFiniteLight :  1; // Just generate by finite light
         uint  mSpecularPath  :  1; // All bounces so far were specular
@@ -58,7 +58,7 @@ class VertexCM : public AbstractRenderer
     struct PathVertex
     {
         Vec3f mHitpoint;   // Position of the vertex
-        Vec3f mWeight;     // Weight (multiply contribution)
+        Vec3f mThroughput; // Path throughput (multiplied by emission)
         uint  mPathLength; // Number of segments between source and vertex
 
         // Stores all required local information, including incoming direction.
@@ -139,11 +139,11 @@ class VertexCM : public AbstractRenderer
                 mCameraSample.d1vm * mVertexCM.Mis(cameraBsdfRevPdfW);
 
             // Ppm merges, but does not have MIS weights
-            const float weight = mVertexCM.mPpm ?
+            const float misWeight = mVertexCM.mPpm ?
                 1.f :
                 1.f / (wLight + 1.f + wCamera);
 
-            mContrib += weight * cameraBsdfFactor * aLightVertex.mWeight;
+            mContrib += misWeight * cameraBsdfFactor * aLightVertex.mThroughput;
         }
 
     private:
@@ -249,7 +249,7 @@ public:
         }
 
         mBaseRadius  = 0.002f * mScene.mSceneSphere.mSceneRadius;
-        mPhotonAlpha = 0.75f;
+        mRadiusAlpha = 0.75f;
     }
 
     virtual void RunIteration(int aIteration)
@@ -264,7 +264,7 @@ public:
 
         // Setup our radius, 1st iteration has aIteration == 0, thus offset
         float radius = mBaseRadius;
-        radius /= std::pow(float(aIteration + 1), 0.5f * (1 - mPhotonAlpha));
+        radius /= std::pow(float(aIteration + 1), 0.5f * (1 - mRadiusAlpha));
         // Purely for numeric stability
         radius = std::max(radius, 1e-7f);
         const float radiusSqr = Sqr(radius);
@@ -273,7 +273,7 @@ public:
         // We divide the summed up energy by disk radius and number of light paths
         mVmNormalization = 1.f / (radiusSqr * PI_F * mLightPathCount);
 
-        // Set up VC and VM weight factors
+        // Set up VC and VM MIS weight factors
         const float baseVmWeightFactor = (PI_F * radiusSqr) * pathCount;
         mMisVmWeightFactor = mUseVM ? Mis(baseVmWeightFactor)       : 0.f;
         mMisVcWeightFactor = mUseVC ? Mis(1.f / baseVmWeightFactor) : 0.f;
@@ -327,13 +327,13 @@ public:
                     lightSample.d1vm /= Mis(std::abs(bsdf.CosThetaFix()));
                 }
 
-                // Store vertex, purely delta bsdf cannot be merged or
-                // connected, so we don't store these
+                // Store vertex, unless BSDF is purely specular, which prevents
+                // vertex connections and merging
                 if(!bsdf.IsDelta() && (mUseVC || mUseVM))
                 {
                     LightVertex lightVertex;
                     lightVertex.mHitpoint   = hitPoint;
-                    lightVertex.mWeight     = lightSample.mWeight;
+                    lightVertex.mThroughput = lightSample.mThroughput;
                     lightVertex.mPathLength = lightSample.mPathLength;
                     lightVertex.mBsdf       = bsdf;
 
@@ -344,11 +344,11 @@ public:
                     mLightVertices.push_back(lightVertex);
                 }
 
-                // Contribute directly to camera, purely delta bsdf cannot be connected
+                // Connect to camera, unless BSDF is purely specular
                 if(!bsdf.IsDelta() && (mUseVC || mLightTraceOnly))
                 {
                     if(lightSample.mPathLength + 1 >= mMinPathLength)
-                        DirectContribution(lightSample, hitPoint, bsdf);
+                        ConnectToCamera(lightSample, hitPoint, bsdf);
                 }
 
                 // We will now extend by the bounce (1) and then
@@ -405,7 +405,7 @@ public:
                     {
                         if(cameraSample.mPathLength >= mMinPathLength)
                         {
-                            color += cameraSample.mWeight *
+                            color += cameraSample.mThroughput *
                                 LightOnHit(mScene.GetBackground(), cameraSample,
                                 Vec3f(0), ray.dir);
                         }
@@ -435,7 +435,7 @@ public:
                 
                     if(cameraSample.mPathLength >= mMinPathLength)
                     {
-                        color += cameraSample.mWeight *
+                        color += cameraSample.mThroughput *
                             LightOnHit(light, cameraSample, hitPoint, ray.dir);
                     }
                     
@@ -452,7 +452,7 @@ public:
                 {
                     if(cameraSample.mPathLength + 1>= mMinPathLength)
                     {
-                        color += cameraSample.mWeight *
+                        color += cameraSample.mThroughput *
                             DirectIllumination(cameraSample, hitPoint, bsdf);
                     }
                 }
@@ -484,7 +484,7 @@ public:
                            cameraSample.mPathLength > mMaxPathLength)
                             break;
 
-                        color += cameraSample.mWeight * lightVertex.mWeight *
+                        color += cameraSample.mThroughput * lightVertex.mThroughput *
                             ConnectVertices(lightVertex, bsdf, hitPoint, cameraSample);
                     }
                 }
@@ -495,7 +495,7 @@ public:
                 {
                     RangeQuery query(*this, hitPoint, bsdf, cameraSample);
                     mHashGrid.Process(mLightVertices, query);
-                    color += cameraSample.mWeight * mVmNormalization * query.GetContrib();
+                    color += cameraSample.mThroughput * mVmNormalization * query.GetContrib();
 
                     // PPM merges only on first non-specular bounce
                     if(mPpm)
@@ -549,7 +549,7 @@ private:
 
         oCameraSample.mOrigin       = primaryRay.org;
         oCameraSample.mDirection    = primaryRay.dir;
-        oCameraSample.mWeight       = Vec3f(1);
+        oCameraSample.mThroughput   = Vec3f(1);
 
         oCameraSample.mPathLength   = 1;
         oCameraSample.mSpecularPath = 1;
@@ -677,10 +677,9 @@ private:
         return contrib;
     }
 
-    // Connects camera and light samples, returns radiance
-    // unweighted by camera and light weight both.
-    // Has to be called AFTER updating MIS constants.
-    // The 'direction' is FROM camera TO light vertex
+    // Connects camera and light sample. Result is not multiplied by throughputs.
+    // Has to be called AFTER updating MIS constants. 'direction' is FROM
+    // camera TO light vertex
     Vec3f ConnectVertices(
         const LightVertex &aLightVertex,
         const CameraBSDF  &aCameraBsdf,
@@ -764,14 +763,14 @@ private:
         const AbstractLight *light = mScene.GetLightPtr(lightID);
 
         float emissionPdfW, directPdfW, cosLight;
-        oLightSample.mWeight = light->Emit(mScene.mSceneSphere, rndDirSamples, rndPosSamples,
+        oLightSample.mThroughput = light->Emit(mScene.mSceneSphere, rndDirSamples, rndPosSamples,
             oLightSample.mOrigin, oLightSample.mDirection,
             emissionPdfW, &directPdfW, &cosLight);
 
         emissionPdfW *= lightPickProb;
         directPdfW   *= lightPickProb;
 
-        oLightSample.mWeight       /= emissionPdfW;
+        oLightSample.mThroughput    /= emissionPdfW;
         oLightSample.mPathLength    = 1;
         oLightSample.mIsFiniteLight = light->IsFinite() ? 1 : 0;
 
@@ -791,9 +790,8 @@ private:
     }
 
     // Computes contribution of light sample to camera by splatting is onto the
-    // framebuffer. Unlike other functions, here we actually use the weight
-    // to scale the radiance (obviously, as nothing is returned).
-    void DirectContribution(
+    // framebuffer. Multiplies by throughput (obviously, as nothing is returned).
+    void ConnectToCamera(
         const PathElement &aLightSample,
         const Vec3f       &aHitpoint,
         const LightBSDF   &aBsdf)
@@ -847,7 +845,7 @@ private:
                 return;
 
             mFramebuffer.AddColor(imagePos,
-                contrib * aLightSample.mWeight / mLightPathCount);
+                contrib * aLightSample.mThroughput / mLightPathCount);
         }
     }
 
@@ -914,22 +912,22 @@ private:
         }
 
         aoPathSample.mOrigin  = aHitPoint;
-        aoPathSample.mWeight *= bsdfFactor * (cosThetaOut / bsdfDirPdfW);
+        aoPathSample.mThroughput *= bsdfFactor * (cosThetaOut / bsdfDirPdfW);
         
         return true;
     }
 
 private:
 
-    bool  mUseVM;          // Vertex merging (of some form) is used
-    bool  mUseVC;          // Vertex connection (BPT) is used
-    bool  mLightTraceOnly; // Do only light tracing
-    bool  mPpm;            // Do PPM, same terminates camera after first merge
+    bool  mUseVM;             // Vertex merging (of some form) is used
+    bool  mUseVC;             // Vertex connection (BPT) is used
+    bool  mLightTraceOnly;    // Do only light tracing
+    bool  mPpm;               // Do PPM, same terminates camera after first merge
 
-    float mPhotonAlpha;       // Radius reduction rate parameter
+    float mRadiusAlpha;       // Radius reduction rate parameter
     float mBaseRadius;        // Initial merging radius
     float mMisVmWeightFactor; // Weight of vertex merging (used in VC)
-    float mMisVcWeightFactor; // Weight of vertex conn (used in VM)
+    float mMisVcWeightFactor; // Weight of vertex connection (used in VM)
     float mScreenPixelCount;  // Number of pixels
     float mLightPathCount;    // Number of light paths
     float mVmNormalization;   // 1 / (Pi * radius^2 * light_path_count)
