@@ -35,7 +35,8 @@ class Framebuffer
 {
 public:
 
-    Framebuffer(){};
+    Framebuffer()
+    {}
 
     //////////////////////////////////////////////////////////////////////////
     // Accumulation
@@ -114,6 +115,7 @@ public:
         ppm << "255" << std::endl;
 
         Vec3f *ptr = &mColor[0];
+
         for(int y=0; y<mResY; y++)
         {
             for(int x=0; x<mResX; x++)
@@ -127,6 +129,7 @@ public:
                     << std::min(255, std::max(0, g)) << " "
                     << std::min(255, std::max(0, b)) << " ";
             }
+
             ppm << std::endl;
         }
     }
@@ -146,24 +149,22 @@ public:
     // Saving BMP
     struct BmpHeader
     {
-        //to avoid alignment issues, we leave this outside
-        //char   mMagic[2];        //!< always: BM
-        uint   mFileSize;        //!< size of file in bytes
-        uint   mReserved01;      //!< 2x 2 reserved bytes
-        uint   mDataOffset;      //!< Offset in bytes where data can be found (54)
+        uint   mFileSize;        // Size of file in bytes
+        uint   mReserved01;      // 2x 2 reserved bytes
+        uint   mDataOffset;      // Offset in bytes where data can be found (54)
 
-        uint   mHeaderSize;      //!< 40B
-        int    mWidth;           //!< width in pixels
-        int    mHeight;          //!< height in pixels
+        uint   mHeaderSize;      // 40B
+        int    mWidth;           // Width in pixels
+        int    mHeight;          // Height in pixels
 
-        short  mColorPlates;     //!< must be 1
-        short  mBitsPerPixel;    //!< we use 24bpp
-        uint   mCompression;     //!< we use BI_RGB ~ 0, uncompressed
-        uint   mImageSize;       //!< mWidth x mHeight x 3B
-        uint   mHorizRes;        //!< pixels per meter (75dpi ~ 2953ppm)
-        uint   mVertRes;         //!< pixels per meter (75dpi ~ 2953ppm)
-        uint   mPaletteColors;   //!< not using palette - 0
-        uint   mImportantColors; //!< 0 - all are important
+        short  mColorPlates;     // Must be 1
+        short  mBitsPerPixel;    // We use 24bpp
+        uint   mCompression;     // We use BI_RGB ~ 0, uncompressed
+        uint   mImageSize;       // mWidth x mHeight x 3B
+        uint   mHorizRes;        // Pixels per meter (75dpi ~ 2953ppm)
+        uint   mVertRes;         // Pixels per meter (75dpi ~ 2953ppm)
+        uint   mPaletteColors;   // Not using palette - 0
+        uint   mImportantColors; // 0 - all are important
     };
 
     void SaveBMP(
@@ -218,10 +219,12 @@ public:
     void SaveHDR(const char* aFilename)
     {
         std::ofstream hdr(aFilename, std::ios::binary);
+
         hdr << "#?RADIANCE" << '\n';
         hdr << "# SmallVCM" << '\n';
         hdr << "FORMAT=32-bit_rle_rgbe" << '\n' << '\n';
         hdr << "-Y " << mResY << " +X " << mResX << '\n';
+
         for(int y=0; y<mResY; y++)
         {
             for(int x=0; x<mResX; x++)
@@ -231,6 +234,7 @@ public:
 
                 const Vec3f &rgbF = mColor[x + y*mResX];
                 float v = std::max(rgbF.x, std::max(rgbF.y, rgbF.z));
+
                 if(v >= 1e-32f)
                 {
                     int e;
