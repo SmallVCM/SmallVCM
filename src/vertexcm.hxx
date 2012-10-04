@@ -34,53 +34,49 @@
 
 class VertexCM : public AbstractRenderer
 {
-    /* \brief Path element is used for tracing
-     *
-     * The sole point of this structure is to make carrying around
-     * the ray baggage easier.
-     */
+    // The sole point of this structure is to make carrying around the ray baggage easier.
     struct PathElement
     {
-        Vec3f mOrigin;     //!< Path origin
-        Vec3f mDirection;  //!< Where to go next
-        Vec3f mWeight;     //!< Path weight
-        uint  mPathLength    : 30; //!< Number of path segments, including this
-        uint  mIsFiniteLight :  1; //!< Just generate by finite light
-        uint  mSpecularPath  :  1; //!< All bounces so far were specular
+        Vec3f mOrigin;             // Path origin
+        Vec3f mDirection;          // Where to go next
+        Vec3f mWeight;             // Path weight
+        uint  mPathLength    : 30; // Number of path segments, including this
+        uint  mIsFiniteLight :  1; // Just generate by finite light
+        uint  mSpecularPath  :  1; // All bounces so far were specular
 
         // We compute MIS in a cumulative fashion. 1 variable is used,
         // plus 1 for each used method (connection, merging).
         // Please see the VCM implementation tech report for derivation.
-        float d0;   //!< Common helper variable for MIS
-        float d1vc; //!< Helper variable for vertex connection MIS
-        float d1vm; //!< Helper variable for vertex merging MIS
+
+        float d0;   // Common helper variable for MIS
+        float d1vc; // Helper variable for vertex connection MIS
+        float d1vm; // Helper variable for vertex merging MIS
     };
 
-    /* \brief Path vertex, used for merging and connection
-     *
-     */
+    // Path vertex, used for merging and connection
     template<bool tFromLight>
     struct PathVertex
     {
-        Vec3f mHitpoint;   //!< Position of the vertex
-        Vec3f mWeight;     //!< Weight (multiply contribution)
-        uint  mPathLength; //!< Number of segments between source and vertex
+        Vec3f mHitpoint;   // Position of the vertex
+        Vec3f mWeight;     // Weight (multiply contribution)
+        uint  mPathLength; // Number of segments between source and vertex
 
-        /* \brief BSDF at vertex position
-         *
-         * This stores all required local information, including incoming
-         * direction.
-         */
+        // Stores all required local information, including incoming direction.
         BSDF<tFromLight> mBsdf;
+
         // We compute MIS in a cumulative fashion. 1 variable is used,
         // plus 1 for each used method (connection, merging).
         // Please see the accompanying writeup for derivation.
-        float d0;   //!< Common helper variable for MIS
-        float d1vc; //!< Helper variable for vertex connection MIS
-        float d1vm; //!< Helper variable for vertex merging MIS
+
+        float d0;   // Common helper variable for MIS
+        float d1vc; // Helper variable for vertex connection MIS
+        float d1vm; // Helper variable for vertex merging MIS
 
         // Used by HashGrid
-        const Vec3f& GetPosition() const { return mHitpoint; }
+        const Vec3f& GetPosition() const
+        {
+            return mHitpoint;
+        }
     };
 
     typedef PathVertex<false> CameraVertex;
@@ -89,13 +85,9 @@ class VertexCM : public AbstractRenderer
     typedef BSDF<false>       CameraBSDF;
     typedef BSDF<true>        LightBSDF;
 
-    /* \brief Range query used for PPM, BPT, and VCM
-     *
-     * Is used by HashGrid, when a vertex is found within
-     * range (given by hash grid), Process() is called
-     * and vertex merge is performed. BSDF of the camera
-     * vertex is used.
-     */
+    // Range query used for PPM, BPT, and VCM. When HashGrid finds a vertex
+    // within range -- Process() is called and vertex
+    // merging is performed. BSDF of the camera vertex is used.
     class RangeQuery
     {
     public:
@@ -404,6 +396,7 @@ public:
                 // extended by this EPS_RAY after hit point is determined
                 Ray ray(cameraSample.mOrigin + cameraSample.mDirection * EPS_RAY,
                     cameraSample.mDirection, 0);
+
                 Isect isect(1e36f);
 
                 if(!mScene.Intersect(ray, isect))
@@ -532,8 +525,7 @@ private:
     // Camera tracing methods
     //////////////////////////////////////////////////////////////////////////
 
-    /* \brief Given a pixel index, generates new camera sample
-     */
+    // Generates new camera sample given a pixel index
     Vec2f GenerateCameraSample(
         const int   aPixelIndex,
         PathElement &oCameraSample)
@@ -569,16 +561,15 @@ private:
         return sample;
     }
 
-    /* \brief Returns (unweighted) radiance when ray hits a light source
-     *
-     * Can be used for both Background and Area lights.
-     * For Background:
-     *  Has to be called BEFORE updating MIS constants.
-     *  Value of aHitpoint is irrelevant (passing Vec3f(0))
-     *
-     * For Area lights:
-     *  Has to be called AFTER updating MIS constants.
-     */
+    // Returns (unweighted) radiance when ray hits a light source.
+    // Can be used for both Background and Area lights.
+    //
+    // For Background lights:
+    //    Has to be called BEFORE updating the MIS quantities.
+    //    Value of aHitpoint is irrelevant (passing Vec3f(0))
+    //
+    // For Area lights:
+    //    Has to be called AFTER updating the MIS quantities.
     Vec3f LightOnHit(
         const AbstractLight *aLight,
         const PathElement   &aCameraSample,
@@ -617,15 +608,12 @@ private:
         return misWeight * radiance;
     }
 
-    /* \brief Connects camera sample to randomly chosen sample,
-     * returns (unweighted) radiance.
-     *
-     * Has to be called AFTER updating MIS constants.
-     */
+    // Connects camera sample to randomly chosen sample, returns (unweighted) radiance.
+    // Has to be called AFTER updating the MIS quantities.
     Vec3f DirectIllumination(
-        const PathElement  &aCameraSample,
-        const Vec3f        &aHitpoint,
-        const CameraBSDF   &aBsdf)
+        const PathElement &aCameraSample,
+        const Vec3f       &aHitpoint,
+        const CameraBSDF  &aBsdf)
     {
         // We sample lights uniformly
         const int   lightCount    = mScene.GetLightCount();
@@ -689,17 +677,15 @@ private:
         return contrib;
     }
 
-    /* \brief Connects camera and light samples, returns radiance
-     * unweighted by camera and light weight both.
-     *
-     * Has to be called AFTER updating MIS constants.
-     * The 'direction' is FROM camera TO light Vertex
-     */
+    // Connects camera and light samples, returns radiance
+    // unweighted by camera and light weight both.
+    // Has to be called AFTER updating MIS constants.
+    // The 'direction' is FROM camera TO light vertex
     Vec3f ConnectVertices(
-        const LightVertex   &aLightVertex,
-        const CameraBSDF    &aCameraBsdf,
-        const Vec3f         &aCameraHitpoint,
-        const PathElement   &aCameraSample) const
+        const LightVertex &aLightVertex,
+        const CameraBSDF  &aCameraBsdf,
+        const Vec3f       &aCameraHitpoint,
+        const PathElement &aCameraSample) const
     {
         // Get the connection
         Vec3f direction   = aLightVertex.mHitpoint - aCameraHitpoint;
@@ -735,7 +721,7 @@ private:
         lightBsdfDirPdfW *= lightCont;
         lightBsdfRevPdfW *= lightCont;
 
-        // compute geometry term
+        // Compute geometry term
         const float geometryTerm = cosLight * cosCamera / dist2;
         if(geometryTerm < 0)
             return Vec3f(0);
@@ -753,6 +739,7 @@ private:
         const float misWeight = 1.f / (wLight + 1.f + wCamera);
 
         const Vec3f contrib = (misWeight * geometryTerm) * cameraBsdfFactor * lightBsdfFactor;
+
         if(contrib.IsZero() || mScene.Occluded(aCameraHitpoint, direction, distance))
             return Vec3f(0);
 
@@ -763,10 +750,7 @@ private:
     // Light tracing methods
     //////////////////////////////////////////////////////////////////////////
 
-    /* \brief Generates new light sample
-     *
-     * Samples light emission
-     */
+    // Samples light emission
     void GenerateLightSample(PathElement &oLightSample)
     {
         // We sample lights uniformly
@@ -806,12 +790,9 @@ private:
         oLightSample.d1vm = oLightSample.d1vc * mMisVcWeightFactor;
     }
 
-    /* \brief Computes contribution of light sample to camera.
-     *
-     * It directly splats the sample into framebuffer.
-     * Unlike many others, this actually does use the weight
-     * to scale the radiance (obviously, as nothing is returned).
-     */
+    // Computes contribution of light sample to camera by splatting is onto the
+    // framebuffer. Unlike other functions, here we actually use the weight
+    // to scale the radiance (obviously, as nothing is returned).
     void DirectContribution(
         const PathElement &aLightSample,
         const Vec3f       &aHitpoint,
@@ -819,24 +800,26 @@ private:
     {
         const Camera &camera    = mScene.mCamera;
         Vec3f directionToCamera = camera.mPosition - aHitpoint;
-        // check point is in front of camera
+
+        // Check point is in front of camera
         if(Dot(camera.mForward, -directionToCamera) <= 0.f)
             return;
 
-        // check it projects to the screen (and where)
+        // Check it projects to the screen (and where)
         const Vec2f imagePos = camera.WorldToRaster(aHitpoint);
         if(!camera.CheckRaster(imagePos))
             return;
 
-        // compute distance and normalize direction to camera
+        // Compute distance and normalize direction to camera
         const float distEye2 = directionToCamera.LenSqr();
         const float distance            = std::sqrt(distEye2);
         directionToCamera  /= distance;
 
-        // get the BSDF
+        // Get the BSDF
         float cosToCamera, bsdfDirPdfW, bsdfRevPdfW;
         const Vec3f bsdfFactor = aBsdf.Evaluate(mScene,
             directionToCamera, cosToCamera, &bsdfDirPdfW, &bsdfRevPdfW);
+
         if(bsdfFactor.IsZero())
             return;
 
@@ -868,11 +851,7 @@ private:
         }
     }
 
-    /* \brief Bounces sample according to BSDF, returns false when terminating
-     *
-     * Can bounce both light and camera samples, the difference is only
-     * in BSDF.
-     */
+    // Bounces camera/light sample according to BSDF, returns false for termination
     template<bool tLightSample>
     bool BounceSample(
         const BSDF<tLightSample> &aBsdf,
@@ -896,8 +875,7 @@ private:
         // we evaluate the pdf
         float bsdfRevPdfW = bsdfDirPdfW;
         if((sampledEvent & LightBSDF::kSpecular) == 0)
-            bsdfRevPdfW = aBsdf.Pdf(mScene,
-            aoPathSample.mDirection, true);
+            bsdfRevPdfW = aBsdf.Pdf(mScene, aoPathSample.mDirection, true);
 
         // Russian roulette
         const float contProb = aBsdf.ContinuationProb();
@@ -911,8 +889,10 @@ private:
         if(sampledEvent & LightBSDF::kSpecular)
         {
             aoPathSample.d0 = 0.f;
+
             aoPathSample.d1vc *=
                 Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
+
             aoPathSample.d1vm *=
                 Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
 
@@ -935,23 +915,24 @@ private:
 
         aoPathSample.mOrigin  = aHitPoint;
         aoPathSample.mWeight *= bsdfFactor * (cosThetaOut / bsdfDirPdfW);
+        
         return true;
     }
 
 private:
 
-    bool  mUseVM; //!< Vertex merging (of some form) is used
-    bool  mUseVC; //!< Vertex connection (bpt) is used
-    bool  mLightTraceOnly; //!< Do only light tracing
-    bool  mPpm; //!< Do Ppm, same terminates camera after first merge
+    bool  mUseVM;          // Vertex merging (of some form) is used
+    bool  mUseVC;          // Vertex connection (BPT) is used
+    bool  mLightTraceOnly; // Do only light tracing
+    bool  mPpm;            // Do PPM, same terminates camera after first merge
 
-    float mPhotonAlpha; //!< Governs reduction rate
-    float mBaseRadius;  //!< Initial merge radius, 0.002f of scene diameter
-    float mMisVmWeightFactor; //!< Weight of vertex merging (used in vc)
-    float mMisVcWeightFactor; //!< Weight of vertex conn (used in vm)
-    float mScreenPixelCount;  //!< Number of pixels
-    float mLightPathCount;    //!< Number of light paths
-    float mVmNormalization;   //!< 1 / (Pi * radius^2 * light_path_count)
+    float mPhotonAlpha;       // Radius reduction rate parameter
+    float mBaseRadius;        // Initial merging radius
+    float mMisVmWeightFactor; // Weight of vertex merging (used in VC)
+    float mMisVcWeightFactor; // Weight of vertex conn (used in VM)
+    float mScreenPixelCount;  // Number of pixels
+    float mLightPathCount;    // Number of light paths
+    float mVmNormalization;   // 1 / (Pi * radius^2 * light_path_count)
 
     std::vector<LightVertex> mLightVertices; //!< Stored light vertices
 
