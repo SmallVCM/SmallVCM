@@ -391,7 +391,7 @@ public:
         mSceneSphere.mInvSceneRadiusSqr = 1.f / Sqr(mSceneSphere.mSceneRadius);
     }
 
-    std::string GetSceneName(
+    static std::string GetSceneName(
         uint        aBoxMask,
         std::string *oAcronym = NULL)
     {

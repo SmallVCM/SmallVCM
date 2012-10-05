@@ -41,7 +41,9 @@
 #include <omp.h>
 #include <string>
 #include <set>
+#include <sstream>
 
+// Renderer configuration, holds algorithm, scene, and all other settings
 struct Config
 {
     enum Algorithm
@@ -56,7 +58,7 @@ struct Config
         kAlgorithmMax
     };
 
-    const char* GetName()
+    static const char* GetName(Algorithm aAlgorithm)
     {
         static const char* algorithmNames[7] =
         {
@@ -69,88 +71,312 @@ struct Config
             "Vertex Connection Merging"
         };
 
-        if(mAlgorithm < 0 || mAlgorithm > 7)
+        if(aAlgorithm < 0 || aAlgorithm > 7)
             return "Unknown algorithm";
 
-        return algorithmNames[mAlgorithm];
+        return algorithmNames[aAlgorithm];
     }
 
-    const char* GetAcronym()
+    static const char* GetAcronym(Algorithm aAlgorithm)
     {
         static const char* algorithmNames[7] = {
             "el", "pt", "lt", "ppm", "bpm", "bpt", "vcm" };
 
-        if(mAlgorithm < 0 || mAlgorithm > 7)
+        if(aAlgorithm < 0 || aAlgorithm > 7)
             return "unknown";
-        return algorithmNames[mAlgorithm];
+        return algorithmNames[aAlgorithm];
     }
 
     const Scene *mScene;
     Algorithm   mAlgorithm;
     int         mIterations;
     float       mMaxTime;
-    bool        mUseMaxTime; // otherwise use iterations
     Framebuffer *mFramebuffer;
     int         mNumThreads;
     int         mBaseSeed;
     uint        mMaxPathLength;
     uint        mMinPathLength;
+    std::string mOutputName;
+    Vec2i       mResolution;
 };
 
-
-float render(const Config &aConfig, int *oUsedIterations = NULL)
+// Utility function, essentially a renderer factory
+AbstractRenderer* CreateRenderer(
+    const Config::Algorithm  aAlgorithm,
+    const Scene              &aScene,
+    const int                aSeed)
 {
+    switch(aAlgorithm)
+    {
+    case Config::kEyeLight:
+        return new EyeLight(aScene);
+    case Config::kPathTracing:
+        return new PathTracer(aScene, aSeed);
+    case Config::kLightTracing:
+        return new VertexCM(aScene, VertexCM::kLightTrace, aSeed);
+    case Config::kProgressivePhotonMapping:
+        return new VertexCM(aScene, VertexCM::kPpm, aSeed);
+    case Config::kBidirectionalPhotonMapping:
+        return new VertexCM(aScene, VertexCM::kBpm, aSeed);
+    case Config::kBidirectionalPathTracing:
+        return new VertexCM(aScene,VertexCM::kBpt, aSeed);
+    case Config::kVertexConnectionMerging:
+        return new VertexCM(aScene, VertexCM::kVcm, aSeed);
+    default:
+        printf("Unknown algorithm!!\n");
+        exit(2);
+    }
+}
+
+// Scene configurations
+uint g_SceneConfigs[] = {
+    Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightSun,
+    Scene::kGlossyFloor | Scene::kLargeMirrorSphere | Scene::kLightCeiling,
+    Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightPoint,
+    Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightBackground
+};
+
+// Utility function, gives length of array
+template <typename T, size_t N>
+inline int SizeOfArray( const T(&)[ N ] )
+{
+    return int(N);
+}
+
+void printRngWarning()
+{
+#if defined(LEGACY_RNG)
+    printf("The code was not compiled for C++11.\n");
+    printf("It will be using Tiny Encryption Algorithm-based"
+        "random number generator.\n");
+    printf("This is worse than the Mersenne Twister from C++11.\n");
+    printf("Consider setting up for C++11.\n");
+    printf("Visual Studio 2010, and g++ 4.6.3 and later work.\n\n");
+#endif
+}
+
+void printHelp(const char *argv[])
+{
+    printf("usage: %s -S <sceneID> -A <algorithm>\n", argv[0]);
+    printf("          [ -t <time> | -i <iteration> |-o <output_name> ]\n\n");
+    printf("    -S - Selects scene, we currently have the following scenesIDs:\n");
+    for(int i = 0; i < SizeOfArray(g_SceneConfigs); i++)
+        printf("         %d  - %s\n", i, Scene::GetSceneName(g_SceneConfigs[i]).c_str());
+    printf("    -A - Selects algorithm, we currently have the following algorithms:\n");
+    for(int i = 0; i < (int)Config::kAlgorithmMax; i++)
+        printf("         %s  - %s\n",
+        Config::GetAcronym(Config::Algorithm(i)),
+        Config::GetName(Config::Algorithm(i)));
+    printf("\n");
+    printf("         Time (-t) takes precedence over iterations (-i) if both are defined\n");
+    printf("    -t - Number of seconds to run the algorithm (default -1)\n");
+    printf("    -i - Number of iterations to run the algorithm (default 1)\n");
+    printf("    -o - User specified output name (extensions .bmp and .hdr, default .bmp)\n");
+}
+
+// Parses command line, setting up config
+void parseCommandline(int argc, const char *argv[], Config &oConfig)
+{
+    // Parameters marked with [cmd] can be change from commandline
+    oConfig.mScene         = NULL;                  // [cmd] When NULL, renderer will not run
+    oConfig.mAlgorithm     = Config::kAlgorithmMax; // [cmd]
+    oConfig.mIterations    = 1;                     // [cmd]
+    oConfig.mMaxTime       = -1.f;                  // [cmd]
+    //oConfig.mFramebuffer   = NULL; // this is never set by any parameter
+    oConfig.mNumThreads    = 1;
+    oConfig.mBaseSeed      = 1234;
+    oConfig.mMaxPathLength = 10;
+    oConfig.mMinPathLength = 0;
+    oConfig.mOutputName    = "";                    // [cmd]
+    oConfig.mResolution    = Vec2i(512, 512);
+
+    int sceneID    = -1;
+
+    // If no arguments at all, print help
+    if(argc <= 1)
+    {
+        printHelp(argv);
+        return;
+    }
+
+    // Load arguments
+    for(int i=1; i<argc; i++)
+    {
+        std::string arg(argv[i]);
+
+        // print help string (at any position)
+        if(arg == "-h" || arg == "--help" || arg == "/?")
+        {
+            printHelp(argv);
+            return;
+        }
+
+        if(arg[0] != '-') // all our commands start with -
+        {
+            continue;
+        }
+        else if(arg == "-S") // scene to load
+        {
+            if(++i == argc)
+            {
+                printf("Missing <sceneID> argument, please see help (-h)\n");
+                return;
+            }
+
+            std::istringstream iss(argv[i]);
+            iss >> sceneID;
+
+            if(iss.fail() || sceneID < 0 || sceneID >= SizeOfArray(g_SceneConfigs))
+            {
+                printf("Invalid <sceneID> argument, please see help (-h)\n");
+                return;
+            }
+        }
+        else if(arg == "-A") // algorithm to use
+        {
+            if(++i == argc)
+            {
+                printf("Missing <algorithm> argument, please see help (-h)\n");
+                return;
+            }
+
+            std::string alg(argv[i]);
+            for(int i=0; i<Config::kAlgorithmMax; i++)
+                if(alg == Config::GetAcronym(Config::Algorithm(i)))
+                    oConfig.mAlgorithm = Config::Algorithm(i);
+
+            if(oConfig.mAlgorithm == Config::kAlgorithmMax)
+            {
+                printf("Invalid <algorithm> argument, please see help (-h)\n");
+                return;
+            }
+        }
+        else if(arg == "-i") // number of iterations to run
+        {
+            if(++i == argc)
+            {
+                printf("Missing <iteration> argument, please see help (-h)\n");
+                return;
+            }
+
+            std::istringstream iss(argv[i]);
+            iss >> oConfig.mIterations;
+
+            if(iss.fail() || oConfig.mIterations < 1)
+            {
+                printf("Invalid <iteration> argument, please see help (-h)\n");
+                return;
+            }
+        }
+        else if(arg == "-t") // number of seconds to run
+        {
+            if(++i == argc)
+            {
+                printf("Missing <time> argument, please see help (-h)\n");
+                return;
+            }
+
+            std::istringstream iss(argv[i]);
+            iss >> oConfig.mMaxTime;
+
+            if(iss.fail() || oConfig.mMaxTime < 0)
+            {
+                printf("Invalid <time> argument, please see help (-h)\n");
+                return;
+            }
+
+            oConfig.mIterations = -1; // time has precedence
+        }
+        else if(arg == "-o") // number of seconds to run
+        {
+            if(++i == argc)
+            {
+                printf("Missing <output_name> argument, please see help (-h)\n");
+                return;
+            }
+
+            oConfig.mOutputName = argv[i];
+
+            if(oConfig.mOutputName.length() == 0)
+            {
+                printf("Invalid <output_name> argument, please see help (-h)\n");
+                return;
+            }
+        }
+    }
+
+    // Check scene was selected
+    if(sceneID < 0 || sceneID >= SizeOfArray(g_SceneConfigs))
+    {
+        printf("Missing mandatory -S <sceneID> argument, please see help (-h)\n");
+        return;
+    }
+
+    // Check algorithm was selected
+    if(oConfig.mAlgorithm == Config::kAlgorithmMax)
+    {
+        printf("Missing mandatory -A <algorithm> argument, please see help (-h)\n");
+        return;
+    }
+
+    // Load scene
+    Scene *scene = new Scene;
+    scene->LoadCornellBox(oConfig.mResolution, g_SceneConfigs[sceneID]);
+    scene->BuildSceneSphere();
+
+    oConfig.mScene = scene;
+
+    // If no output name is chosen, create a default one
+    if(oConfig.mOutputName.length() == 0)
+    {
+        // if scene has glossy floor, name will be prefixed by g
+        if((g_SceneConfigs[sceneID] & Scene::kGlossyFloor) != 0)
+            oConfig.mOutputName = "g";
+
+        std::string name, acronym;
+        name = oConfig.mScene->GetSceneName(g_SceneConfigs[sceneID], &acronym);
+
+        // We use scene acronym
+        oConfig.mOutputName += acronym;
+
+        // We add acronym of the used algorithm
+        oConfig.mOutputName += "_";
+        oConfig.mOutputName += Config::GetAcronym(oConfig.mAlgorithm);
+
+        // And it will be written as bmp
+        oConfig.mOutputName += ".bmp";
+    }
+
+    // Check if output name has valid extension (.bmp or .hdr) and if not add .bmp
+
+    std::string extension = "";
+
+    if(oConfig.mOutputName.length() > 4) // must be at least 1 character before .bmp
+        extension = oConfig.mOutputName.substr(
+            oConfig.mOutputName.length() - 4, 4);
+
+    if(extension != ".bmp" && extension != ".hdr")
+        oConfig.mOutputName += ".bmp";
+}
+
+// The main rendering function, renders what is in aConfig
+float render(
+    const Config &aConfig,
+    int *oUsedIterations = NULL)
+{
+    // Set number of used threads
     omp_set_num_threads(aConfig.mNumThreads);
 
+    // Create 1 renderer per thread
     typedef AbstractRenderer* AbstractRendererPtr;
     AbstractRendererPtr *renderers;
     renderers = new AbstractRendererPtr[aConfig.mNumThreads];
 
-    int iterations = aConfig.mIterations;
-    bool use_time  = aConfig.mUseMaxTime;
-
-    switch(aConfig.mAlgorithm)
-    {
-    case Config::kEyeLight:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new EyeLight(*aConfig.mScene);
-        // iterations have no meaning for kEyeLight
-        iterations = 1;
-        use_time   = false;
-        break;
-    case Config::kPathTracing:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new PathTracer(*aConfig.mScene, aConfig.mBaseSeed + i);
-        break;
-    case Config::kLightTracing:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(
-                *aConfig.mScene, VertexCM::kLightTrace, aConfig.mBaseSeed + i);
-        break;
-    case Config::kProgressivePhotonMapping:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(
-                *aConfig.mScene, VertexCM::kPpm, aConfig.mBaseSeed + i);
-        break;
-    case Config::kBidirectionalPhotonMapping:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(
-                *aConfig.mScene, VertexCM::kBpm, aConfig.mBaseSeed + i);
-        break;
-    case Config::kBidirectionalPathTracing:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(
-                *aConfig.mScene,VertexCM::kBpt, aConfig.mBaseSeed + i);
-        break;
-    case Config::kVertexConnectionMerging:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(
-                *aConfig.mScene, VertexCM::kVcm, aConfig.mBaseSeed + i);
-        break;
-    }
-
     for(int i=0; i<aConfig.mNumThreads; i++)
     {
+        renderers[i] = CreateRenderer(aConfig.mAlgorithm,
+            *aConfig.mScene, aConfig.mBaseSeed + i);
+
         renderers[i]->mMaxPathLength = aConfig.mMaxPathLength;
         renderers[i]->mMinPathLength = aConfig.mMinPathLength;
     }
@@ -158,22 +384,26 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
     clock_t startT = clock();
     int iter = 0;
 
-    if(use_time)
+    // Rendering loop, when we have any time limit, use time-based loop,
+    // otherwise go with required iterations
+    if(aConfig.mMaxTime > 0)
     {
-        #pragma omp parallel
+        // Time based loop
+#pragma omp parallel
         while(clock() < startT + aConfig.mMaxTime*CLOCKS_PER_SEC)
         {
             int threadId = omp_get_thread_num();
             renderers[threadId]->RunIteration(iter);
-            
-            #pragma omp atomic
-            iter++;
+
+#pragma omp atomic
+            iter++; // counts number of iterations
         }
     }
     else
     {
-        #pragma omp parallel for
-        for(iter=0; iter < iterations; iter++)
+        // Iterations loop
+#pragma omp parallel for
+        for(iter=0; iter < aConfig.mIterations; iter++)
         {
             int threadId = omp_get_thread_num();
             renderers[threadId]->RunIteration(iter);
@@ -185,6 +415,7 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
     if(oUsedIterations)
         *oUsedIterations = iter+1;
 
+    // Accumulate from all renderers into a common framebuffer
     int usedRenderers = 0;
 
     for(int i=0; i<aConfig.mNumThreads; i++)
@@ -206,8 +437,10 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
         usedRenderers++;
     }
 
+    // Scale framebuffer by the number of used renderers
     aConfig.mFramebuffer->Scale(1.f / usedRenderers);
 
+    // Clean up renderers
     for(int i=0; i<aConfig.mNumThreads; i++)
         delete renderers[i];
 
@@ -216,211 +449,37 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
     return float(endT - startT) / CLOCKS_PER_SEC;
 }
 
-struct SceneConfig
-{
-    SceneConfig()
-    {}
-
-    SceneConfig(uint aMask) :
-        mMask(aMask)
-    {}
-
-    uint mMask;
-    std::set<int> mGoodAlgorithm;
-    std::set<int> mPoorAlgorithm;
-};
-
 int main(int argc, const char *argv[])
 {
-    int   base_iterations = 1;
-    Vec2i resolution      = Vec2i(512, 512);
-    int   max_path_length = 10;
-    int   min_path_length = 0;
-    float max_time        = 60;
-    bool  use_max_time    = false;
+    // Warns when not using C++11 Mersenne Twister
+    printRngWarning();
 
-    if(argc > 1)
-        base_iterations = atoi(argv[1]);
+    // Setups config based on commandline
+    Config config;
+    parseCommandline(argc, argv, config);
 
-    if(argc > 2)
-    {
-        max_path_length = atoi(argv[2]);
-        min_path_length = atoi(argv[2]);
-    }
+    // When some error has been encountered, exits
+    if(config.mScene == NULL)
+        return 1;
 
-#if defined(LEGACY_RNG)
-    printf("The code was not compiled for C++11.\n");
-    printf("It will be using Tiny Encryption Algorithm-based"
-        "random number generator.\n");
-    printf("This is worse than the Mersenne Twister from C++11.\n");
-    printf("Consider setting up for C++11.\n");
-    printf("Visual Studio 2010, and g++ 4.6.3 and later work.\n\n");
-#endif
-
-    const int numThreads = std::max(1, omp_get_num_procs());
-    printf("Using %d threads\n", numThreads);
-
-    SceneConfig sceneConfigs[] = {
-        SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightSun),
-        SceneConfig(Scene::kGlossyFloor | Scene::kLargeMirrorSphere | Scene::kLightCeiling),
-        SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightPoint),
-        SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightBackground)
-    };
-
-    // Set (subjective) good/poor/neutral algorithms, to get colors for report
-    sceneConfigs[0].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
-    sceneConfigs[0].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
-    sceneConfigs[0].mPoorAlgorithm.insert(Config::kBidirectionalPathTracing);
-
-    sceneConfigs[1].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
-    sceneConfigs[1].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
-    sceneConfigs[1].mPoorAlgorithm.insert(Config::kBidirectionalPathTracing);
-    sceneConfigs[1].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
-
-    sceneConfigs[2].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
-    sceneConfigs[2].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
-    sceneConfigs[2].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
-
-    sceneConfigs[3].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
-    sceneConfigs[3].mGoodAlgorithm.insert(Config::kBidirectionalPathTracing);
-    sceneConfigs[3].mPoorAlgorithm.insert(Config::kBidirectionalPhotonMapping);
-    sceneConfigs[3].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
-
-
-    const int sceneConfigCount = sizeof(sceneConfigs) / sizeof(SceneConfig);
-
+    // Sets up framebuffer and number of threads
     Framebuffer fbuffer;
-    Config      config;
-    config.mIterations    = base_iterations;
-    config.mMaxTime       = max_time;
-    config.mUseMaxTime    = use_max_time;
-    config.mFramebuffer   = &fbuffer;
-    config.mNumThreads    = numThreads;
-    config.mBaseSeed      = 1234;
-    config.mMaxPathLength = max_path_length;
-    config.mMinPathLength = min_path_length;
+    config.mFramebuffer = &fbuffer;
+    config.mNumThreads  = std::max(1, omp_get_num_procs());
 
-    HtmlWriter html_writer("report/index.html");
-    html_writer.WriteHeader();
-    int thumbnailSize = 128;
+    // Renders the image
+    printf("Running %s... ", config.GetName(config.mAlgorithm));
+    fflush(stdout);
+    float time = render(config);
+    printf("done in %.2f s\n", time);
 
-    int algorithmMask[7] =
-    {
-        1, // kEyeLight
-        1, // kPathTracing
-        1, // kLightTracing
-        1, // kProgressivePhotonMapping
-        1, // kBidirectionalPhotonMapping
-        1, // kBidirectionalPathTracing
-        1  // kVertexConnectionMerging
-    };
+    // Saves the image
+    std::string extension = config.mOutputName.substr(config.mOutputName.length() - 3, 3);
+    if(extension == "bmp")
+        fbuffer.SaveBMP(config.mOutputName.c_str(), 2.2f /*gamma*/);
+    else if(extension == "bmp")
+        fbuffer.SaveHDR(config.mOutputName.c_str());
 
-    std::string FourWaySplitFiles[4];
-    std::string FourWaySplitNames[4];
-    int         BorderColors[4];
-    uint        FourWaySplitAlgorithms[4] =
-    {
-        Config::kProgressivePhotonMapping,
-        Config::kBidirectionalPhotonMapping,
-        Config::kBidirectionalPathTracing,
-        Config::kVertexConnectionMerging,
-    };
-
-    for(int i=0; i<4; i++)
-    {
-        config.mAlgorithm = Config::Algorithm(FourWaySplitAlgorithms[i]);
-        
-        std::string acronym = config.GetAcronym();
-
-        for(uint j=0; j<acronym.length(); j++)
-            if(acronym[j] >= 'a' && acronym[j] <= 'z')
-                acronym[j] += 'A' - 'a';
-
-        FourWaySplitNames[i] = acronym;
-    }
-
-    int algorithmCount = 0;
-
-    for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
-        if(algorithmMask[algId])
-            algorithmCount++;
-
-    html_writer.mAlgorithmCount = algorithmCount;
-
-    clock_t startTime = clock();
-
-    for(int sceneId = 0; sceneId < sceneConfigCount; sceneId++)
-    {
-        uint mask = sceneConfigs[sceneId].mMask;
-
-        Scene scene;
-        scene.LoadCornellBox(resolution, mask);
-        scene.BuildSceneSphere();
-        config.mScene = &scene;
-
-        std::string name, acronym;
-        name = scene.GetSceneName(mask, &acronym);
-
-        std::string sceneFilename(acronym);
-        if((mask & Scene::kGlossyFloor) != 0)
-            sceneFilename = "g" + sceneFilename;
-
-        html_writer.AddScene(name);
-        printf("Scene: %s\n", name.c_str());
-
-        int numIterations;
-
-        for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
-        {
-            if(!algorithmMask[algId]) continue;
-            config.mAlgorithm = Config::Algorithm(algId);
-            printf("Running %s... ", config.GetName());
-            fflush(stdout);
-            float time = render(config, &numIterations);
-            printf("done in %.2f s\n", time);
-            config.mBaseSeed += config.mNumThreads;
-
-            std::string filename = sceneFilename + "_" + config.GetAcronym() + ".bmp";
-
-            // HTML output
-            fbuffer.SaveBMP(("report/" + filename).c_str(), 2.2f);
-            HtmlWriter::BorderColor bcolor = HtmlWriter::kNone;
-
-            if(sceneConfigs[sceneId].mGoodAlgorithm.count(algId) > 0)
-                bcolor = HtmlWriter::kGreen;
-            
-            if(sceneConfigs[sceneId].mPoorAlgorithm.count(algId) > 0)
-                bcolor = HtmlWriter::kRed;
-
-            html_writer.AddRendering(config.GetName(), filename, time, bcolor,
-                html_writer.MakeMessage("<br/>Iterations: %d", numIterations));
-
-            for(int i=0; i<4; i++)
-            {
-                if(algId == FourWaySplitAlgorithms[i])
-                    FourWaySplitFiles[i] = filename;
-            }
-        }
-
-        for(int i=0; i<4; i++)
-        {
-            BorderColors[i] = HtmlWriter::kNone;
-
-            if(sceneConfigs[sceneId].mGoodAlgorithm.count(
-                FourWaySplitAlgorithms[i]) > 0)
-                BorderColors[i] = HtmlWriter::kGreen;
-
-            if(sceneConfigs[sceneId].mPoorAlgorithm.count(
-                FourWaySplitAlgorithms[i]) > 0)
-                BorderColors[i] = HtmlWriter::kRed;
-        }
-
-        html_writer.AddFourWaySplit(FourWaySplitFiles,
-            FourWaySplitNames, BorderColors, resolution.x);
-    }
-
-    html_writer.Close();
-    
-    clock_t endTime = clock();
-    printf("Whole run took %.2f s\n", float(endTime - startTime) / CLOCKS_PER_SEC);
+    // Scene cleanup
+    delete config.mScene;
 }
