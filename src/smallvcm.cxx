@@ -348,7 +348,6 @@ void parseCommandline(int argc, const char *argv[], Config &oConfig)
     }
 
     // Check if output name has valid extension (.bmp or .hdr) and if not add .bmp
-
     std::string extension = "";
 
     if(oConfig.mOutputName.length() > 4) // must be at least 1 character before .bmp
@@ -401,7 +400,7 @@ float render(
     }
     else
     {
-        // Iterations loop
+        // Iterations based loop
 #pragma omp parallel for
         for(iter=0; iter < aConfig.mIterations; iter++)
         {
@@ -418,6 +417,9 @@ float render(
     // Accumulate from all renderers into a common framebuffer
     int usedRenderers = 0;
 
+    // With very low number of iterations and high number of threads
+    // not all created renderers had to have been used.
+    // Those must not participate in accumulation.
     for(int i=0; i<aConfig.mNumThreads; i++)
     {
         if(!renderers[i]->WasUsed())
@@ -443,7 +445,6 @@ float render(
     // Clean up renderers
     for(int i=0; i<aConfig.mNumThreads; i++)
         delete renderers[i];
-
     delete [] renderers;
 
     return float(endT - startT) / CLOCKS_PER_SEC;
