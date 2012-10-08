@@ -152,7 +152,6 @@ void FullReport(const Config &aConfig)
     // Setup framebuffer and threads
     Framebuffer fbuffer;
     config.mFramebuffer = &fbuffer;
-    config.mNumThreads  = std::max(1, omp_get_num_procs());
 
     // Setup html writer
     HtmlWriter html_writer("index.html");
@@ -264,6 +263,10 @@ int main(int argc, const char *argv[])
     Config config;
     ParseCommandline(argc, argv, config);
 
+    // If number of threads is invalid, set 1 thread per processor
+    if(config.mNumThreads <= 0)
+        config.mNumThreads  = std::max(1, omp_get_num_procs());
+
     if(config.mFullReport)
     {
         FullReport(config);
@@ -277,7 +280,6 @@ int main(int argc, const char *argv[])
     // Sets up framebuffer and number of threads
     Framebuffer fbuffer;
     config.mFramebuffer = &fbuffer;
-    config.mNumThreads  = std::max(1, omp_get_num_procs());
 
     // Prints what we are doing
     printf("Scene:   %s\n", config.mScene->mSceneName.c_str());

@@ -220,7 +220,7 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
     oConfig.mIterations    = 1;                     // [cmd]
     oConfig.mMaxTime       = -1.f;                  // [cmd]
     //oConfig.mFramebuffer   = NULL; // this is never set by any parameter
-    oConfig.mNumThreads    = 1;
+    oConfig.mNumThreads    = 0;
     oConfig.mBaseSeed      = 1234;
     oConfig.mMaxPathLength = 10;
     oConfig.mMinPathLength = 0;
