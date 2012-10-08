@@ -470,8 +470,15 @@ int main(int argc, const char *argv[])
     config.mFramebuffer = &fbuffer;
     config.mNumThreads  = std::max(1, omp_get_num_procs());
 
+    // Prints what we are doing
+    printf("Scene:   %s\n", config.mScene->mSceneName.c_str());
+    if(config.mMaxTime > 0)
+        printf("Target:  %f seconds render time\n", config.mMaxTime);
+    else
+        printf("Target:  %d iteration(s)\n", config.mIterations);
+
     // Renders the image
-    printf("Running %s... ", config.GetName(config.mAlgorithm));
+    printf("Running: %s... ", config.GetName(config.mAlgorithm));
     fflush(stdout);
     float time = render(config);
     printf("done in %.2f s\n", time);
