@@ -9,3 +9,6 @@ old_rng:
 
 clean:
 	rm smallvcm
+
+unreport:
+	rm *.bmp index.html
