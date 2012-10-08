@@ -14,7 +14,8 @@ It was developed in VS2010. However, we did some limited testing on Linux (g++)
 and the provide Makefile works for g++ 4.4 and 4.6.3 at least.
 
 The major hurdle can come from the fact that C++11 <random> library
-is used, but alternative random number generator is also provided.
+is used, but alternative random number generator is also provided
+(make old_rng on linux).
 The code expects OpenMP available, but getting rid of that is very
 straightforward.
 
