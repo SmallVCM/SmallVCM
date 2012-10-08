@@ -109,7 +109,7 @@ AbstractRenderer* CreateRenderer(
     switch(aAlgorithm)
     {
     case Config::kEyeLight:
-        return new EyeLight(aScene);
+        return new EyeLight(aScene, aSeed);
     case Config::kPathTracing:
         return new PathTracer(aScene, aSeed);
     case Config::kLightTracing:
