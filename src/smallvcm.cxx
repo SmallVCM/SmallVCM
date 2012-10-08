@@ -143,7 +143,7 @@ inline int SizeOfArray( const T(&)[ N ] )
     return int(N);
 }
 
-void printRngWarning()
+void PrintRngWarning()
 {
 #if defined(LEGACY_RNG)
     printf("The code was not compiled for C++11.\n");
@@ -155,29 +155,32 @@ void printRngWarning()
 #endif
 }
 
-void printHelp(const char *argv[])
+void PrintHelp(const char *argv[])
 {
     printf("usage: %s -S <sceneID> -A <algorithm>\n", argv[0]);
     printf("          [ -t <time> | -i <iteration> |-o <output_name> ]\n\n");
-    printf("    -S - Selects scene, we currently have the following scenesIDs:\n");
+    printf("    -S  Selects the scene:\n");
+
     for(int i = 0; i < SizeOfArray(g_SceneConfigs); i++)
-        printf("         %d  - %s\n", i, Scene::GetSceneName(g_SceneConfigs[i]).c_str());
-    printf("    -A - Selects algorithm, we currently have the following algorithms:\n");
+        printf("          %d    %s\n", i, Scene::GetSceneName(g_SceneConfigs[i]).c_str());
+
+    printf("    -A  Selects the rendering algorithm:\n");
+    
     for(int i = 0; i < (int)Config::kAlgorithmMax; i++)
-        printf("         %s  - %s\n",
-        Config::GetAcronym(Config::Algorithm(i)),
-        Config::GetName(Config::Algorithm(i)));
-    printf("\n");
-    printf("         Time (-t) takes precedence over iterations (-i) if both are defined\n");
-    printf("    -t - Number of seconds to run the algorithm (default -1)\n");
-    printf("    -i - Number of iterations to run the algorithm (default 1)\n");
-    printf("    -o - User specified output name (extensions .bmp and .hdr, default .bmp)\n");
+        printf("          %-3s  %s\n",
+            Config::GetAcronym(Config::Algorithm(i)),
+            Config::GetName(Config::Algorithm(i)));
+    
+    printf("    -t  Number of seconds to run the algorithm\n");
+    printf("    -i  Number of iterations to run the algorithm (default 1)\n");
+    printf("    -o  User specified output name, with extension .bmp or .hdr (default .bmp)\n");
+    printf("\n    Note: Time (-t) takes precedence over iterations (-i) if both are defined\n\n");
 }
 
 // Parses command line, setting up config
-void parseCommandline(int argc, const char *argv[], Config &oConfig)
+void ParseCommandline(int argc, const char *argv[], Config &oConfig)
 {
-    // Parameters marked with [cmd] can be change from commandline
+    // Parameters marked with [cmd] can be change from command line
     oConfig.mScene         = NULL;                  // [cmd] When NULL, renderer will not run
     oConfig.mAlgorithm     = Config::kAlgorithmMax; // [cmd]
     oConfig.mIterations    = 1;                     // [cmd]
@@ -195,7 +198,7 @@ void parseCommandline(int argc, const char *argv[], Config &oConfig)
     // If no arguments at all, print help
     if(argc <= 1)
     {
-        printHelp(argv);
+        PrintHelp(argv);
         return;
     }
 
@@ -207,7 +210,7 @@ void parseCommandline(int argc, const char *argv[], Config &oConfig)
         // print help string (at any position)
         if(arg == "-h" || arg == "--help" || arg == "/?")
         {
-            printHelp(argv);
+            PrintHelp(argv);
             return;
         }
 
@@ -445,6 +448,7 @@ float render(
     // Clean up renderers
     for(int i=0; i<aConfig.mNumThreads; i++)
         delete renderers[i];
+
     delete [] renderers;
 
     return float(endT - startT) / CLOCKS_PER_SEC;
@@ -453,11 +457,11 @@ float render(
 int main(int argc, const char *argv[])
 {
     // Warns when not using C++11 Mersenne Twister
-    printRngWarning();
+    PrintRngWarning();
 
-    // Setups config based on commandline
+    // Setups config based on command line
     Config config;
-    parseCommandline(argc, argv, config);
+    ParseCommandline(argc, argv, config);
 
     // When some error has been encountered, exits
     if(config.mScene == NULL)
@@ -476,6 +480,7 @@ int main(int argc, const char *argv[])
 
     // Saves the image
     std::string extension = config.mOutputName.substr(config.mOutputName.length() - 3, 3);
+
     if(extension == "bmp")
         fbuffer.SaveBMP(config.mOutputName.c_str(), 2.2f /*gamma*/);
     else if(extension == "bmp")
