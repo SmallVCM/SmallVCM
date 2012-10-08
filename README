@@ -11,7 +11,7 @@ define LEGACY_RNG (automatic for VS2008, found in rng.hxx).
 
 The whole thing is one c++ source file and a lot of headers.
 It was developed in VS2010. However, we did some limited testing on Linux (g++)
-and the provided Makefile works for g++ 4.4 and 4.6.3 at least.
+and the provide Makefile works for g++ 4.4 and 4.6.3 at least.
 
 The major hurdle can come from the fact that C++11 <random> library
 is used, but alternative random number generator is also provided.
@@ -23,43 +23,44 @@ so just go ahead and compile smallvcm.cxx
 
 
 2) FUNCTION
-TL;DR - in about 7-8 minutes (on 4 cores) it generates report.html, that
+TL;DR - run smallvcm --report -t 10
+In about 5-6 minutes it generates index.html, that
 shows multiple algorithms on 4 different cornell boxes.
 
-The program is set up to iterate through several variants of Cornell Box:
-Empty, 2 small spheres (mirror and glass), 1 large mirror sphere.
-And four variants of lighting (area, point, direction, and env. map lighting).
+The program is set up to with four variants of Cornell Box:
+	0    glossy small spheres + sun (directional)
+	1    glossy large mirror sphere + ceiling (area)
+	2    glossy small spheres + point
+	3    glossy small spheres + background (env. lighting)
+glossy ~ floor is glossy
+small spheres ~ mirror and glass spheres in the box
 
-Then runs Path Tracing, Light Tracing, Progressive Photon Mapping,
-Bidirectional Photon Mapping, Bidirectional Path Tracing, and finally
-Vertex Connection and Merging algorithms on each.
+It can run 7 different algorithms:
+	el   eye light
+	pt   path tracing
+	lt   light tracing
+	ppm  progressive photon mapping
+	bpm  bidirectional photon mapping
+	bpt  bidirectional path tracing
+	vcm  vertex connection and merging
 
-It produces report.html file that sums presents all the produced images.
-This is not properly formatted html but at least Firefox, Chrome,
-and Internet Explorer can handle it, even when program is still running.
-
-On 4 core machine, it takes about 2 seconds per image (with 10 iterations each).
-You can have a look at 100 and 100 iterations each version in results_100 and
-results_1000 directories.
+Aside from running individual combinations, switch --report can run all combinations,
+while obeying required number of iterations and/or required maximum runtime for each combination.
 
 3) SETTINGS  *TEMPORARY*
-TL;DR - no setting is necessary, out of the box generates 256x256 images with
-10 iterations of each algorithm each.
+TL;DR - no setting is necessary, out of the box generates 512x512 image with Vertex Connection Merging.
+Also, try --report -t 10 for all algorithm-scene combinations running 10s each.
 
-All settings in this section are to be found in smallvcm.cxx, main.
-The program currently does supports a single parameter,
-which is number of iterations. The default is 10.
-On 4 core machine, 10 iterations take about 2-5 seconds
-(depending on the algorithm).
+Scene, algorithm, number of iterations, runtime and output filename can be set from commandline.
+Use -h, --help or /? to access help.
 
-The other two important parameters, that have to be changed in smallvcm.cxx,
-are resolution (256x256) and maximum path length (10 segments).
-
-There are 2 variants on the cornell box, one has diffuse floor and a white back wall,
-the other has glossy floor and blue back wall. The default renders glossy.
-
-sceneConfigs sets which scenes are used, algorithmMask sets which algorithms
-will be run. Thumbnail size sets size of thumbnails in report.html
+All default settings are set in ParseCommandline function in config.hxx.
+The settings that have no commandline switch and must be changed in the code are:
+	mNumThreads ~ Number of rendering threads (default 0, means 1 thread per processor)
+	mBaseSeed   ~ Seed for random number generators (default 1234)
+	mMaxPathLength ~ Maximal number of path segments (default 10)
+	mMinPathLength ~ Minimal number of path segments (default 0)
+	mResolution    ~ Resolution of final image (default 512x512)
 
 4) SUPPORTED FEATURES and LIMITATIONS
 Originally this was intended to be very short example, akin to SimplePT.
@@ -68,23 +69,26 @@ Limitations:
 a) No acceleration structure is used (can be added to scene.hxx)
 b) Scenes are hardcoded (see LoadCornellBox in scene.hxx)
 c) Materials are limited (diffuse, phong, mirror, glass, not all combinations)
-d) No subsurface scattering, no participating media (still Work In Progress)
-e) No shading normals
+d) Each area light is an individual triangle, and requires its very own material for identification.
+	This can and should be changed if code is modified for any more complex scenes.
+e) No subsurface scattering, no participating media
+f) No shading normals
 
 Features:
 a) All basic types of light (area, point, directional, and env. map) are
 	presented, even though env. map is very simple constant radiance.
 	The way of finding whether and which area light we hit by randomly
 	tracing ray should be revisited before using this for anything serious.
+	(see Limitation d)
 b) Basic materials are supported, and should be fairly straightforward
 	to extend to more materials. I would suggest changing the actual
 	implementation, but the interfaces should suffice for most.
-c) Material instances are represented by BSDF object.
+c) Material instances are represented by BRDF object.
 	This stores the incoming (fixed) direction and answers questions
 	(sample, evaluate brdf, evaluate pdf) always w.r.t. this direction.
 	Also stores all the other important things, like local frame.
 	Extending the framework by shading normals should happen within
-	this BSDF object (has template parameter ~ Veach's Adjoint brdf).
+	this BRDF object (has template parameter ~ Veach's Adjoint brdf).
 d) For fast preview supports Eye Light shader (color ~ Dot(L, N)).
 	Answers in red instead of gray when back is hit.
 	eyelight.hxx
@@ -147,7 +151,7 @@ e) Vertex Connection and Merging
 	Everything is used. Light particles traced, stored, hash grid is built, etc.
 	MIS is used (d0, d1vm, d1vc).
 
-6) DISCLAIMED
+6) DISCLAIMER
 I am well aware that the description here is not complete and can be somewhat
 confusing. If you have any questions and/or input w.r.t. improving and adding
 explanations, feel free to contact me at tomas@davidovic.cz.
