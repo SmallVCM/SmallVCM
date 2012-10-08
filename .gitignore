@@ -1,10 +1,11 @@
 *.bmp
 *.ppm
 *.pfm
+*.hdr
 *.suo
 *.sdf
 *.opensdf
+*.html
 SmallVCM.vcxproj.user
-/Release/*
-/Debug/*
+/build/*
 /ipch/*

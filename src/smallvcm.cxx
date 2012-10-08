@@ -37,152 +37,82 @@
 #include "bsdf.hxx"
 #include "vertexcm.hxx"
 #include "html_writer.hxx"
+#include "config.hxx"
 
 #include <omp.h>
 #include <string>
 #include <set>
+#include <sstream>
 
-struct Config
+//////////////////////////////////////////////////////////////////////////
+// The main rendering function, renders what is in aConfig
+
+float render(
+    const Config &aConfig,
+    int *oUsedIterations = NULL)
 {
-    enum Algorithm
-    {
-        kEyeLight,
-        kPathTracing,
-        kLightTracing,
-        kProgressivePhotonMapping,
-        kBidirectionalPhotonMapping,
-        kBidirectionalPathTracing,
-        kVertexConnectionMerging,
-        kAlgorithmMax
-    };
-
-    const char* GetName()
-    {
-        static const char* algorithmNames[7] = {
-            "Eye Light",
-            "Path Tracing",
-            "Light Tracing",
-            "Progressive Photon Mapping",
-            "Bidirectional Photon Mapping",
-            "Bidirectional Path Tracing",
-            "Vertex Connection Merging"
-        };
-
-        if(mAlgorithm < 0 || mAlgorithm > 7)
-            return "Uknown algorithm";
-        return algorithmNames[mAlgorithm];
-    }
-
-    const char* GetAcronym()
-    {
-        static const char* algorithmNames[7] = {
-            "el", "pt", "lt", "ppm", "bpm", "bpt", "vcm" };
-
-        if(mAlgorithm < 0 || mAlgorithm > 7)
-            return "uknown";
-        return algorithmNames[mAlgorithm];
-    }
-
-    const Scene *mScene;
-    Algorithm   mAlgorithm;
-    int         mIterations;
-    float       mMaxTime;
-    bool        mUseMaxTime; // otherwise use iterations
-    Framebuffer *mFramebuffer;
-    int         mNumThreads;
-    int         mBaseSeed;
-    uint        mMaxPathLength;
-    uint        mMinPathLength;
-};
-
-
-float render(const Config &aConfig, int *oUsedIterations = NULL)
-{
+    // Set number of used threads
     omp_set_num_threads(aConfig.mNumThreads);
 
+    // Create 1 renderer per thread
     typedef AbstractRenderer* AbstractRendererPtr;
     AbstractRendererPtr *renderers;
     renderers = new AbstractRendererPtr[aConfig.mNumThreads];
 
-    int iterations = aConfig.mIterations;
-    bool use_time  = aConfig.mUseMaxTime;
-    switch(aConfig.mAlgorithm)
-    {
-    case Config::kEyeLight:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new EyeLight(*aConfig.mScene);
-        // iterations have no meaning for kEyeLight
-        iterations = 1;
-        use_time   = false;
-        break;
-    case Config::kPathTracing:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new PathTracer(*aConfig.mScene,
-            aConfig.mBaseSeed + i);
-        break;
-    case Config::kLightTracing:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kLightTrace, aConfig.mBaseSeed + i);
-        break;
-    case Config::kProgressivePhotonMapping:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kPpm, aConfig.mBaseSeed + i);
-        break;
-    case Config::kBidirectionalPhotonMapping:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kBpm, aConfig.mBaseSeed + i);
-        break;
-    case Config::kBidirectionalPathTracing:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kBpt, aConfig.mBaseSeed + i);
-        break;
-    case Config::kVertexConnectionMerging:
-        for(int i=0; i<aConfig.mNumThreads; i++)
-            renderers[i] = new VertexCM(*aConfig.mScene,
-            VertexCM::kVcm, aConfig.mBaseSeed + i);
-        break;
-    }
-
     for(int i=0; i<aConfig.mNumThreads; i++)
     {
+        renderers[i] = CreateRenderer(aConfig.mAlgorithm,
+            *aConfig.mScene, aConfig.mBaseSeed + i);
+
         renderers[i]->mMaxPathLength = aConfig.mMaxPathLength;
         renderers[i]->mMinPathLength = aConfig.mMinPathLength;
     }
 
     clock_t startT = clock();
     int iter = 0;
-    if(use_time)
+
+    // Rendering loop, when we have any time limit, use time-based loop,
+    // otherwise go with required iterations
+    if(aConfig.mMaxTime > 0)
     {
+        // Time based loop
 #pragma omp parallel
         while(clock() < startT + aConfig.mMaxTime*CLOCKS_PER_SEC)
         {
             int threadId = omp_get_thread_num();
             renderers[threadId]->RunIteration(iter);
+
 #pragma omp atomic
-            iter++;
+            iter++; // counts number of iterations
         }
     }
     else
     {
+        // Iterations based loop
 #pragma omp parallel for
-        for(iter=0; iter < iterations; iter++)
+        for(iter=0; iter < aConfig.mIterations; iter++)
         {
             int threadId = omp_get_thread_num();
             renderers[threadId]->RunIteration(iter);
         }
     }
+
     clock_t endT = clock();
 
-    if(oUsedIterations) *oUsedIterations = iter+1;
+    if(oUsedIterations)
+        *oUsedIterations = iter+1;
 
+    // Accumulate from all renderers into a common framebuffer
     int usedRenderers = 0;
+
+    // With very low number of iterations and high number of threads
+    // not all created renderers had to have been used.
+    // Those must not participate in accumulation.
     for(int i=0; i<aConfig.mNumThreads; i++)
     {
-        if(!renderers[i]->WasUsed()) continue;
+        if(!renderers[i]->WasUsed())
+            continue;
+
         if(usedRenderers == 0)
         {
             renderers[i]->GetFramebuffer(*aConfig.mFramebuffer);
@@ -193,206 +123,187 @@ float render(const Config &aConfig, int *oUsedIterations = NULL)
             renderers[i]->GetFramebuffer(tmp);
             aConfig.mFramebuffer->Add(tmp);
         }
+
         usedRenderers++;
     }
 
+    // Scale framebuffer by the number of used renderers
     aConfig.mFramebuffer->Scale(1.f / usedRenderers);
 
+    // Clean up renderers
     for(int i=0; i<aConfig.mNumThreads; i++)
         delete renderers[i];
+
     delete [] renderers;
 
     return float(endT - startT) / CLOCKS_PER_SEC;
 }
 
-struct SceneConfig
+//////////////////////////////////////////////////////////////////////////
+// Generates index.html with all scene-algorithm combinations.
+
+void FullReport(const Config &aConfig)
 {
-    SceneConfig(){};
-    SceneConfig(uint aMask)
-        : mMask(aMask)
-    {}
+    // Make a local copy of config
+    Config config = aConfig;
 
-    uint       mMask;
-    std::set<int> mGoodAlgorithm;
-    std::set<int> mPoorAlgorithm;
-};
+    config.mFullReport = false;
 
-int main(int argc, const char *argv[])
-{
-    int   base_iterations = 1;
-    Vec2i resolution      = Vec2i(512, 512);
-    int   max_path_length = 10;
-    int   min_path_length = 0;
-    float max_time        = 60;
-    bool  use_max_time    = true;
-
-    if(argc > 1)
-        base_iterations = atoi(argv[1]);
-
-    if(argc > 2)
-    {
-        max_path_length = atoi(argv[2]);
-        min_path_length = atoi(argv[2]);
-    }
-
-#if defined(LEGACY_RNG)
-    printf("The code was not compiled for C++11.\n");
-    printf("It will be using Tiny Encryption Algorithm-based"
-        "random number generator.\n");
-    printf("This is worse than the Mersenne Twister from C++11.\n");
-    printf("Consider setting up for C++11.\n");
-    printf("Visual Studio 2010, and g++ 4.6.3 and later work.\n\n");
-#endif
-
-    const int numThreads = std::max(1, omp_get_num_procs());
-    printf("Using %d threads\n", numThreads);
-
-    SceneConfig sceneConfigs[] = {
-        SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightSun),
-        SceneConfig(Scene::kGlossyFloor | Scene::kLargeMirrorSphere | Scene::kLightCeiling),
-        SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightPoint),
-        SceneConfig(Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightBackground)
-    };
-
-    // Set (subjective) good/poor/neutral algorithms, to get colors for report
-    sceneConfigs[0].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
-    sceneConfigs[0].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
-    sceneConfigs[0].mPoorAlgorithm.insert(Config::kBidirectionalPathTracing);
-
-    sceneConfigs[1].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
-    sceneConfigs[1].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
-    sceneConfigs[1].mPoorAlgorithm.insert(Config::kBidirectionalPathTracing);
-    sceneConfigs[1].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
-
-    sceneConfigs[2].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
-    sceneConfigs[2].mGoodAlgorithm.insert(Config::kBidirectionalPhotonMapping);
-    sceneConfigs[2].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
-
-    sceneConfigs[3].mGoodAlgorithm.insert(Config::kVertexConnectionMerging);
-    sceneConfigs[3].mGoodAlgorithm.insert(Config::kBidirectionalPathTracing);
-    sceneConfigs[3].mPoorAlgorithm.insert(Config::kBidirectionalPhotonMapping);
-    sceneConfigs[3].mPoorAlgorithm.insert(Config::kProgressivePhotonMapping);
-
-
-    const int sceneConfigCount = sizeof(sceneConfigs) / sizeof(SceneConfig);
-
+    // Setup framebuffer and threads
     Framebuffer fbuffer;
-    Config      config;
-    config.mIterations    = base_iterations;
-    config.mMaxTime       = max_time;
-    config.mUseMaxTime    = use_max_time;
-    config.mFramebuffer   = &fbuffer;
-    config.mNumThreads    = numThreads;
-    config.mBaseSeed      = 1234;
-    config.mMaxPathLength = max_path_length;
-    config.mMinPathLength = min_path_length;
+    config.mFramebuffer = &fbuffer;
 
-    HtmlWriter html_writer("report.html");
+    // Setup html writer
+    HtmlWriter html_writer("index.html");
     html_writer.WriteHeader();
-    int thumbnailSize = 128;
+    html_writer.mAlgorithmCount = (int)Config::kAlgorithmMax;
+    html_writer.mThumbnailSize  = 128;
 
-    int algorithmMask[7] = {
-        0, //1, // kEyeLight
-        1, // kPathTracing
-        0, //1, // kLightTracing
-        0, //1, // kProgressivePhotonMapping
-        0, //1, // kBidirectionalPhotonMapping
-        0, //1, // kBidirectionalPathTracing
-        0  //1  // kVertexConnectionMerging
-    };
+    int numIterations;
 
-    std::string FourWaySplitFiles[4];
-    std::string FourWaySplitNames[4];
-    int         BorderColors[4];
-    uint        FourWaySplitAlgorithms[4] = {
-        Config::kProgressivePhotonMapping,
-        Config::kBidirectionalPhotonMapping,
-        Config::kBidirectionalPathTracing,
-        Config::kVertexConnectionMerging,
-    };
-
-    for(int i=0; i<4; i++)
+    if(SizeOfArray(g_SceneConfigs) != 4)
     {
-        config.mAlgorithm = Config::Algorithm(FourWaySplitAlgorithms[i]);
-        std::string acronym = config.GetAcronym();
-        for(uint j=0; j<acronym.length(); j++)
-            if(acronym[j] >= 'a' && acronym[j] <= 'z')
-                acronym[j] += 'A' - 'a';
-        FourWaySplitNames[i] = acronym;
+        printf("Report assumes we have only 4 scenes\n");
+        printf("Cannot continue with %d\n", SizeOfArray(g_SceneConfigs));
+        exit(2);
     }
 
-    int algorithmCount = 0;
-    for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
-        if(algorithmMask[algId]) algorithmCount++;
-    html_writer.mAlgorithmCount = algorithmCount;
+    // Quite subjective evaluation whether given algorithm is
+    // for a given scene good, poor, or neutral.
+    std::set<int> goodAlgorithms[4], poorAlgorithms[4];
+    goodAlgorithms[0].insert(Config::kVertexConnectionMerging);
+    goodAlgorithms[0].insert(Config::kBidirectionalPhotonMapping);
+    poorAlgorithms[0].insert(Config::kBidirectionalPathTracing);
+
+    goodAlgorithms[1].insert(Config::kVertexConnectionMerging);
+    goodAlgorithms[1].insert(Config::kBidirectionalPhotonMapping);
+    poorAlgorithms[1].insert(Config::kBidirectionalPathTracing);
+    poorAlgorithms[1].insert(Config::kProgressivePhotonMapping);
+
+    goodAlgorithms[2].insert(Config::kVertexConnectionMerging);
+    goodAlgorithms[2].insert(Config::kBidirectionalPhotonMapping);
+    poorAlgorithms[2].insert(Config::kProgressivePhotonMapping);
+
+    goodAlgorithms[3].insert(Config::kVertexConnectionMerging);
+    goodAlgorithms[3].insert(Config::kBidirectionalPathTracing);
+    poorAlgorithms[3].insert(Config::kBidirectionalPhotonMapping);
+    poorAlgorithms[3].insert(Config::kProgressivePhotonMapping);
+
+    // Acronyms of algorithms in four-way split
+    std::string splitAcronyms[] = {"PPM", "BPM", "BPT", "VCM"};
+    // Filename and border color for images in four-way split
+    std::string splitFiles[4];
+    int         borderColors[4];
 
     clock_t startTime = clock();
-    for(int sceneId = 0; sceneId < sceneConfigCount; sceneId++)
-    {
-        uint mask = sceneConfigs[sceneId].mMask;
 
-        Scene scene;
-        scene.LoadCornellBox(resolution, mask);
+    for(int sceneID=0; sceneID<SizeOfArray(g_SceneConfigs); sceneID++)
+    {
+        Scene  scene;
+        scene.LoadCornellBox(config.mResolution, g_SceneConfigs[sceneID]);
         scene.BuildSceneSphere();
         config.mScene = &scene;
 
-        std::string name, acronym;
-        name = scene.GetSceneName(mask, &acronym);
+        html_writer.AddScene(scene.mSceneName);
+        printf("Scene: %s\n", scene.mSceneName.c_str());
 
-        std::string sceneFilename(acronym);
-        if((mask & Scene::kGlossyFloor) != 0)
-            sceneFilename = "g" + sceneFilename;
-
-        html_writer.AddScene(name);
-        printf("Scene: %s\n", name.c_str());
-
-        int numIterations;
-        for(uint algId = 0; algId < Config::kAlgorithmMax; algId++)
+        for(uint algID = 0; algID < (uint)Config::kAlgorithmMax; algID++)
         {
-            if(!algorithmMask[algId]) continue;
-            config.mAlgorithm = Config::Algorithm(algId);
-            printf("Running %s... ", config.GetName());
+            config.mAlgorithm = Config::Algorithm(algID);
+            printf("Running %s... ", config.GetName(config.mAlgorithm));
             fflush(stdout);
             float time = render(config, &numIterations);
             printf("done in %.2f s\n", time);
-            config.mBaseSeed += config.mNumThreads;
 
-            std::string filename = sceneFilename + "_" +
-                config.GetAcronym() + ".bmp";
+            std::string filename = DefaultFilename(g_SceneConfigs[sceneID],
+                *config.mScene, config.mAlgorithm);
 
-            // Html output
             fbuffer.SaveBMP(filename.c_str(), 2.2f);
+
+            // Add thumbnail of the method
             HtmlWriter::BorderColor bcolor = HtmlWriter::kNone;
-            if(sceneConfigs[sceneId].mGoodAlgorithm.count(algId) > 0)
-                bcolor = HtmlWriter::kGreen;
-            if(sceneConfigs[sceneId].mPoorAlgorithm.count(algId) > 0)
+
+            if(poorAlgorithms[sceneID].count(algID) > 0)
                 bcolor = HtmlWriter::kRed;
 
-            html_writer.AddRendering(config.GetName(),
+            if(goodAlgorithms[sceneID].count(algID) > 0)
+                bcolor = HtmlWriter::kGreen;
+
+            html_writer.AddRendering(Config::GetName(config.mAlgorithm),
                 filename, time, bcolor,
                 html_writer.MakeMessage("<br/>Iterations: %d", numIterations));
-            for(int i=0; i<4; i++)
+
+            if(algID >= (int)Config::kProgressivePhotonMapping)
             {
-                if(algId == FourWaySplitAlgorithms[i])
-                    FourWaySplitFiles[i] = filename;
+                const int idx = algID - Config::kProgressivePhotonMapping;
+                splitFiles[idx]   = filename;
+                borderColors[idx] = bcolor;
             }
         }
 
-        for(int i=0; i<4; i++)
-        {
-            BorderColors[i] = HtmlWriter::kNone;
-            if(sceneConfigs[sceneId].mGoodAlgorithm.count(
-                FourWaySplitAlgorithms[i]) > 0)
-                BorderColors[i] = HtmlWriter::kGreen;
-            if(sceneConfigs[sceneId].mPoorAlgorithm.count(
-                FourWaySplitAlgorithms[i]) > 0)
-                BorderColors[i] = HtmlWriter::kRed;
-        }
-
-        html_writer.AddFourWaySplit(FourWaySplitFiles,
-            FourWaySplitNames, BorderColors, resolution.x);
+        html_writer.AddFourWaySplit(splitFiles, splitAcronyms,
+            borderColors, config.mResolution.x);
     }
+
     html_writer.Close();
+
     clock_t endTime = clock();
     printf("Whole run took %.2f s\n", float(endTime - startTime) / CLOCKS_PER_SEC);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Main
+
+int main(int argc, const char *argv[])
+{
+    // Warns when not using C++11 Mersenne Twister
+    PrintRngWarning();
+
+    // Setups config based on command line
+    Config config;
+    ParseCommandline(argc, argv, config);
+
+    // If number of threads is invalid, set 1 thread per processor
+    if(config.mNumThreads <= 0)
+        config.mNumThreads  = std::max(1, omp_get_num_procs());
+
+    if(config.mFullReport)
+    {
+        FullReport(config);
+        return 0;
+    }
+
+    // When some error has been encountered, exits
+    if(config.mScene == NULL)
+        return 1;
+
+    // Sets up framebuffer and number of threads
+    Framebuffer fbuffer;
+    config.mFramebuffer = &fbuffer;
+
+    // Prints what we are doing
+    printf("Scene:   %s\n", config.mScene->mSceneName.c_str());
+    if(config.mMaxTime > 0)
+        printf("Target:  %f seconds render time\n", config.mMaxTime);
+    else
+        printf("Target:  %d iteration(s)\n", config.mIterations);
+
+    // Renders the image
+    printf("Running: %s... ", config.GetName(config.mAlgorithm));
+    fflush(stdout);
+    float time = render(config);
+    printf("done in %.2f s\n", time);
+
+    // Saves the image
+    std::string extension = config.mOutputName.substr(config.mOutputName.length() - 3, 3);
+
+    if(extension == "bmp")
+        fbuffer.SaveBMP(config.mOutputName.c_str(), 2.2f /*gamma*/);
+    else if(extension == "bmp")
+        fbuffer.SaveHDR(config.mOutputName.c_str());
+
+    // Scene cleanup
+    delete config.mScene;
+
+    return 0;
 }

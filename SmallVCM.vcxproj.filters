@@ -79,5 +79,8 @@
     <ClInclude Include="src\new-joe-kuo-6.21201.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\config.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

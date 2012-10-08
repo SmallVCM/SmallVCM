@@ -45,18 +45,18 @@ public:
     {
         mDiffuseReflectance = Vec3f(0);
         mPhongReflectance   = Vec3f(0);
-        mGlossiness         = 1.f;
+        mPhongExponent      = 1.f;
         mMirrorReflectance  = Vec3f(0);
         mIOR = -1.f;
     }
 
     // diffuse is simply added to the others
     Vec3f mDiffuseReflectance;
-    // phong is simply added to the others
+    // Phong is simply added to the others
     Vec3f mPhongReflectance;
-    float mGlossiness;
+    float mPhongExponent;
 
-    // mirror can be either simply added, or mixed using fresnel term
+    // mirror can be either simply added, or mixed using Fresnel term
     // this is governed by mIOR, if it is >= 0, fresnel is used, otherwise
     // it is not
     Vec3f mMirrorReflectance;

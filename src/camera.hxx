@@ -30,14 +30,16 @@
 #include "math.hxx"
 #include "ray.hxx"
 
-//////////////////////////////////////////////////////////////////////////
-// Camera
-
 class Camera
 {
 public:
-    void Setup(const Vec3f& aPosition, const Vec3f& aForward, const Vec3f& aUp,
-        const Vec2f& aResolution, float aHorizontalFOV)
+
+    void Setup(
+        const Vec3f &aPosition,
+        const Vec3f &aForward,
+        const Vec3f &aUp,
+        const Vec2f &aResolution,
+        float       aHorizontalFOV)
     {
         const Vec3f forward = Normalize(aForward);
         const Vec3f up      = Normalize(Cross(aUp, -forward));
@@ -58,7 +60,6 @@ public:
         worldToCamera.SetRow(2, -forward, -pos.z);
 
         const Mat4f perspective = Mat4f::Perspective(aHorizontalFOV, 0.1f, 10000.f);
-
         const Mat4f worldToNScreen = perspective * worldToCamera;
         const Mat4f nscreenToWorld = Invert(worldToNScreen);
 
@@ -104,7 +105,6 @@ public:
             aRasterPos.x < mResolution.x && aRasterPos.y < mResolution.y;
     }
 
-
     Ray GenerateRay(const Vec2f &aRasterXY) const
     {
         const Vec3f worldRaster = RasterToWorld(aRasterXY);
@@ -117,12 +117,12 @@ public:
     }
 
 public:
+
     Vec3f mPosition;
     Vec3f mForward;
     Vec2f mResolution;
     Mat4f mRasterToWorld;
     Mat4f mWorldToRaster;
-
     float mPixelArea;
 };
 

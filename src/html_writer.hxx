@@ -39,14 +39,19 @@
 class HtmlWriter
 {
 public:
+
     enum BorderColor
     {
         kNone,
         kRed,
         kGreen
     };
+
 public:
-    HtmlWriter(const std::string& aFileName) : mFileName(aFileName), mHtml(mFileName)
+
+    HtmlWriter(const std::string& aFileName) :
+        mFileName(aFileName),
+        mHtml(mFileName)
     {
         // Most browsers will cap number of columns to real value,
         // so having something significantly larger works ok
@@ -66,8 +71,27 @@ public:
         mHtml << "</html>" << std::endl;
     }
 
+    /*
+     * The Javascript plugin is heavily modified version of plugin example:
+     * http://www.htmldrive.net/items/show/838/jQuery-different-Photo-comparing-Effect
+     *
+     * Original copyright reads:
+     * // Queness Before & After jQuery Plugin
+     * // Created by Kevin Liew from Queness.com
+     * // Permission is given to use this plugin in whatever way you want :)
+     */
     void WriteHeader()
     {
+        mHtml << "<!--"  << std::endl;
+        mHtml << "* The Javascript plugin is heavily modified version of plugin example:"  << std::endl;
+        mHtml << "* http://www.htmldrive.net/items/show/838/jQuery-different-Photo-comparing-Effect"  << std::endl;
+        mHtml << "*"  << std::endl;
+        mHtml << "* Original copyright reads:"  << std::endl;
+        mHtml << "* // Queness Before & After jQuery Plugin"  << std::endl;
+        mHtml << "* // Created by Kevin Liew from Queness.com"  << std::endl;
+        mHtml << "* // Permission is given to use this plugin in whatever way you want :)"  << std::endl;
+        mHtml << "-->" << std::endl;
+        mHtml << "" << std::endl;
         mHtml << "<!DOCTYPE html PUBLIC "
             "\"-//W3C//DTD XHTML 1.0 Strict//EN\""
             " \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"
@@ -242,10 +266,11 @@ public:
 
     void AddScene(const std::string &aSceneName)
     {
-
         mHtml << "<table";
+
         if(mAlgorithmCount < 100)
             mHtml << " width=\"" << mAlgorithmCount * (mThumbnailSize + 10) << "px\"";
+
         mHtml << "><tr><td colspan=\"" << mAlgorithmCount << "\"><h2>" << aSceneName << "</h2></td></tr>" << std::endl;
         mHtml << "<tr>" << std::endl;
     }
@@ -253,8 +278,8 @@ public:
     void AddRendering(
         const std::string &aMethodName,
         const std::string &aFileName,
-        float aTime,
-        BorderColor aBorderColor = kNone,
+        float             aTime,
+        BorderColor       aBorderColor = kNone,
         const std::string &aOtherInfo = "")
     {
         // The image
@@ -306,7 +331,7 @@ public:
         const std::string aMethodFiles[4],
         const std::string aMethodNames[4],
         const int         aBorderColors[4],
-        const int aSize)
+        const int         aSize)
     {
         mHtml << "</tr><tr>" << std::endl;
         mHtml << "<td colspan=\"" << mAlgorithmCount << "\" align=\"center\">" << std::endl;
@@ -358,8 +383,8 @@ public:
         }
     }
 
-
 public:
+
     int           mAlgorithmCount;
     int           mThumbnailSize;
     std::string   mFileName;

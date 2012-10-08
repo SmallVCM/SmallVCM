@@ -37,17 +37,25 @@
 class Scene
 {
 public:
-    Scene() : mGeometry(NULL), mBackground(NULL) {};
+    Scene() :
+        mGeometry(NULL),
+        mBackground(NULL)
+    {}
+
     ~Scene()
     {
         delete mGeometry;
+
         for(size_t i=0; i<mLights.size(); i++)
             delete mLights[i];
     }
 
-    bool Intersect(const Ray& aRay, Isect& oResult) const
+    bool Intersect(
+        const Ray &aRay,
+        Isect     &oResult) const
     {
         bool hit = mGeometry->Intersect(aRay, oResult);
+
         if(hit)
         {
             oResult.lightID = -1;
@@ -57,10 +65,14 @@ public:
             if(it != mMaterial2Light.end())
                 oResult.lightID = it->second;
         }
+
         return hit;
     }
 
-    bool Occluded(const Vec3f& aPoint, const Vec3f& aDir, float aTMax) const
+    bool Occluded(
+        const Vec3f &aPoint,
+        const Vec3f &aDir,
+        float aTMax) const
     {
         Ray ray;
         ray.org  = aPoint + aDir * EPS_RAY;
@@ -117,19 +129,25 @@ public:
         kDefault           = (kLightCeiling | kBothSmallSpheres),
     };
 
-    void LoadCornellBox(const Vec2i &aResolution, uint aBoxMask = kDefault)
+    void LoadCornellBox(
+        const Vec2i &aResolution,
+        uint aBoxMask = kDefault)
     {
+        mSceneName = GetSceneName(aBoxMask, &mSceneAcronym);
+
         if((aBoxMask & kBothLargeSpheres) == kBothLargeSpheres)
         {
             printf("Cannot have both large balls, using mirror\n\n");
             aBoxMask &= ~kLargeGlassSphere;
         }
+
         bool light_ceiling    = (aBoxMask & kLightCeiling)    != 0;
         bool light_sun        = (aBoxMask & kLightSun)        != 0;
         bool light_point      = (aBoxMask & kLightPoint)      != 0;
         bool light_background = (aBoxMask & kLightBackground) != 0;
 
         bool light_box = true;
+
         // because it looks really weird with it
         if(light_point)
             light_box = false;
@@ -152,7 +170,7 @@ public:
         mat.Reset();
         mat.mDiffuseReflectance = Vec3f(0.1f);
         mat.mPhongReflectance   = Vec3f(0.7f);
-        mat.mGlossiness         = 90.f;
+        mat.mPhongExponent         = 90.f;
         mMaterials.push_back(mat);
 
         // 3) diffuse green left wall
@@ -247,8 +265,10 @@ public:
         // Ball - central
         float largeRadius = 0.8f;
         Vec3f center = (cb[0] + cb[1] + cb[4] + cb[5]) * (1.f / 4.f) + Vec3f(0, 0, largeRadius);
+
         if((aBoxMask & kLargeMirrorSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 6));
+
         if((aBoxMask & kLargeGlassSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 7));
 
@@ -259,8 +279,10 @@ public:
         float xlen = rightWallCenter.x - leftWallCenter.x;
         Vec3f leftBallCenter  = leftWallCenter  + Vec3f(2.f * xlen / 7.f, 0, 0);
         Vec3f rightBallCenter = rightWallCenter - Vec3f(2.f * xlen / 7.f, 0, 0);
+
         if((aBoxMask & kSmallMirrorSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  smallRadius, 6));
+
         if((aBoxMask & kSmallGlassSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(rightBallCenter, smallRadius, 7));
 
@@ -310,7 +332,7 @@ public:
         // Lights
         if(light_ceiling && !light_box)
         {
-            // Without lightbox, whole ceiling is light
+            // Without light box, whole ceiling is light
             mLights.resize(2);
             AreaLight *l = new AreaLight(cb[2], cb[6], cb[7]);
             l->mIntensity = Vec3f(0.95492965f);
@@ -324,7 +346,7 @@ public:
         }
         else if(light_ceiling && light_box)
         {
-            // With lightbox
+            // With light box
             mLights.resize(2);
             AreaLight *l = new AreaLight(lb[0], lb[5], lb[4]);
             //l->mIntensity = Vec3f(0.95492965f);
@@ -375,47 +397,49 @@ public:
         mSceneSphere.mInvSceneRadiusSqr = 1.f / Sqr(mSceneSphere.mSceneRadius);
     }
 
-
-    std::string GetSceneName(uint aBoxMask, std::string *oAcronym = NULL)
+    static std::string GetSceneName(
+        uint        aBoxMask,
+        std::string *oAcronym = NULL)
     {
         std::string name;
         std::string acronym;
+
         // Floor type
         if((aBoxMask & kGlossyFloor) == kGlossyFloor)
         {
-            name    += "Glossy ";
+            name    += "glossy ";
             acronym += "g";
         }
 
         // Box content
         if((aBoxMask & kBothSmallSpheres) == kBothSmallSpheres)
         {
-            name    += "Small spheres";
+            name    += "small spheres";
             acronym += "bs";
         }
         else if((aBoxMask & kSmallMirrorSphere) == kSmallMirrorSphere)
         {
-            name    += "Small mirror sphere";
+            name    += "small mirror sphere";
             acronym += "sm";
         }
         else if((aBoxMask & kSmallGlassSphere) == kSmallGlassSphere)
         {
-            name    += "Small glass sphere";
+            name    += "small glass sphere";
             acronym += "sg";
         }
         else if((aBoxMask & kLargeMirrorSphere) == kLargeMirrorSphere)
         {
-            name    += "Large mirror sphere";
+            name    += "large mirror sphere";
             acronym += "lm";
         }
         else if((aBoxMask & kLargeGlassSphere) == kLargeGlassSphere)
         {
-            name    += "Large glass sphere";
+            name    += "large glass sphere";
             acronym += "lg";
         }
         else
         {
-            name    += "Empty";
+            name    += "empty";
             acronym += "e";
         }
 
@@ -424,38 +448,41 @@ public:
         // Lighting
         if((aBoxMask & kLightCeiling) == kLightCeiling)
         {
-            name    += " + Ceiling";
+            name    += " + ceiling (area)";
             acronym += "c";
         }
         else if((aBoxMask & kLightSun) == kLightSun)
         {
-            name    += " + Sun";
+            name    += " + sun (directional)";
             acronym += "s";
         }
         else if((aBoxMask & kLightPoint) == kLightPoint)
         {
-            name    += " + Point";
+            name    += " + point";
             acronym += "p";
         }
         else if((aBoxMask & kLightBackground) == kLightBackground)
         {
-            name    += " + Background";
+            name    += " + background (env. lighting)";
             acronym += "b";
         }
 
         if(oAcronym) *oAcronym = acronym;
         return name;
     }
-private:
 
 public:
+
     AbstractGeometry      *mGeometry;
     Camera                mCamera;
     std::vector<Material> mMaterials;
     std::vector<AbstractLight*>   mLights;
-    std::map<int, int> mMaterial2Light;
-    SceneSphere        mSceneSphere;
-    BackgroundLight*   mBackground;
+    std::map<int, int>    mMaterial2Light;
+    SceneSphere           mSceneSphere;
+    BackgroundLight*      mBackground;
+
+    std::string           mSceneName;
+    std::string           mSceneAcronym;
 };
 
 #endif //__SCENE_HXX__
