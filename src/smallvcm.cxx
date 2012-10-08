@@ -337,11 +337,8 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
         if((g_SceneConfigs[sceneID] & Scene::kGlossyFloor) != 0)
             oConfig.mOutputName = "g";
 
-        std::string name, acronym;
-        name = oConfig.mScene->GetSceneName(g_SceneConfigs[sceneID], &acronym);
-
         // We use scene acronym
-        oConfig.mOutputName += acronym;
+        oConfig.mOutputName += oConfig.mScene->mSceneAcronym;
 
         // We add acronym of the used algorithm
         oConfig.mOutputName += "_";
