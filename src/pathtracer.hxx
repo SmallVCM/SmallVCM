@@ -34,9 +34,13 @@
 class PathTracer : public AbstractRenderer
 {
 public:
-    PathTracer(const Scene& aScene, int aSeed = 1234) : AbstractRenderer(aScene), mRng(aSeed)
-    {
-    }
+
+    PathTracer(
+        const Scene& aScene,
+        int aSeed = 1234
+    ) :
+        AbstractRenderer(aScene), mRng(aSeed)
+    {}
 
     virtual void RunIteration(int aIteration)
     {
@@ -143,9 +147,9 @@ public:
 
                     if(!radiance.IsZero())
                     {
-                        float brdfPdfW, cosThetaOut;
-                        const Vec3f factor = bsdf.EvaluateBrdfPdfW(mScene,
-                            directionToLight, cosThetaOut, &brdfPdfW);
+                        float bsdfPdfW, cosThetaOut;
+                        const Vec3f factor = bsdf.Evaluate(mScene,
+                            directionToLight, cosThetaOut, &bsdfPdfW);
 
                         if(!factor.IsZero())
                         {
@@ -153,8 +157,8 @@ public:
                             if(!light->IsDelta())
                             {
                                 const float contProb = bsdf.ContinuationProb();
-                                brdfPdfW *= contProb;
-                                weight = Mis2(directPdfW * lightPickProb, brdfPdfW);
+                                bsdfPdfW *= contProb;
+                                weight = Mis2(directPdfW * lightPickProb, bsdfPdfW);
                             }
 
                             Vec3f contrib = (weight * cosThetaOut / (lightPickProb * directPdfW)) *
@@ -174,13 +178,13 @@ public:
                     float pdf, cosThetaOut;
                     uint  sampledEvent;
 
-                    Vec3f factor = bsdf.SampleBrdf(mScene, rndTriplet, ray.dir,
+                    Vec3f factor = bsdf.Sample(mScene, rndTriplet, ray.dir,
                         pdf, cosThetaOut, &sampledEvent);
 
                     if(factor.IsZero())
                         break;
 
-                    // russian roulette
+                    // Russian roulette
                     const float contProb = bsdf.ContinuationProb();
 
                     lastSpecular = (sampledEvent & BSDF<true>::kSpecular) != 0;
@@ -211,17 +215,24 @@ public:
     }
 
 private:
+
     // Mis power (1 for balance heuristic)
-    float Mis(float aPdf) const { return aPdf; }
+    float Mis(float aPdf) const
+    {
+        return aPdf;
+    }
 
     // Mis weight for 2 pdfs
-    float Mis2(float aSamplePdf, float aOtherPdf) const
+    float Mis2(
+        float aSamplePdf,
+        float aOtherPdf) const
     {
         return Mis(aSamplePdf) / (Mis(aSamplePdf) + Mis(aOtherPdf));
     }
 
 private:
-    Rng         mRng;
+
+    Rng mRng;
 };
 
 #endif //__PATHTRACER_HXX__

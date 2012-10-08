@@ -39,14 +39,19 @@
 class HtmlWriter
 {
 public:
+
     enum BorderColor
     {
         kNone,
         kRed,
         kGreen
     };
+
 public:
-    HtmlWriter(const std::string& aFileName) : mFileName(aFileName), mHtml(mFileName)
+
+    HtmlWriter(const std::string& aFileName) :
+        mFileName(aFileName),
+        mHtml(mFileName)
     {
         // Most browsers will cap number of columns to real value,
         // so having something significantly larger works ok
@@ -261,10 +266,11 @@ public:
 
     void AddScene(const std::string &aSceneName)
     {
-
         mHtml << "<table";
+
         if(mAlgorithmCount < 100)
             mHtml << " width=\"" << mAlgorithmCount * (mThumbnailSize + 10) << "px\"";
+
         mHtml << "><tr><td colspan=\"" << mAlgorithmCount << "\"><h2>" << aSceneName << "</h2></td></tr>" << std::endl;
         mHtml << "<tr>" << std::endl;
     }
@@ -272,8 +278,8 @@ public:
     void AddRendering(
         const std::string &aMethodName,
         const std::string &aFileName,
-        float aTime,
-        BorderColor aBorderColor = kNone,
+        float             aTime,
+        BorderColor       aBorderColor = kNone,
         const std::string &aOtherInfo = "")
     {
         // The image
@@ -325,7 +331,7 @@ public:
         const std::string aMethodFiles[4],
         const std::string aMethodNames[4],
         const int         aBorderColors[4],
-        const int aSize)
+        const int         aSize)
     {
         mHtml << "</tr><tr>" << std::endl;
         mHtml << "<td colspan=\"" << mAlgorithmCount << "\" align=\"center\">" << std::endl;
@@ -377,8 +383,8 @@ public:
         }
     }
 
-
 public:
+
     int           mAlgorithmCount;
     int           mThumbnailSize;
     std::string   mFileName;
