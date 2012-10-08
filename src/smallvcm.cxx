@@ -157,8 +157,8 @@ void PrintRngWarning()
 
 void PrintHelp(const char *argv[])
 {
-    printf("usage: %s -S <sceneID> -A <algorithm>\n", argv[0]);
-    printf("          [ -t <time> | -i <iteration> |-o <output_name> ]\n\n");
+    printf("usage: %s -S <scene_id> -A <algorithm>\n", argv[0]);
+    printf("          [ -t <time> | -i <iteration> | -o <output_name> ]\n\n");
     printf("    -S  Selects the scene:\n");
 
     for(int i = 0; i < SizeOfArray(g_SceneConfigs); i++)
