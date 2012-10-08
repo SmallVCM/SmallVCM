@@ -1,9 +1,11 @@
 *.bmp
 *.ppm
 *.pfm
+*.hdr
 *.suo
 *.sdf
 *.opensdf
+*.html
 SmallVCM.vcxproj.user
 /build/*
 /ipch/*
