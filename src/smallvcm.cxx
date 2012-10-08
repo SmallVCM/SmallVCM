@@ -98,6 +98,7 @@ struct Config
     uint        mMinPathLength;
     std::string mOutputName;
     Vec2i       mResolution;
+    bool        mFullReport; // ignore scene and algorithm and do html report instead
 };
 
 // Utility function, essentially a renderer factory
@@ -136,6 +137,29 @@ uint g_SceneConfigs[] = {
     Scene::kGlossyFloor | Scene::kBothSmallSpheres  | Scene::kLightBackground
 };
 
+std::string DefaultFilename(
+    const uint              aSceneConfig,
+    const Scene             &aScene,
+    const Config::Algorithm aAlgorithm)
+{
+    std::string filename;
+    // if scene has glossy floor, name will be prefixed by g
+    if((aSceneConfig & Scene::kGlossyFloor) != 0)
+        filename = "g";
+
+    // We use scene acronym
+    filename += aScene.mSceneAcronym;
+
+    // We add acronym of the used algorithm
+    filename += "_";
+    filename += Config::GetAcronym(aAlgorithm);
+
+    // And it will be written as bmp
+    filename += ".bmp";
+
+    return filename;
+}
+
 // Utility function, gives length of array
 template <typename T, size_t N>
 inline int SizeOfArray( const T(&)[ N ] )
@@ -158,8 +182,9 @@ void PrintRngWarning()
 void PrintHelp(const char *argv[])
 {
     printf("\n");
-    printf("Usage: %s -s <scene_id> -a <algorithm>\n", argv[0]);
-    printf("          [ -t <time> | -i <iteration> | -o <output_name> ]\n\n");
+    printf("Usage: %s [ -s <scene_id> | -a <algorithm>\n", argv[0]);
+    printf("           -t <time> | -i <iteration> | -o <output_name>\n");
+    printf("           --report ]\n\n");
     printf("    -s  Selects the scene (default 0):\n");
 
     for(int i = 0; i < SizeOfArray(g_SceneConfigs); i++)
@@ -175,6 +200,10 @@ void PrintHelp(const char *argv[])
     printf("    -t  Number of seconds to run the algorithm\n");
     printf("    -i  Number of iterations to run the algorithm (default 1)\n");
     printf("    -o  User specified output name, with extension .bmp or .hdr (default .bmp)\n");
+    printf("    --report  Generates index.html presenting all scene-algorithm combinations\n");
+    printf("              Obeys -t and -i options, ignores the rest.\n");
+    printf("              Recommended usage: --report -t 10  (takes 5.5 mins)\n");
+    printf("              Recommended usage: --report -t 60  (takes 60 mins)\n");
     printf("\n    Note: Time (-t) takes precedence over iterations (-i) if both are defined\n");
 }
 
@@ -193,6 +222,7 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
     oConfig.mMinPathLength = 0;
     oConfig.mOutputName    = "";                    // [cmd]
     oConfig.mResolution    = Vec2i(512, 512);
+    oConfig.mFullReport    = false;
 
     int sceneID    = 0; // default 0
 
@@ -211,6 +241,10 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
         if(arg[0] != '-') // all our commands start with -
         {
             continue;
+        }
+        else if(arg == "--report")
+        {
+            oConfig.mFullReport = true;
         }
         else if(arg == "-s") // scene to load
         {
@@ -302,6 +336,10 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
         }
     }
 
+    // When doing full report, we ignore algorithm and scene settings
+    if(oConfig.mFullReport)
+        return;
+
     // Check algorithm was selected
     if(oConfig.mAlgorithm == Config::kAlgorithmMax)
     {
@@ -318,19 +356,8 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
     // If no output name is chosen, create a default one
     if(oConfig.mOutputName.length() == 0)
     {
-        // if scene has glossy floor, name will be prefixed by g
-        if((g_SceneConfigs[sceneID] & Scene::kGlossyFloor) != 0)
-            oConfig.mOutputName = "g";
-
-        // We use scene acronym
-        oConfig.mOutputName += oConfig.mScene->mSceneAcronym;
-
-        // We add acronym of the used algorithm
-        oConfig.mOutputName += "_";
-        oConfig.mOutputName += Config::GetAcronym(oConfig.mAlgorithm);
-
-        // And it will be written as bmp
-        oConfig.mOutputName += ".bmp";
+        oConfig.mOutputName = DefaultFilename(g_SceneConfigs[sceneID],
+            *oConfig.mScene, oConfig.mAlgorithm);
     }
 
     // Check if output name has valid extension (.bmp or .hdr) and if not add .bmp
@@ -437,6 +464,122 @@ float render(
     return float(endT - startT) / CLOCKS_PER_SEC;
 }
 
+//////////////////////////////////////////////////////////////////////////
+// Generates index.html with all scene-algorithm combinations.
+
+void FullReport(const Config &aConfig)
+{
+    // Make a local copy of config
+    Config config = aConfig;
+
+    config.mFullReport = false;
+
+    // Setup framebuffer and threads
+    Framebuffer fbuffer;
+    config.mFramebuffer = &fbuffer;
+    config.mNumThreads  = std::max(1, omp_get_num_procs());
+
+    // Setup html writer
+    HtmlWriter html_writer("index.html");
+    html_writer.WriteHeader();
+    html_writer.mAlgorithmCount = (int)Config::kAlgorithmMax;
+    html_writer.mThumbnailSize  = 128;
+
+    int numIterations;
+
+    if(SizeOfArray(g_SceneConfigs) != 4)
+    {
+        printf("Report assumes we have only 4 scenes\n");
+        printf("Cannot continue with %d\n", SizeOfArray(g_SceneConfigs));
+        exit(2);
+    }
+
+    // Quite subjective evaluation whether given algorithm is
+    // for a given scene good, poor, or neutral.
+    std::set<int> goodAlgorithms[4], poorAlgorithms[4];
+    goodAlgorithms[0].insert(Config::kVertexConnectionMerging);
+    goodAlgorithms[0].insert(Config::kBidirectionalPhotonMapping);
+    poorAlgorithms[0].insert(Config::kBidirectionalPathTracing);
+
+    goodAlgorithms[1].insert(Config::kVertexConnectionMerging);
+    goodAlgorithms[1].insert(Config::kBidirectionalPhotonMapping);
+    poorAlgorithms[1].insert(Config::kBidirectionalPathTracing);
+    poorAlgorithms[1].insert(Config::kProgressivePhotonMapping);
+
+    goodAlgorithms[2].insert(Config::kVertexConnectionMerging);
+    goodAlgorithms[2].insert(Config::kBidirectionalPhotonMapping);
+    poorAlgorithms[2].insert(Config::kProgressivePhotonMapping);
+
+    goodAlgorithms[3].insert(Config::kVertexConnectionMerging);
+    goodAlgorithms[3].insert(Config::kBidirectionalPathTracing);
+    poorAlgorithms[3].insert(Config::kBidirectionalPhotonMapping);
+    poorAlgorithms[3].insert(Config::kProgressivePhotonMapping);
+
+    // Acronyms of algorithms in four-way split
+    std::string splitAcronyms[] = {"PPM", "BPM", "BPT", "VCM"};
+    // Filename and border color for images in four-way split
+    std::string splitFiles[4];
+    int         borderColors[4];
+
+    clock_t startTime = clock();
+
+    for(int sceneID=0; sceneID<SizeOfArray(g_SceneConfigs); sceneID++)
+    {
+        Scene  scene;
+        scene.LoadCornellBox(config.mResolution, g_SceneConfigs[sceneID]);
+        scene.BuildSceneSphere();
+        config.mScene = &scene;
+
+        html_writer.AddScene(scene.mSceneName);
+        printf("Scene: %s\n", scene.mSceneName.c_str());
+
+        for(uint algID = 0; algID < (uint)Config::kAlgorithmMax; algID++)
+        {
+            config.mAlgorithm = Config::Algorithm(algID);
+            printf("Running %s... ", config.GetName(config.mAlgorithm));
+            fflush(stdout);
+            float time = render(config, &numIterations);
+            printf("done in %.2f s\n", time);
+
+            std::string filename = DefaultFilename(g_SceneConfigs[sceneID],
+                *config.mScene, config.mAlgorithm);
+
+            fbuffer.SaveBMP(filename.c_str(), 2.2f);
+
+            // Add thumbnail of the method
+            HtmlWriter::BorderColor bcolor = HtmlWriter::kNone;
+
+            if(poorAlgorithms[sceneID].count(algID) > 0)
+                bcolor = HtmlWriter::kRed;
+
+            if(goodAlgorithms[sceneID].count(algID) > 0)
+                bcolor = HtmlWriter::kGreen;
+
+            html_writer.AddRendering(Config::GetName(config.mAlgorithm),
+                filename, time, bcolor,
+                html_writer.MakeMessage("<br/>Iterations: %d", numIterations));
+
+            if(algID >= (int)Config::kProgressivePhotonMapping)
+            {
+                const int idx = algID - Config::kProgressivePhotonMapping;
+                splitFiles[idx]   = filename;
+                borderColors[idx] = bcolor;
+            }
+        }
+
+        html_writer.AddFourWaySplit(splitFiles, splitAcronyms,
+            borderColors, config.mResolution.x);
+    }
+
+    html_writer.Close();
+
+    clock_t endTime = clock();
+    printf("Whole run took %.2f s\n", float(endTime - startTime) / CLOCKS_PER_SEC);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Main
+
 int main(int argc, const char *argv[])
 {
     // Warns when not using C++11 Mersenne Twister
@@ -445,6 +588,12 @@ int main(int argc, const char *argv[])
     // Setups config based on command line
     Config config;
     ParseCommandline(argc, argv, config);
+
+    if(config.mFullReport)
+    {
+        FullReport(config);
+        return 0;
+    }
 
     // When some error has been encountered, exits
     if(config.mScene == NULL)
