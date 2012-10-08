@@ -62,17 +62,17 @@ struct Config
     {
         static const char* algorithmNames[7] =
         {
-            "Eye Light",
-            "Path Tracing",
-            "Light Tracing",
-            "Progressive Photon Mapping",
-            "Bidirectional Photon Mapping",
-            "Bidirectional Path Tracing",
-            "Vertex Connection Merging"
+            "eye light",
+            "path tracing",
+            "light tracing",
+            "progressive photon mapping",
+            "bidirectional photon mapping",
+            "bidirectional path tracing",
+            "vertex connection and merging"
         };
 
         if(aAlgorithm < 0 || aAlgorithm > 7)
-            return "Unknown algorithm";
+            return "unknown algorithm";
 
         return algorithmNames[aAlgorithm];
     }
@@ -157,14 +157,15 @@ void PrintRngWarning()
 
 void PrintHelp(const char *argv[])
 {
-    printf("usage: %s -S <scene_id> -A <algorithm>\n", argv[0]);
+    printf("\n");
+    printf("Usage: %s -s <scene_id> -a <algorithm>\n", argv[0]);
     printf("          [ -t <time> | -i <iteration> | -o <output_name> ]\n\n");
-    printf("    -S  Selects the scene:\n");
+    printf("    -s  Selects the scene:\n");
 
     for(int i = 0; i < SizeOfArray(g_SceneConfigs); i++)
         printf("          %d    %s\n", i, Scene::GetSceneName(g_SceneConfigs[i]).c_str());
 
-    printf("    -A  Selects the rendering algorithm:\n");
+    printf("    -a  Selects the rendering algorithm:\n");
 
     for(int i = 0; i < (int)Config::kAlgorithmMax; i++)
         printf("          %-3s  %s\n",
@@ -174,7 +175,7 @@ void PrintHelp(const char *argv[])
     printf("    -t  Number of seconds to run the algorithm\n");
     printf("    -i  Number of iterations to run the algorithm (default 1)\n");
     printf("    -o  User specified output name, with extension .bmp or .hdr (default .bmp)\n");
-    printf("\n    Note: Time (-t) takes precedence over iterations (-i) if both are defined\n\n");
+    printf("\n    Note: Time (-t) takes precedence over iterations (-i) if both are defined\n");
 }
 
 // Parses command line, setting up config
@@ -218,7 +219,7 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
         {
             continue;
         }
-        else if(arg == "-S") // scene to load
+        else if(arg == "-s") // scene to load
         {
             if(++i == argc)
             {
@@ -235,7 +236,7 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
                 return;
             }
         }
-        else if(arg == "-A") // algorithm to use
+        else if(arg == "-a") // algorithm to use
         {
             if(++i == argc)
             {
