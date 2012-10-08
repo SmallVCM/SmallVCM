@@ -70,5 +70,8 @@
     <ClInclude Include="src\html_writer.hxx">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\config.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
