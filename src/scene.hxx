@@ -133,6 +133,8 @@ public:
         const Vec2i &aResolution,
         uint aBoxMask = kDefault)
     {
+        mSceneName = GetSceneName(aBoxMask, &mSceneAcronym);
+
         if((aBoxMask & kBothLargeSpheres) == kBothLargeSpheres)
         {
             printf("Cannot have both large balls, using mirror\n\n");
@@ -478,6 +480,9 @@ public:
     std::map<int, int>    mMaterial2Light;
     SceneSphere           mSceneSphere;
     BackgroundLight*      mBackground;
+
+    std::string           mSceneName;
+    std::string           mSceneAcronym;
 };
 
 #endif //__SCENE_HXX__
