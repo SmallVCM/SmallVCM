@@ -263,8 +263,10 @@ public:
         // Ball - central
         float largeRadius = 0.8f;
         Vec3f center = (cb[0] + cb[1] + cb[4] + cb[5]) * (1.f / 4.f) + Vec3f(0, 0, largeRadius);
+
         if((aBoxMask & kLargeMirrorSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 6));
+
         if((aBoxMask & kLargeGlassSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(center, largeRadius, 7));
 
@@ -275,8 +277,10 @@ public:
         float xlen = rightWallCenter.x - leftWallCenter.x;
         Vec3f leftBallCenter  = leftWallCenter  + Vec3f(2.f * xlen / 7.f, 0, 0);
         Vec3f rightBallCenter = rightWallCenter - Vec3f(2.f * xlen / 7.f, 0, 0);
+
         if((aBoxMask & kSmallMirrorSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(leftBallCenter,  smallRadius, 6));
+
         if((aBoxMask & kSmallGlassSphere) != 0)
             geometryList->mGeometry.push_back(new Sphere(rightBallCenter, smallRadius, 7));
 
@@ -326,7 +330,7 @@ public:
         // Lights
         if(light_ceiling && !light_box)
         {
-            // Without lightbox, whole ceiling is light
+            // Without light box, whole ceiling is light
             mLights.resize(2);
             AreaLight *l = new AreaLight(cb[2], cb[6], cb[7]);
             l->mIntensity = Vec3f(0.95492965f);
@@ -340,7 +344,7 @@ public:
         }
         else if(light_ceiling && light_box)
         {
-            // With lightbox
+            // With light box
             mLights.resize(2);
             AreaLight *l = new AreaLight(lb[0], lb[5], lb[4]);
             //l->mIntensity = Vec3f(0.95492965f);
@@ -401,39 +405,39 @@ public:
         // Floor type
         if((aBoxMask & kGlossyFloor) == kGlossyFloor)
         {
-            name    += "Glossy ";
+            name    += "glossy ";
             acronym += "g";
         }
 
         // Box content
         if((aBoxMask & kBothSmallSpheres) == kBothSmallSpheres)
         {
-            name    += "Small spheres";
+            name    += "small spheres";
             acronym += "bs";
         }
         else if((aBoxMask & kSmallMirrorSphere) == kSmallMirrorSphere)
         {
-            name    += "Small mirror sphere";
+            name    += "small mirror sphere";
             acronym += "sm";
         }
         else if((aBoxMask & kSmallGlassSphere) == kSmallGlassSphere)
         {
-            name    += "Small glass sphere";
+            name    += "small glass sphere";
             acronym += "sg";
         }
         else if((aBoxMask & kLargeMirrorSphere) == kLargeMirrorSphere)
         {
-            name    += "Large mirror sphere";
+            name    += "large mirror sphere";
             acronym += "lm";
         }
         else if((aBoxMask & kLargeGlassSphere) == kLargeGlassSphere)
         {
-            name    += "Large glass sphere";
+            name    += "large glass sphere";
             acronym += "lg";
         }
         else
         {
-            name    += "Empty";
+            name    += "empty";
             acronym += "e";
         }
 
@@ -442,22 +446,22 @@ public:
         // Lighting
         if((aBoxMask & kLightCeiling) == kLightCeiling)
         {
-            name    += " + Ceiling";
+            name    += " + ceiling";
             acronym += "c";
         }
         else if((aBoxMask & kLightSun) == kLightSun)
         {
-            name    += " + Sun";
+            name    += " + sun";
             acronym += "s";
         }
         else if((aBoxMask & kLightPoint) == kLightPoint)
         {
-            name    += " + Point";
+            name    += " + point";
             acronym += "p";
         }
         else if((aBoxMask & kLightBackground) == kLightBackground)
         {
-            name    += " + Background";
+            name    += " + background";
             acronym += "b";
         }
 
