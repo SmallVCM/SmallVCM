@@ -6,3 +6,6 @@ all:
 
 old_rng:
 	g++ -o smallvcm ./src/smallvcm.cxx -O3 -fopenmp -DLEGACY_RNG
+
+clean:
+	rm smallvcm
