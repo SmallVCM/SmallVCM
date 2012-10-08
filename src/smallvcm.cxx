@@ -160,12 +160,12 @@ void PrintHelp(const char *argv[])
     printf("\n");
     printf("Usage: %s -s <scene_id> -a <algorithm>\n", argv[0]);
     printf("          [ -t <time> | -i <iteration> | -o <output_name> ]\n\n");
-    printf("    -s  Selects the scene:\n");
+    printf("    -s  Selects the scene (default 0):\n");
 
     for(int i = 0; i < SizeOfArray(g_SceneConfigs); i++)
         printf("          %d    %s\n", i, Scene::GetSceneName(g_SceneConfigs[i]).c_str());
 
-    printf("    -a  Selects the rendering algorithm:\n");
+    printf("    -a  Selects the rendering algorithm (default vcm):\n");
 
     for(int i = 0; i < (int)Config::kAlgorithmMax; i++)
         printf("          %-3s  %s\n",
@@ -194,14 +194,7 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
     oConfig.mOutputName    = "";                    // [cmd]
     oConfig.mResolution    = Vec2i(512, 512);
 
-    int sceneID    = -1;
-
-    // If no arguments at all, print help
-    if(argc <= 1)
-    {
-        PrintHelp(argv);
-        return;
-    }
+    int sceneID    = 0; // default 0
 
     // Load arguments
     for(int i=1; i<argc; i++)
@@ -309,18 +302,10 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
         }
     }
 
-    // Check scene was selected
-    if(sceneID < 0 || sceneID >= SizeOfArray(g_SceneConfigs))
-    {
-        printf("Missing mandatory -S <sceneID> argument, please see help (-h)\n");
-        return;
-    }
-
     // Check algorithm was selected
     if(oConfig.mAlgorithm == Config::kAlgorithmMax)
     {
-        printf("Missing mandatory -A <algorithm> argument, please see help (-h)\n");
-        return;
+        oConfig.mAlgorithm = Config::kVertexConnectionMerging;
     }
 
     // Load scene
