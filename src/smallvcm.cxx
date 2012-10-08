@@ -478,4 +478,6 @@ int main(int argc, const char *argv[])
 
     // Scene cleanup
     delete config.mScene;
+
+    return 0;
 }
