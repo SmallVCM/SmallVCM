@@ -10,9 +10,9 @@ connection and merging algortihm described in the paper
  ACM Transactions on Graphics 31(6) (SIGGRAPH Asia 2012)
 
 as well as a number of other algorithms, notably including progressive photon
-mapping, (progressive) bidirectional photon mapping, bidirectional path tracing.
-The code compiles to a command line program that can render images of a number
-of predefined scenes using the provided algorithms.
+mapping, (progressive) bidirectional photon mapping, and bidirectional path
+tracing. The code compiles to a command line program that can render images of a
+number of predefined scenes using the provided algorithms.
 
 Disclaimer:
   * Unless really care, you can safely ignore all licenses in the source code.
@@ -149,7 +149,7 @@ Rendering features:
 Limitations:
   * No acceleration structure for ray intersection (can be added to scene.hxx).
   * Scenes are hardcoded (see LoadCornellBox in scene.hxx).
-  * The bidirectional algorithms do not support diffuse + specular materials.
+  * The bpm, bpt, and vcm algorithms do not support diffuse+specular materials.
   * Each area light is an individual triangle, and requires its very own
     material for identification. This can and should be changed if code is
 	used for scenes with complex area light sources. Also, the way of finding
