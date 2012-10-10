@@ -94,6 +94,8 @@ struct Config
     Algorithm   mAlgorithm;
     int         mIterations;
     float       mMaxTime;
+    float       mRadiusFactor;
+    float       mRadiusAlpha;
     Framebuffer *mFramebuffer;
     int         mNumThreads;
     int         mBaseSeed;
@@ -106,26 +108,32 @@ struct Config
 
 // Utility function, essentially a renderer factory
 AbstractRenderer* CreateRenderer(
-    const Config::Algorithm  aAlgorithm,
-    const Scene              &aScene,
-    const int                aSeed)
+    const Config& aConfig,
+    const int     aSeed)
 {
-    switch(aAlgorithm)
+    const Scene& scene = *aConfig.mScene;
+
+    switch(aConfig.mAlgorithm)
     {
     case Config::kEyeLight:
-        return new EyeLight(aScene, aSeed);
+        return new EyeLight(scene, aSeed);
     case Config::kPathTracing:
-        return new PathTracer(aScene, aSeed);
+        return new PathTracer(scene, aSeed);
     case Config::kLightTracing:
-        return new VertexCM(aScene, VertexCM::kLightTrace, aSeed);
+        return new VertexCM(scene, VertexCM::kLightTrace,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     case Config::kProgressivePhotonMapping:
-        return new VertexCM(aScene, VertexCM::kPpm, aSeed);
+        return new VertexCM(scene, VertexCM::kPpm,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     case Config::kBidirectionalPhotonMapping:
-        return new VertexCM(aScene, VertexCM::kBpm, aSeed);
+        return new VertexCM(scene, VertexCM::kBpm,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     case Config::kBidirectionalPathTracing:
-        return new VertexCM(aScene,VertexCM::kBpt, aSeed);
+        return new VertexCM(scene, VertexCM::kBpt,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     case Config::kVertexConnectionMerging:
-        return new VertexCM(aScene, VertexCM::kVcm, aSeed);
+        return new VertexCM(scene, VertexCM::kVcm,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     default:
         printf("Unknown algorithm!!\n");
         exit(2);
@@ -219,14 +227,16 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
     oConfig.mAlgorithm     = Config::kAlgorithmMax; // [cmd]
     oConfig.mIterations    = 1;                     // [cmd]
     oConfig.mMaxTime       = -1.f;                  // [cmd]
-    //oConfig.mFramebuffer   = NULL; // this is never set by any parameter
+    oConfig.mOutputName    = "";                    // [cmd]
     oConfig.mNumThreads    = 0;
     oConfig.mBaseSeed      = 1234;
     oConfig.mMaxPathLength = 10;
     oConfig.mMinPathLength = 0;
-    oConfig.mOutputName    = "";                    // [cmd]
     oConfig.mResolution    = Vec2i(512, 512);
     oConfig.mFullReport    = false;
+    oConfig.mRadiusFactor  = 0.003f;
+    oConfig.mRadiusAlpha   = 0.75f;
+    //oConfig.mFramebuffer   = NULL; // this is never set by any parameter
 
     int sceneID    = 0; // default 0
 

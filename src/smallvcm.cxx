@@ -61,8 +61,7 @@ float render(
 
     for(int i=0; i<aConfig.mNumThreads; i++)
     {
-        renderers[i] = CreateRenderer(aConfig.mAlgorithm,
-            *aConfig.mScene, aConfig.mBaseSeed + i);
+        renderers[i] = CreateRenderer(aConfig, aConfig.mBaseSeed + i);
 
         renderers[i]->mMaxPathLength = aConfig.mMaxPathLength;
         renderers[i]->mMinPathLength = aConfig.mMinPathLength;

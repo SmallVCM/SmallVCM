@@ -109,6 +109,8 @@ Some settings have no command line switch, but can be changed in the code:
   mMinPathLength  Minimal path length (i.e. number of segments) (default 0)
   mMaxPathLength  Maximal path length (i.e. number of segments) (default 10)
   mResolution     Image resolution (default 512x512)
+  mRadiusFactor   Scene diameter fraction for the merging radius (default 0.003)
+  mRadiusAlpha    Merging radius reduction parameter (default 0.75)
 
 ================================================================================
 3) FEATURES and LIMITATIONS
