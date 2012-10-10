@@ -207,7 +207,7 @@ sub-paths per iteration, which is the number of pixels in the image.
   to weight the different possible ways of constructing the same path by merging
   at any (non-specular) interior path vertex.
 
-* Bidirection path tracing (bpt)
+* Bidirectional path tracing (bpt)
   Light sub-paths are traced, their non-specular vertices are first connected to
   the camera (as in light tracing) and then stored (without a hash grid). Next,
   the camera sub-paths are traced, connecting each non-specular vertex to a
