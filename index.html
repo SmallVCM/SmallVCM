@@ -57,8 +57,8 @@ every implemented rendering algorithm and the differences between them.</li>
 <li>We are aware that the description below is not as detailed as it can be, and
 appologize for any errors and confusion.</li>
 <li>If you have any questions and/or input w.r.t. improving and adding
-explanations, feel free to contact Tomas Davidovic <a href="mailto:tomas@davidovic.cz">tomas@davidovic.cz</a>,
-the primary maintainer of this project, or Iliyan Georgiev <a href="mailto:me@iliyan.com">me@iliyan.com</a>,
+explanations, feel free to contact Tomas Davidovic (<a href="https://github.com/tomas-davidovic" class="user-mention">@tomas-davidovic</a>),
+the primary maintainer of this project, or Iliyan Georgiev (<a href="https://github.com/iliyang" class="user-mention">@iliyang</a>),
 the primary author of the above paper, and we will figure out whatever you
 might need.</li>
 </ul><p>With that out of the way, let's go over the usual stuff.</p>
@@ -163,9 +163,12 @@ Some settings have no command line switch, but can be changed in the code:</p>
 </tr>
 </table><h3>VertexCM Renderer</h3>
 
-<p>To facilitate the understanding of the code, in this section we describe on a
-high level how the versatile <code>VertexCM</code> renderer operates. It implements a number
-of algorithms at once, and runs in three stages:</p>
+<p>The <code>VertexCM</code> renderer implements a number of algorithms that share almost
+identical code paths. The main differences between the algorithms lie in the
+multiple importance sampling (MIS) weight computation, as well as shortcuts through
+unused code. In order to make the understanding of the code easier, below we
+describe how the <code>VertexCM</code> renderer operates. On a high level, it runs in three
+stages:</p>
 
 <ol>
 <li>Light sub-path tracing (<code>ppm</code>, <code>bpm</code>, <code>bpt</code>, <code>vcm</code>)</li>
@@ -173,8 +176,7 @@ of algorithms at once, and runs in three stages:</p>
 <li>Camera sub-path tracing (all but <code>lt</code>)</li>
 </ol><p><code>PathVertex</code> (also <code>PathElement</code> variant and typedefs <code>CameraVertex</code> and <code>LightVertex</code>)
 is the basic structure describing the state of a random walk. The only unusual
-members are <code>d0</code>, <code>d1vc</code>, <code>d1vm</code>, which are used for iterative multiple importance
-sampling (MIS) weight computation:</p>
+members are <code>d0</code>, <code>d1vc</code>, <code>d1vm</code>, which are used for iterative MIS weight computation:</p>
 
 <table>
 <tr>
@@ -258,11 +260,8 @@ Red color denotes backface orientation. Implementation is in eyelight.hxx.</li>
 Kept as a separate implementation is in pathtracer.hxx.</li>
 <li>Light tracing (<code>lt</code>), progressive photon mapping (<code>ppm</code>), bidirectional photon
 mapping (<code>bpm</code>), bidirectional path tracing (<code>bpt</code>), and our vertex connection
-and merging (<code>vcm</code>). All these algorithms are implemented in vertexcm.hxx,
-as they share almost identical code paths. The main differences between
-the algorithms are in the multiple importance sampling weight computation,
-as well as occasional shortcuts through unused code. These are described in
-more detail in the next section.</li>
+and merging (<code>vcm</code>). All these are implemented in the <code>VertexCM</code> renderer, with
+code path switches for the different algorithms.</li>
 </ul><p>Limitations:</p>
 
 <ul>
@@ -271,8 +270,8 @@ more detail in the next section.</li>
 <li>The <code>ppm</code> algorithm does not handle diffuse+specular materials correctly.
 This limitation can be lifted by adding a parameter to the <code>BSDF::Sample</code>
 method that would specify the types of scattering events to be sampled.
-The ppm implementation could then be modified to continue camera sub-paths
-only for the specular parts diffuse+glossy materials.</li>
+The <code>ppm</code> implementation could then be modified to continue camera sub-paths
+only for the specular parts of diffuse+specular materials.</li>
 <li>Each area light is an individual triangle, and requires its very own
 material for identification. This can and should be changed if code is
 used for scenes with complex area light sources. Also, the way of finding
