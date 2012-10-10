@@ -111,9 +111,68 @@ Some settings have no command line switch, but can be changed in the code:
   mResolution     Image resolution (default 512x512)
   mRadiusFactor   Scene diameter fraction for the merging radius (default 0.003)
   mRadiusAlpha    Merging radius reduction parameter (default 0.75)
+  
+================================================================================
+3) VCM RENDERER
+================================================================================
+
+The VertexCM renderer implements a number of algorithms that share almost
+identical code paths. The main differences between the algorithms lie in the
+multiple importance sampling (MIS) weight computation, as well as shortcuts
+through unused code. In order to make the understanding of the code easier,
+below we describe how the VertexCM renderer operates. On a high level, it runs
+in three stages:
+  1) Light sub-path tracing (ppm, bpm, bpt, vcm)
+  2) Range search hash grid construction over light vertices (ppm, bpm, vcm)
+  3) Camera sub-path tracing (all but lt)
+
+PathVertex (also PathElement variant and typedefs CameraVertex and LightVertex)
+is the basic structure describing the state of a random walk. The only unusual
+members are d0, d1vc, d1vm, which are used for iterative MIS weight computation:
+  d0    used for both connections (bpt, vcm) and merging (bpm, vcm)
+  d1vc  used for connections (bpt, vcm)
+  d1vm  used for merging (bpm, vcm)
+  
+Note: All bidirectional algorithms sample the same number of light and camera
+sub-paths per iteration, which is the number of pixels in the image. 
+
+* Light tracing (lt)
+  Utilizes only light sub-path tracing. Each path vertex is directly connected
+  to camera and then discarded (i.e. not stored). No MIS, hash grid, or camera
+  tracing are used.
+
+* Progressive photon mapping (ppm)
+  Light sub-paths are traced, storing their vertices (as LightVertex objects) on
+  surfaces with non-specular (i.e. non-delta) materials, and building a hash
+  grid over them. The camera sub-paths are traced until hitting a non-specular
+  surface, where merging with light vertices (i.e. photon lookup) is performed,
+  terminating the camera sub-path thereafter. No MIS is used, and the radiance
+  from directly hit lights is accounted for only when all surface interactions
+  on the path are specular.
+
+* Bidirectional photon mapping (bpm)
+  An extension to ppm, terminates camera sub-paths stochastically (unlike ppm)
+  and performs merging at all non-specular vertices. MIS is used (d0 and d1vm)
+  to weight the different possible ways of constructing the same path by merging
+  at any (non-specular) interior path vertex.
+
+* Bidirectional path tracing (bpt)
+  Light sub-paths are traced, their non-specular vertices are first connected to
+  the camera (as in light tracing) and then stored (without a hash grid). Next,
+  the camera sub-paths are traced, connecting each non-specular vertex to a
+  light source and to all non-specular vertices of the light sub-path
+  corresponding to the current pixel. MIS is used (d0, d1vc).
+
+* Vertex connection and merging (vcm)
+  Effectively a combination of bidirectional photon mapping and bidirectional
+  path tracing. Light sub-path tracing projects and stores the non-specular
+  vertices, and also builds a hash grid over them. In the camera sub-path
+  tracing, each vertex is connected to a light source, to the vertices of the
+  corresponding light sub-path, and also merged with the nearby vertices of all
+  light sub-paths. MIS is used (d0, d1vm, d1vc).
 
 ================================================================================
-3) FEATURES and LIMITATIONS
+4) FEATURES and LIMITATIONS
 ================================================================================
 
 The renderer was originally intended to be a compact reference implementation, 
@@ -142,82 +201,22 @@ Rendering features:
     Kept as a separate implementation is in pathtracer.hxx.
   * Light tracing (lt), progressive photon mapping (ppm), bidirectional photon
     mapping (bpm), bidirectional path tracing (bpt), and our vertex connection
-    and merging (vcm). All these algorithms are implemented in vertexcm.hxx,
-    as they share almost identical code paths. The main differences between
-    the algorithms are in the multiple importance sampling weight computation,
-	as well as occasional shortcuts through unused code. These are described in
-	more detail in the next section.
+    and merging (vcm). All these are  implemented in the VertexCM renderer, with
+	code path switches for the different algorithms.
 
 Limitations:
   * No acceleration structure for ray intersection (can be added to scene.hxx).
-  * Scenes are hardcoded (see LoadCornellBox in scene.hxx).
+  * Scenes are hard-coded (see LoadCornellBox in scene.hxx).
   * The ppm algorithm does not handle diffuse+specular materials correctly.
     This limitation can be lifted by adding a parameter to the BSDF::Sample
 	method that would specify the types of scattering events to be sampled.
-	The ppm implementation could then be mofified to continue camera sub-paths
-	only for the specular parts diffuse+glossy materials.
+	The ppm implementation could then be modified to continue camera sub-paths
+	only for the specular parts of diffuse+specular materials.
   * Each area light is an individual triangle, and requires its very own
     material for identification. This can and should be changed if code is
 	used for scenes with complex area light sources. Also, the way of finding
 	whether and which area light is hit by a random ray can be improved.
   * No shading normals. Extending the framework with shading normals should
-    happen within the BRDF object (which already supports adjoint BSDFs required
+    happen within the BSDF object (which already supports adjoint BSDFs required
 	by refraction).
   * No infrastructural support for participating media or subsurface scattering.
-
-================================================================================
-4) VCM RENDERER
-================================================================================
-
-To facilitate the understanding of the code, in this section we describe on a
-high level how the versatile VertexCM renderer operates. It implements a number
-of algorithms at once, and runs in three stages:
-  1) Light sub-path tracing (ppm, bpm, bpt, vcm)
-  2) Range search hash grid construction over light vertices (ppm, bpm, vcm)
-  3) Camera sub-path tracing (all but lt)
-
-PathVertex (also PathElement variant and typedefs CameraVertex and LightVertex)
-is the basic structure describing the state of a random walk. The only unusual
-members are d0, d1vc, d1vm, which are used for iterative multiple importance
-sampling (MIS) weight computation:
-  d0    used for both connections (bpt, vcm) and merging (bpm, vcm)
-  d1vc  used for connections (bpt, vcm)
-  d1vm  used for merging (bpm, vcm)
-  
-Note: All bidirectional algorithms sample the same number of light and camera
-sub-paths per iteration, which is the number of pixels in the image. 
-
-* Light tracing (lt)
-  Utilizes only light sub-path tracing. Each path vertex is directly connected
-  to camera and then discarded (i.e. not stored). No MIS, hash grid, or camera
-  tracing are used.
-
-* Progressive photon mapping (ppm)
-  Light sub-paths are traced, storing their vertices (as LightVertex objects) on
-  surfaces with non-specular (i.e. non-delta) materials, and building a hash
-  grid over them. The camera sub-paths are traced until hitting a non-specular
-  surface, where merging with light vertices (i.e. photon lookup) is performed,
-  terminating the camera sub-path thereafter. No MIS is used, and the radiance
-  from directly hit lights is accounted for only when all surface interactions
-  on the path are specular.
-
-* Bidirectional photon mapping (bpm)
-  An extension to PPM, terminates camera sub-paths stochastically (unlike PPM)
-  and performs merging at all non-specular vertices. MIS is used (d0 and d1vm)
-  to weight the different possible ways of constructing the same path by merging
-  at any (non-specular) interior path vertex.
-
-* Bidirectional path tracing (bpt)
-  Light sub-paths are traced, their non-specular vertices are first connected to
-  the camera (as in light tracing) and then stored (without a hash grid). Next,
-  the camera sub-paths are traced, connecting each non-specular vertex to a
-  light source and to all non-specular vertices of the light sub-path
-  corresponding to the current pixel. MIS is used (d0, d1vc).
-
-* Vertex connection and merging (vcm)
-  Effectively a combination of bidirectional photon mapping and bidirectional
-  path tracing. Light sub-path tracing projects and stores the non-specular
-  vertices, and also builds a hash grid over them. In the camera sub-path
-  tracing, each vertex is connected to a light source, to the vertices of the
-  corresponding light sub-path, and also merged with the nearby vertices of all
-  light sub-paths. MIS is used (d0, d1vm, d1vc).
