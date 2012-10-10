@@ -15,7 +15,8 @@ tracing. The code compiles to a command line program that can render images of a
 number of predefined scenes using the provided algorithms.
 
 Disclaimer:
-  * Unless really care, you can safely ignore all licenses in the source code.
+  * Unless you really care, you can safely ignore all licenses in the source
+    code.
   * This code is meant for educational purposes, and is not the code that was
     used to render the images in the aforementioned paper. The provided scenes
 	are too simple to provide a complete understanding of the performance of
