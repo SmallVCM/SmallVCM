@@ -298,8 +298,10 @@ int main(int argc, const char *argv[])
 
     if(extension == "bmp")
         fbuffer.SaveBMP(config.mOutputName.c_str(), 2.2f /*gamma*/);
-    else if(extension == "bmp")
+    else if(extension == "hdr")
         fbuffer.SaveHDR(config.mOutputName.c_str());
+    else
+        printf("Used unknown extension %s\n", extension.c_str());
 
     // Scene cleanup
     delete config.mScene;
