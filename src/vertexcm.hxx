@@ -246,6 +246,7 @@ public:
                     printf("We are now switching from *Ppm* to *Bpm*, which can handle the scene\n\n");
 
                     mPpm = false;
+                    break;
                 }
             }
         }
