@@ -151,7 +151,11 @@ Rendering features:
 Limitations:
   * No acceleration structure for ray intersection (can be added to scene.hxx).
   * Scenes are hardcoded (see LoadCornellBox in scene.hxx).
-  * The bpm, bpt, and vcm algorithms do not support diffuse+specular materials.
+  * The ppm algorithm does not handle diffuse+specular materials correctly.
+    This limitation can be lifted by adding a parameter to the BSDF::Sample
+	method that would specify the types of scattering events to be sampled.
+	The ppm implementation could then be mofified to continue camera sub-paths
+	only for the specular parts diffuse+glossy materials.
   * Each area light is an individual triangle, and requires its very own
     material for identification. This can and should be changed if code is
 	used for scenes with complex area light sources. Also, the way of finding
