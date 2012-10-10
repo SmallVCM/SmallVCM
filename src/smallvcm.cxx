@@ -61,8 +61,7 @@ float render(
 
     for(int i=0; i<aConfig.mNumThreads; i++)
     {
-        renderers[i] = CreateRenderer(aConfig.mAlgorithm,
-            *aConfig.mScene, aConfig.mBaseSeed + i);
+        renderers[i] = CreateRenderer(aConfig, aConfig.mBaseSeed + i);
 
         renderers[i]->mMaxPathLength = aConfig.mMaxPathLength;
         renderers[i]->mMinPathLength = aConfig.mMinPathLength;
@@ -284,7 +283,7 @@ int main(int argc, const char *argv[])
     // Prints what we are doing
     printf("Scene:   %s\n", config.mScene->mSceneName.c_str());
     if(config.mMaxTime > 0)
-        printf("Target:  %f seconds render time\n", config.mMaxTime);
+        printf("Target:  %g seconds render time\n", config.mMaxTime);
     else
         printf("Target:  %d iteration(s)\n", config.mIterations);
 
@@ -299,8 +298,10 @@ int main(int argc, const char *argv[])
 
     if(extension == "bmp")
         fbuffer.SaveBMP(config.mOutputName.c_str(), 2.2f /*gamma*/);
-    else if(extension == "bmp")
+    else if(extension == "hdr")
         fbuffer.SaveHDR(config.mOutputName.c_str());
+    else
+        printf("Used unknown extension %s\n", extension.c_str());
 
     // Scene cleanup
     delete config.mScene;

@@ -182,6 +182,8 @@ public:
     VertexCM(
         const Scene&  aScene,
         AlgorithmType aAlgorithm,
+        const float   aRadiusFactor,
+        const float   aRadiusAlpha,
         int           aSeed = 1234
     ) :
         AbstractRenderer(aScene),
@@ -244,12 +246,13 @@ public:
                     printf("We are now switching from *Ppm* to *Bpm*, which can handle the scene\n\n");
 
                     mPpm = false;
+                    break;
                 }
             }
         }
 
-        mBaseRadius  = 0.002f * mScene.mSceneSphere.mSceneRadius;
-        mRadiusAlpha = 0.75f;
+        mBaseRadius  = aRadiusFactor * mScene.mSceneSphere.mSceneRadius;
+        mRadiusAlpha = aRadiusAlpha;
     }
 
     virtual void RunIteration(int aIteration)

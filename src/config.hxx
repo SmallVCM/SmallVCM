@@ -94,6 +94,8 @@ struct Config
     Algorithm   mAlgorithm;
     int         mIterations;
     float       mMaxTime;
+    float       mRadiusFactor;
+    float       mRadiusAlpha;
     Framebuffer *mFramebuffer;
     int         mNumThreads;
     int         mBaseSeed;
@@ -106,26 +108,32 @@ struct Config
 
 // Utility function, essentially a renderer factory
 AbstractRenderer* CreateRenderer(
-    const Config::Algorithm  aAlgorithm,
-    const Scene              &aScene,
-    const int                aSeed)
+    const Config& aConfig,
+    const int     aSeed)
 {
-    switch(aAlgorithm)
+    const Scene& scene = *aConfig.mScene;
+
+    switch(aConfig.mAlgorithm)
     {
     case Config::kEyeLight:
-        return new EyeLight(aScene, aSeed);
+        return new EyeLight(scene, aSeed);
     case Config::kPathTracing:
-        return new PathTracer(aScene, aSeed);
+        return new PathTracer(scene, aSeed);
     case Config::kLightTracing:
-        return new VertexCM(aScene, VertexCM::kLightTrace, aSeed);
+        return new VertexCM(scene, VertexCM::kLightTrace,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     case Config::kProgressivePhotonMapping:
-        return new VertexCM(aScene, VertexCM::kPpm, aSeed);
+        return new VertexCM(scene, VertexCM::kPpm,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     case Config::kBidirectionalPhotonMapping:
-        return new VertexCM(aScene, VertexCM::kBpm, aSeed);
+        return new VertexCM(scene, VertexCM::kBpm,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     case Config::kBidirectionalPathTracing:
-        return new VertexCM(aScene,VertexCM::kBpt, aSeed);
+        return new VertexCM(scene, VertexCM::kBpt,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     case Config::kVertexConnectionMerging:
-        return new VertexCM(aScene, VertexCM::kVcm, aSeed);
+        return new VertexCM(scene, VertexCM::kVcm,
+            aConfig.mRadiusFactor, aConfig.mRadiusAlpha, aSeed);
     default:
         printf("Unknown algorithm!!\n");
         exit(2);
@@ -185,9 +193,8 @@ void PrintRngWarning()
 void PrintHelp(const char *argv[])
 {
     printf("\n");
-    printf("Usage: %s [ -s <scene_id> | -a <algorithm>\n", argv[0]);
-    printf("           -t <time> | -i <iteration> | -o <output_name>\n");
-    printf("           --report ]\n\n");
+    printf("Usage: %s [ -s <scene_id> | -a <algorithm> |\n", argv[0]);
+    printf("           -t <time> | -i <iteration> | -o <output_name> | --report ]\n\n");
     printf("    -s  Selects the scene (default 0):\n");
 
     for(int i = 0; i < SizeOfArray(g_SceneConfigs); i++)
@@ -203,11 +210,12 @@ void PrintHelp(const char *argv[])
     printf("    -t  Number of seconds to run the algorithm\n");
     printf("    -i  Number of iterations to run the algorithm (default 1)\n");
     printf("    -o  User specified output name, with extension .bmp or .hdr (default .bmp)\n");
-    printf("    --report  Generates index.html presenting all scene-algorithm combinations\n");
-    printf("              Obeys -t and -i options, ignores the rest.\n");
-    printf("              Recommended usage: --report -i 1   (fastest preview)\n");
-    printf("              Recommended usage: --report -t 10  (takes 5.5 mins)\n");
-    printf("              Recommended usage: --report -t 60  (takes 60 mins)\n");
+    printf("    --report\n");
+    printf("        Renders all scenes using all algorithms and generates an index.html file\n");
+    printf("        that displays all images. Obeys the -t and -i options, ignores the rest.\n");
+    printf("        Recommended usage: --report -i 1   (fastest preview)\n");
+    printf("        Recommended usage: --report -t 10  (takes 5.5 mins)\n");
+    printf("        Recommended usage: --report -t 60  (takes 30 mins)\n");
     printf("\n    Note: Time (-t) takes precedence over iterations (-i) if both are defined\n");
 }
 
@@ -219,14 +227,16 @@ void ParseCommandline(int argc, const char *argv[], Config &oConfig)
     oConfig.mAlgorithm     = Config::kAlgorithmMax; // [cmd]
     oConfig.mIterations    = 1;                     // [cmd]
     oConfig.mMaxTime       = -1.f;                  // [cmd]
-    //oConfig.mFramebuffer   = NULL; // this is never set by any parameter
+    oConfig.mOutputName    = "";                    // [cmd]
     oConfig.mNumThreads    = 0;
     oConfig.mBaseSeed      = 1234;
     oConfig.mMaxPathLength = 10;
     oConfig.mMinPathLength = 0;
-    oConfig.mOutputName    = "";                    // [cmd]
     oConfig.mResolution    = Vec2i(512, 512);
     oConfig.mFullReport    = false;
+    oConfig.mRadiusFactor  = 0.003f;
+    oConfig.mRadiusAlpha   = 0.75f;
+    //oConfig.mFramebuffer   = NULL; // this is never set by any parameter
 
     int sceneID    = 0; // default 0
 
