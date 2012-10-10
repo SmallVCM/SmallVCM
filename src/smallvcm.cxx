@@ -283,7 +283,7 @@ int main(int argc, const char *argv[])
     // Prints what we are doing
     printf("Scene:   %s\n", config.mScene->mSceneName.c_str());
     if(config.mMaxTime > 0)
-        printf("Target:  %f seconds render time\n", config.mMaxTime);
+        printf("Target:  %g seconds render time\n", config.mMaxTime);
     else
         printf("Target:  %d iteration(s)\n", config.mIterations);
 
