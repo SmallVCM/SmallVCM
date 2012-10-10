@@ -3,7 +3,7 @@
 ================================================================================
 
 SmallVCM is a small physically based renderer that implements the vertex
-connection and merging algortihm described in the paper
+connection and merging algorithm described in the paper
 
 "Light Transport Simulation with Vertex Connection and Merging"
  Iliyan Georgiev, Jaroslav Krivanek, Tomas Davidovic, Philipp Slusallek
@@ -21,7 +21,7 @@ Disclaimer:
 	are too simple to provide a complete understanding of the performance of
 	every implemented rendering algorithm and the differences between them.
   * We are aware that the description below is not as detailed as it can be, and
-    appologize for any errors and confusion.
+    apologize for any errors and confusion.
   * If you have any questions and/or input w.r.t. improving and adding
     explanations, feel free to contact Tomas Davidovic <tomas@davidovic.cz>,
     the primary maintainer of this project, or Iliyan Georgiev <me@iliyan.com>,
@@ -83,8 +83,8 @@ Usage: smallvcm [ -s <scene_id> | -a <algorithm> |
         Renders all scenes using all algorithms and generates an index.html file
         that displays all images. Obeys the -t and -i options, ignores the rest.
         Recommended usage: --report -i 1   (fastest preview)
-        Recommended usage: --report -t 10  (takes 5.5 mins)
-        Recommended usage: --report -t 60  (takes 30 mins)
+        Recommended usage: --report -t 10  (takes 5.5 min)
+        Recommended usage: --report -t 60  (takes 30 min)
 
     Note: Time (-t) takes precedence over iterations (-i) if both are defined
 
