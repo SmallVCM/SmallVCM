@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="SmallVCM : A (not too) small physically based renderer" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>SmallVCM</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/SmallVCM/SmallVCM">View on GitHub</a>
+
+          <h1 id="project_title">SmallVCM</h1>
+          <h2 id="project_tagline">A (not too) small physically based renderer</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/SmallVCM/SmallVCM/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/SmallVCM/SmallVCM/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h3>Introduction</h3>
+
+<p>SmallVCM is a small physically based renderer that implements the vertex
+connection and merging algortihm described in the paper</p>
+
+<blockquote>
+<p><a href="http://iliyan.com/publications/VertexMerging">Light Transport Simulation with Vertex Connection and Merging</a><br>
+Iliyan Georgiev, Jaroslav Křivánek, Tomáš Davidovič, and Philipp Slusallek<br><em>ACM Transactions on Graphics 31(6) (SIGGRAPH Asia 2012)</em></p>
+</blockquote>
+
+<p>as well as a number of other algorithms, notably including progressive photon
+mapping, (progressive) bidirectional photon mapping, and bidirectional path
+tracing. The code compiles to a command line program that can render images of a
+number of predefined scenes using the provided algorithms.</p>
+
+<h3>Disclaimer</h3>
+
+<ul>
+<li>Unless really care, you can safely ignore all licenses in the source code.</li>
+<li>This code is meant for educational purposes, and is not the code that was
+used to render the images in the aforementioned paper. The provided scenes
+are too simple to provide a complete understanding of the performance of
+every implemented rendering algorithm and the differences between them.</li>
+<li>We are aware that the description below is not as detailed as it can be, and
+appologize for any errors and confusion.</li>
+<li>If you have any questions and/or input w.r.t. improving and adding
+explanations, feel free to contact Tomas Davidovic <a href="mailto:tomas@davidovic.cz">tomas@davidovic.cz</a>,
+the primary maintainer of this project, or Iliyan Georgiev <a href="mailto:me@iliyan.com">me@iliyan.com</a>,
+the primary author of the above paper, and we will figure out whatever you
+might need.</li>
+</ul><p>With that out of the way, let's go over the usual stuff.</p>
+
+<h3>Compilation and Installation</h3>
+
+<p><em>Synopsis:</em> Compile smallvcm.cxx with OpenMP. If you don't have C++11 support,
+define <code>LEGACY_RNG</code> (automatic for VS2008, found in rng.hxx).</p>
+
+<p>The whole program consists of one C++ source file and a multiple header files.
+It was developed in VS2010, however we did some limited testing on Linux, and
+the provided Makefile works for g++ 4.4 and 4.6.3 at least.</p>
+
+<p>The major hurdle can come from the fact that the C++11  library is used,
+but an alternative random number generator is also provided (<code>make old_rng</code> on
+Linux). The code expects OpenMP is available, but getting rid of that is very
+straightforward (simply comment out the few #pragma omp directives in the code).</p>
+
+<p>Other than that, there are no dependencies, so simply compile smallvcm.cxx.</p>
+
+<h3>Operation</h3>
+
+<p><em>Quick start:</em> Run <code>smallvcm --report -t 10</code>. In about 5-6 minutes it will
+generate an index.html file that compares 7 different algorithms on 4 different
+Cornell box variants (listed below).</p>
+
+<p>The features and settings of the program can be explored by running
+<code>smallvcm --help</code>, which outputs the following information:</p>
+
+<pre><code>Usage: smallvcm [ -s &lt;scene_id&gt; | -a &lt;algorithm&gt; |
+           -t &lt;time&gt; | -i &lt;iteration&gt; | -o &lt;output_name&gt; | --report ]
+
+    -s  Selects the scene (default 0):
+          0    glossy small spheres + sun (directional)
+          1    glossy large mirror sphere + ceiling (area)
+          2    glossy small spheres + point
+          3    glossy small spheres + background (env. lighting)
+    -a  Selects the rendering algorithm (default vcm):
+          el   eye light
+          pt   path tracing
+          lt   light tracing
+          ppm  progressive photon mapping
+          bpm  bidirectional photon mapping
+          bpt  bidirectional path tracing
+          vcm  vertex connection and merging
+    -t  Number of seconds to run the algorithm
+    -i  Number of iterations to run the algorithm (default 1)
+    -o  User specified output name, with extension .bmp or .hdr (default .bmp)
+    --report
+        Renders all scenes using all algorithms and generates an index.html file
+        that displays all images. Obeys the -t and -i options, ignores the rest.
+        Recommended usage: --report -i 1   (fastest preview)
+        Recommended usage: --report -t 10  (takes 5.5 mins)
+        Recommended usage: --report -t 60  (takes 30 mins)
+
+    Note: Time `-t` takes precedence over iterations `-i` if both are defined
+</code></pre>
+
+<p><code>glossy</code> applies to the floor of the Cornell box.<br><code>small spheres</code> variants have one mirror and one glass spheres in the box.  </p>
+
+<p>The program can run in two modes:</p>
+
+<ol>
+<li>If <code>--report</code> is not set, a single image of the specified scene will be
+rendered using the specified algorithm. If no option is specified, the output
+is a 512x512 image of scene 0 is rendered using vertex connection and merging
+with 1 iteration.</li>
+<li>Setting the <code>--report</code> option renders all scenes using all algorithms, obeying
+the (optional) number of iterations and/or maximum runtime for each
+scene-algorithm configuration, ignoring the other options.</li>
+</ol><p>All default settings are set in the <code>ParseCommandline</code> function in config.hxx.
+Some settings have no command line switch, but can be changed in the code:</p>
+
+<table>
+<tr>
+<td>mNumThreads</td>
+<td>Number of rendering threads (default 0, means 1 thread/core)</td>
+</tr>
+<tr>
+<td>mBaseSeed</td>
+<td>Seed for random number generators (default 1234)</td>
+</tr>
+<tr>
+<td>mMinPathLength</td>
+<td>Minimal path length (i.e. number of segments) (default 0)</td>
+</tr>
+<tr>
+<td>mMaxPathLength</td>
+<td>Maximal path length (i.e. number of segments) (default 10)</td>
+</tr>
+<tr>
+<td>mResolution</td>
+<td>Image resolution (default 512x512)</td>
+</tr>
+<tr>
+<td>mRadiusFactor</td>
+<td>Scene diameter fraction for the merging radius (default 0.003)</td>
+</tr>
+<tr>
+<td>mRadiusAlpha</td>
+<td>Merging radius reduction parameter (default 0.75)</td>
+</tr>
+</table><h3>VertexCM Renderer</h3>
+
+<p>To facilitate the understanding of the code, in this section we describe on a
+high level how the versatile <code>VertexCM</code> renderer operates. It implements a number
+of algorithms at once, and runs in three stages:</p>
+
+<ol>
+<li>Light sub-path tracing (<code>ppm</code>, <code>bpm</code>, <code>bpt</code>, <code>vcm</code>)</li>
+<li>Range search hash grid construction over light vertices (<code>ppm</code>, <code>bpm</code>, <code>vcm</code>)</li>
+<li>Camera sub-path tracing (all but <code>lt</code>)</li>
+</ol><p><code>PathVertex</code> (also <code>PathElement</code> variant and typedefs <code>CameraVertex</code> and <code>LightVertex</code>)
+is the basic structure describing the state of a random walk. The only unusual
+members are <code>d0</code>, <code>d1vc</code>, <code>d1vm</code>, which are used for iterative multiple importance
+sampling (MIS) weight computation:</p>
+
+<table>
+<tr>
+<td>d0</td>
+<td>used for both connections (bpt, vcm) and merging (bpm, vcm)</td>
+</tr>
+<tr>
+<td>d1vc</td>
+<td>used for connections (bpt, vcm)</td>
+</tr>
+<tr>
+<td>d1vm</td>
+<td>used for merging (bpm, vcm)</td>
+</tr>
+</table><p><em>Note:</em> All bidirectional algorithms sample the same number of light and camera
+sub-paths per iteration, which is the number of pixels in the image. </p>
+
+<ul>
+<li>
+<strong>Light tracing (<code>lt</code>)</strong> utilizes only light sub-path tracing. Each path vertex is directly connected
+to camera and then discarded (i.e. not stored). No MIS, hash grid, or camera
+tracing are used.</li>
+<li>
+<strong>Progressive photon mapping (<code>ppm</code>)</strong> traces light sub-paths, storing their
+vertices (as <code>LightVertex</code> objects) on
+surfaces with non-specular (i.e. non-delta) materials, and building a hash
+grid over them. The camera sub-paths are traced until hitting a non-specular
+surface, where merging with light vertices (i.e. photon lookup) is performed,
+terminating the camera sub-path thereafter. No MIS is used, and the radiance
+from directly hit lights is accounted for only when all surface interactions
+on the path are specular.</li>
+<li>
+<strong>Bidirectional photon mapping (<code>bpm</code>)</strong> is an extension to <code>ppm</code>, which terminates
+camera sub-paths stochastically (unlike <code>ppm</code>)
+and performs merging at all non-specular vertices. MIS is used (<code>d0</code> and <code>d1vm</code>)
+to weight the different possible ways of constructing the same path by merging
+at any (non-specular) interior path vertex.</li>
+<li>
+<strong>Bidirectional path tracing (<code>bpt</code>)</strong>
+Light sub-paths are traced, their non-specular vertices are first connected to
+the camera (as in light tracing) and then stored (without a hash grid). Next,
+the camera sub-paths are traced, connecting each non-specular vertex to a
+light source and to all non-specular vertices of the light sub-path
+corresponding to the current pixel. MIS is used (<code>d0</code>, <code>d1vc</code>).</li>
+<li>
+<strong>Vertex connection and merging (<code>vcm</code>)</strong>
+is effectively a combination of bidirectional photon mapping and bidirectional
+path tracing. Light sub-path tracing projects and stores the non-specular
+vertices, and also builds a hash grid over them. In the camera sub-path
+tracing, each vertex is connected to a light source, to the vertices of the
+corresponding light sub-path, and also merged with the nearby vertices of all
+light sub-paths. MIS is used (<code>d0</code>, <code>d1vm</code>, <code>d1vc</code>).</li>
+</ul><h3>Features and Limitations</h3>
+
+<p>The renderer was originally intended to be a compact reference implementation, 
+akin to SimplePT, however it grew over time. Here is a list of the features and
+the limitations of the framework:</p>
+
+<p>Infrastructural features:</p>
+
+<ul>
+<li>All basic light source types -- area, point, directional, and env. map --
+are supported, although the current env. map implementation uses a constant
+radiance distribution.</li>
+<li>Basic surface scattering models are implemented, including diffuse, glossy
+(Phong), as well as specular reflection and refraction. It should be fairly
+straightforward to implement new materials. Also, the material interfaces
+should suffice for most purposes, as the bidirectional algorithms provided
+are already quite demanding on them.</li>
+<li>The material/shading instance for a given ray hit point is represented by
+a <code>BSDF</code> object. In addition to storing the the surface scattering properties,
+this object also holds the local shading frame, as well we the incoming
+(fixed) direction; all its methods (sample, evaluate, pdf) compute their
+results always w.r.t. this direction.</li>
+</ul><p>Rendering features:</p>
+
+<ul>
+<li>A simple renderer with eye light (dot normal) shading for fast previews.
+Red color denotes backface orientation. Implementation is in eyelight.hxx.</li>
+<li>Traditional path tracing with next even estimation (area and env. map).
+Kept as a separate implementation is in pathtracer.hxx.</li>
+<li>Light tracing (<code>lt</code>), progressive photon mapping (<code>ppm</code>), bidirectional photon
+mapping (<code>bpm</code>), bidirectional path tracing (<code>bpt</code>), and our vertex connection
+and merging (<code>vcm</code>). All these algorithms are implemented in vertexcm.hxx,
+as they share almost identical code paths. The main differences between
+the algorithms are in the multiple importance sampling weight computation,
+as well as occasional shortcuts through unused code. These are described in
+more detail in the next section.</li>
+</ul><p>Limitations:</p>
+
+<ul>
+<li>No acceleration structure for ray intersection (can be added to scene.hxx).</li>
+<li>Scenes are hard-coded (see <code>LoadCornellBox</code> in scene.hxx).</li>
+<li>The <code>ppm</code> algorithm does not handle diffuse+specular materials correctly.
+This limitation can be lifted by adding a parameter to the <code>BSDF::Sample</code>
+method that would specify the types of scattering events to be sampled.
+The ppm implementation could then be modified to continue camera sub-paths
+only for the specular parts diffuse+glossy materials.</li>
+<li>Each area light is an individual triangle, and requires its very own
+material for identification. This can and should be changed if code is
+used for scenes with complex area light sources. Also, the way of finding
+whether and which area light is hit by a random ray can be improved.</li>
+<li>No shading normals. Extending the framework with shading normals should
+happen within the <code>BSDF</code> object (which already supports adjoint BSDFs required
+by refraction).</li>
+<li>No infrastructural support for participating media or subsurface scattering.</li>
+</ul>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">SmallVCM maintained by <a href="https://github.com/SmallVCM">SmallVCM</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
