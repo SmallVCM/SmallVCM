@@ -51,7 +51,7 @@ public:
 
     HtmlWriter(const std::string& aFileName) :
         mFileName(aFileName),
-        mHtml(mFileName)
+        mHtml(mFileName.c_str())
     {
         // Most browsers will cap number of columns to real value,
         // so having something significantly larger works ok
