@@ -177,7 +177,7 @@ sub-paths per iteration, which is the number of pixels in the image.
 ================================================================================
 
 The renderer was originally intended to be a compact reference implementation, 
-akin to SimplePT, however it grew over time. Here is a list of the features and
+akin to smallpt, however it grew over time. Here is a list of the features and
 the limitations of the framework:
 
 Infrastructural features:
