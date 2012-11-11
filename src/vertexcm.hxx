@@ -48,9 +48,9 @@ class VertexCM : public AbstractRenderer
         // plus 1 for each used method (connection, merging).
         // Please see the VCM implementation tech report for derivation.
 
-        float d0;   // Common helper variable for MIS
-        float d1vc; // Helper variable for vertex connection MIS
-        float d1vm; // Helper variable for vertex merging MIS
+        float dVCM; // MIS quantity used for vertex connection and merging
+        float dVC;  // MIS quantity used for vertex connection only
+        float dVM;  // MIS quantity used for vertex merging only
     };
 
     // Path vertex, used for merging and connection
@@ -58,7 +58,7 @@ class VertexCM : public AbstractRenderer
     struct PathVertex
     {
         Vec3f mHitpoint;   // Position of the vertex
-        Vec3f mThroughput; // Path throughput (multiplied by emission)
+        Vec3f mThroughput; // Path throughput (including emission)
         uint  mPathLength; // Number of segments between source and vertex
 
         // Stores all required local information, including incoming direction.
@@ -68,9 +68,9 @@ class VertexCM : public AbstractRenderer
         // plus 1 for each used method (connection, merging).
         // Please see the accompanying writeup for derivation.
 
-        float d0;   // Common helper variable for MIS
-        float d1vc; // Helper variable for vertex connection MIS
-        float d1vm; // Helper variable for vertex merging MIS
+        float dVCM; // MIS quantity used for vertex connection and merging
+        float dVC;  // MIS quantity used for vertex connection only
+        float dVM;  // MIS quantity used for vertex merging only
 
         // Used by HashGrid
         const Vec3f& GetPosition() const
@@ -133,10 +133,10 @@ class VertexCM : public AbstractRenderer
             // actually continued
             cameraBsdfRevPdfW *= aLightVertex.mBsdf.ContinuationProb();
 
-            const float wLight = aLightVertex.d0 * mVertexCM.mMisVcWeightFactor +
-                aLightVertex.d1vm * mVertexCM.Mis(cameraBsdfDirPdfW);
-            const float wCamera = mCameraSample.d0 * mVertexCM.mMisVcWeightFactor +
-                mCameraSample.d1vm * mVertexCM.Mis(cameraBsdfRevPdfW);
+            const float wLight = aLightVertex.dVCM * mVertexCM.mMisVcWeightFactor +
+                aLightVertex.dVM * mVertexCM.Mis(cameraBsdfDirPdfW);
+            const float wCamera = mCameraSample.dVCM * mVertexCM.mMisVcWeightFactor +
+                mCameraSample.dVM * mVertexCM.Mis(cameraBsdfRevPdfW);
 
             // Ppm merges, but does not have MIS weights
             const float misWeight = mVertexCM.mPpm ?
@@ -160,20 +160,20 @@ public:
     enum AlgorithmType
     {
         // light vertices contribute to camera,
-        // No MIS weights (d0, d1vm, d1vc all ignored)
+        // No MIS weights (dVCM, dVM, dVC all ignored)
         kLightTrace = 0,
         // Camera and light vertices merged on first non-specular camera bounce.
         // Cannot handle mixed specular + non-specular materials.
-        // No MIS weights (d0, d1vm, d1vc all ignored)
+        // No MIS weights (dVCM, dVM, dVC all ignored)
         kPpm,
         // Camera and light vertices merged on along full path.
-        // d0 and d1vm used for MIS
+        // dVCM and dVM used for MIS
         kBpm,
         // Standard bidirectional path tracing
-        // d0 and d1vc used for MIS
+        // dVCM and dVC used for MIS
         kBpt,
         // Vertex connection and mering
-        // d0, d1vm, and d1vc used for MIS
+        // dVCM, dVM, and dVC used for MIS
         kVcm
     };
 
@@ -323,11 +323,11 @@ public:
                     // Infinite lights use MIS based on solid angle instead of
                     // area, so we do not want distance there
                     if(lightSample.mPathLength > 1 || lightSample.mIsFiniteLight == 1)
-                        lightSample.d0 *= Mis(Sqr(isect.dist));
+                        lightSample.dVCM *= Mis(Sqr(isect.dist));
 
-                    lightSample.d0   /= Mis(std::abs(bsdf.CosThetaFix()));
-                    lightSample.d1vc /= Mis(std::abs(bsdf.CosThetaFix()));
-                    lightSample.d1vm /= Mis(std::abs(bsdf.CosThetaFix()));
+                    lightSample.dVCM   /= Mis(std::abs(bsdf.CosThetaFix()));
+                    lightSample.dVC /= Mis(std::abs(bsdf.CosThetaFix()));
+                    lightSample.dVM /= Mis(std::abs(bsdf.CosThetaFix()));
                 }
 
                 // Store vertex, unless BSDF is purely specular, which prevents
@@ -340,9 +340,9 @@ public:
                     lightVertex.mPathLength = lightSample.mPathLength;
                     lightVertex.mBsdf       = bsdf;
 
-                    lightVertex.d0   = lightSample.d0;
-                    lightVertex.d1vc = lightSample.d1vc;
-                    lightVertex.d1vm = lightSample.d1vm;
+                    lightVertex.dVCM   = lightSample.dVCM;
+                    lightVertex.dVC = lightSample.dVC;
+                    lightVertex.dVM = lightSample.dVM;
 
                     mLightVertices.push_back(lightVertex);
                 }
@@ -425,10 +425,10 @@ public:
                     break;
 
                 // Update MIS constants
-                cameraSample.d0   *= Mis(Sqr(isect.dist));
-                cameraSample.d0   /= Mis(std::abs(bsdf.CosThetaFix()));
-                cameraSample.d1vc /= Mis(std::abs(bsdf.CosThetaFix()));
-                cameraSample.d1vm /= Mis(std::abs(bsdf.CosThetaFix()));
+                cameraSample.dVCM   *= Mis(Sqr(isect.dist));
+                cameraSample.dVCM   /= Mis(std::abs(bsdf.CosThetaFix()));
+                cameraSample.dVC /= Mis(std::abs(bsdf.CosThetaFix()));
+                cameraSample.dVM /= Mis(std::abs(bsdf.CosThetaFix()));
 
                 // directly hit some light
                 // lights do not reflect light, so we stop after this
@@ -557,9 +557,9 @@ private:
         oCameraSample.mPathLength   = 1;
         oCameraSample.mSpecularPath = 1;
 
-        oCameraSample.d0            = Mis(1.f / cameraPdfW);
-        oCameraSample.d1vc          = 0;
-        oCameraSample.d1vm          = 0;
+        oCameraSample.dVCM            = Mis(1.f / cameraPdfW);
+        oCameraSample.dVC          = 0;
+        oCameraSample.dVM          = 0;
 
         return sample;
     }
@@ -603,9 +603,9 @@ private:
         directPdfA   *= lightPickProb;
         emissionPdfW *= lightPickProb;
 
-        // If the last hit was specular, then d0 == 0.
-        const float wCamera = Mis(directPdfA) * aCameraSample.d0 +
-            Mis(emissionPdfW) * aCameraSample.d1vc;
+        // If the last hit was specular, then dVCM == 0.
+        const float wCamera = Mis(directPdfA) * aCameraSample.dVCM +
+            Mis(emissionPdfW) * aCameraSample.dVC;
 
         const float misWeight = 1.f / (1.f + wCamera);
         return misWeight * radiance;
@@ -668,7 +668,7 @@ private:
 
         const float wLight  = Mis(bsdfDirPdfW / (lightPickProb * directPdfW));
         const float wCamera = Mis(emissionPdfW * cosToLight / (directPdfW * cosAtLight)) * (
-            mMisVmWeightFactor + aCameraSample.d0 + aCameraSample.d1vc * Mis(bsdfRevPdfW));
+            mMisVmWeightFactor + aCameraSample.dVCM + aCameraSample.dVC * Mis(bsdfRevPdfW));
         const float misWeight = 1.f / (wLight + 1.f + wCamera);
 
         const Vec3f contrib =
@@ -734,9 +734,9 @@ private:
 
         // MIS weights
         const float wLight = Mis(cameraBsdfDirPdfA) * (
-            mMisVmWeightFactor + aLightVertex.d0 + aLightVertex.d1vc * Mis(lightBsdfRevPdfW));
+            mMisVmWeightFactor + aLightVertex.dVCM + aLightVertex.dVC * Mis(lightBsdfRevPdfW));
         const float wCamera = Mis(lightBsdfDirPdfA) * (
-            mMisVmWeightFactor + aCameraSample.d0 + aCameraSample.d1vc * Mis(cameraBsdfRevPdfW));
+            mMisVmWeightFactor + aCameraSample.dVCM + aCameraSample.dVC * Mis(cameraBsdfRevPdfW));
 
         const float misWeight = 1.f / (wLight + 1.f + wCamera);
 
@@ -777,19 +777,19 @@ private:
         oLightSample.mPathLength    = 1;
         oLightSample.mIsFiniteLight = light->IsFinite() ? 1 : 0;
 
-        oLightSample.d0 = Mis(directPdfW / emissionPdfW);
+        oLightSample.dVCM = Mis(directPdfW / emissionPdfW);
 
         if(!light->IsDelta())
         {
             const float usedCosLight = light->IsFinite() ? cosLight : 1.f;
-            oLightSample.d1vc = Mis(usedCosLight / emissionPdfW);
+            oLightSample.dVC = Mis(usedCosLight / emissionPdfW);
         }
         else
         {
-            oLightSample.d1vc = 0.f;
+            oLightSample.dVC = 0.f;
         }
 
-        oLightSample.d1vm = oLightSample.d1vc * mMisVcWeightFactor;
+        oLightSample.dVM = oLightSample.dVC * mMisVcWeightFactor;
     }
 
     // Computes contribution of light sample to camera by splatting is onto the
@@ -835,7 +835,7 @@ private:
         // MIS weights, we need cameraPdfA w.r.t. normalized device coordinate,
         // so we divide by (resolution.x * resolution.y)
         const float wLight = Mis(cameraPdfA / mScreenPixelCount) * (
-            mMisVmWeightFactor + aLightSample.d0 + aLightSample.d1vc * Mis(bsdfRevPdfW));
+            mMisVmWeightFactor + aLightSample.dVCM + aLightSample.dVC * Mis(bsdfRevPdfW));
 
         const float misWeight = mLightTraceOnly ? 1.f : (1.f / (wLight + 1.f));
 
@@ -889,27 +889,27 @@ private:
         // New MIS weights
         if(sampledEvent & LightBSDF::kSpecular)
         {
-            aoPathSample.d0 = 0.f;
+            aoPathSample.dVCM = 0.f;
 
-            aoPathSample.d1vc *=
+            aoPathSample.dVC *=
                 Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
 
-            aoPathSample.d1vm *=
+            aoPathSample.dVM *=
                 Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
 
             aoPathSample.mSpecularPath &= 1;
         }
         else
         {
-            aoPathSample.d1vc = Mis(cosThetaOut / bsdfDirPdfW) * (
-                aoPathSample.d1vc * Mis(bsdfRevPdfW) +
-                aoPathSample.d0 + mMisVmWeightFactor);
+            aoPathSample.dVC = Mis(cosThetaOut / bsdfDirPdfW) * (
+                aoPathSample.dVC * Mis(bsdfRevPdfW) +
+                aoPathSample.dVCM + mMisVmWeightFactor);
 
-            aoPathSample.d1vm = Mis(cosThetaOut / bsdfDirPdfW) * (
-                aoPathSample.d1vm * Mis(bsdfRevPdfW) +
-                aoPathSample.d0 * mMisVcWeightFactor + 1.f);
+            aoPathSample.dVM = Mis(cosThetaOut / bsdfDirPdfW) * (
+                aoPathSample.dVM * Mis(bsdfRevPdfW) +
+                aoPathSample.dVCM * mMisVcWeightFactor + 1.f);
 
-            aoPathSample.d0 = Mis(1.f / bsdfDirPdfW);
+            aoPathSample.dVCM = Mis(1.f / bsdfDirPdfW);
 
             aoPathSample.mSpecularPath &= 0;
         }
