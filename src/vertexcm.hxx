@@ -49,8 +49,8 @@ class VertexCM : public AbstractRenderer
         // Please see the VCM implementation tech report for derivation.
 
         float dVCM; // MIS quantity used for vertex connection and merging
-        float dVC;  // MIS quantity used for vertex connection only
-        float dVM;  // MIS quantity used for vertex merging only
+        float dVC;  // MIS quantity used for vertex connection
+        float dVM;  // MIS quantity used for vertex merging
     };
 
     // Path vertex, used for merging and connection
@@ -69,8 +69,8 @@ class VertexCM : public AbstractRenderer
         // Please see the accompanying writeup for derivation.
 
         float dVCM; // MIS quantity used for vertex connection and merging
-        float dVC;  // MIS quantity used for vertex connection only
-        float dVM;  // MIS quantity used for vertex merging only
+        float dVC;  // MIS quantity used for vertex connection
+        float dVM;  // MIS quantity used for vertex merging
 
         // Used by HashGrid
         const Vec3f& GetPosition() const
@@ -111,6 +111,7 @@ class VertexCM : public AbstractRenderer
 
         void Process(const LightVertex& aLightVertex)
         {
+            // Reject if full path length below/above min/max path length
             if((aLightVertex.mPathLength + mCameraSample.mPathLength > mVertexCM.mMaxPathLength) ||
                (aLightVertex.mPathLength + mCameraSample.mPathLength < mVertexCM.mMinPathLength))
                  return;
@@ -133,12 +134,15 @@ class VertexCM : public AbstractRenderer
             // actually continued
             cameraBsdfRevPdfW *= aLightVertex.mBsdf.ContinuationProb();
 
+            // Partial light sub-path MIS weight [tech. rep. (38)]
             const float wLight = aLightVertex.dVCM * mVertexCM.mMisVcWeightFactor +
                 aLightVertex.dVM * mVertexCM.Mis(cameraBsdfDirPdfW);
+
+            // Partial eye sub-path MIS weight [tech. rep. (39)]
             const float wCamera = mCameraSample.dVCM * mVertexCM.mMisVcWeightFactor +
                 mCameraSample.dVM * mVertexCM.Mis(cameraBsdfRevPdfW);
 
-            // Ppm merges, but does not have MIS weights
+            // Full path MIS weight [tech. rep. (37)]. No MIS for PPM
             const float misWeight = mVertexCM.mPpm ?
                 1.f :
                 1.f / (wLight + 1.f + wCamera);
@@ -162,16 +166,20 @@ public:
         // light vertices contribute to camera,
         // No MIS weights (dVCM, dVM, dVC all ignored)
         kLightTrace = 0,
+
         // Camera and light vertices merged on first non-specular camera bounce.
         // Cannot handle mixed specular + non-specular materials.
         // No MIS weights (dVCM, dVM, dVC all ignored)
         kPpm,
+
         // Camera and light vertices merged on along full path.
         // dVCM and dVM used for MIS
         kBpm,
+
         // Standard bidirectional path tracing
         // dVCM and dVC used for MIS
         kBpt,
+
         // Vertex connection and mering
         // dVCM, dVM, and dVC used for MIS
         kVcm
@@ -236,14 +244,14 @@ public:
                 if(hasNonSpecular && hasSpecular)
                 {
                     printf(
-                        "*WARNING* Our Ppm implementation cannot handle materials mixing\n"
+                        "*WARNING* Our PPM implementation cannot handle materials mixing\n"
                         "Specular and NonSpecular BSDFs. The extension would be\n"
                         "fairly straightforward. In BounceSample for CameraSample\n"
                         "limit the considered events to Specular only.\n"
                         "Merging will use non-specular components, bounce will be specular.\n"
                         "If there is no specular component, the ray will terminate.\n\n");
 
-                    printf("We are now switching from *Ppm* to *Bpm*, which can handle the scene\n\n");
+                    printf("We are now switching from *PPM* to *BPM*, which can handle the scene\n\n");
 
                     mPpm = false;
                     break;
@@ -276,10 +284,10 @@ public:
         // We divide the summed up energy by disk radius and number of light paths
         mVmNormalization = 1.f / (radiusSqr * PI_F * mLightPathCount);
 
-        // Set up VC and VM MIS weight factors
-        const float baseVmWeightFactor = (PI_F * radiusSqr) * pathCount;
-        mMisVmWeightFactor = mUseVM ? Mis(baseVmWeightFactor)       : 0.f;
-        mMisVcWeightFactor = mUseVC ? Mis(1.f / baseVmWeightFactor) : 0.f;
+        // MIS weight constant [tech. rep. (20)], with n_VC = 1 and n_VM = mLightPathCount
+        const float etaVCM = (PI_F * radiusSqr) * mLightPathCount;
+        mMisVmWeightFactor = mUseVM ? Mis(etaVCM)       : 0.f;
+        mMisVcWeightFactor = mUseVC ? Mis(1.f / etaVCM) : 0.f;
 
         // Clear path ends, nothing ends anywhere
         mPathEnds.resize(pathCount);
@@ -301,7 +309,7 @@ public:
             // Trace light path
             for(;; ++lightSample.mPathLength)
             {
-                // We offset ray origin instead of setting tmin due to numeric
+                // Offset ray origin instead of setting tmin due to numeric
                 // issues in ray-sphere intersection. The isect.dist has to be
                 // extended by this EPS_RAY after hit point is determined
                 Ray ray(lightSample.mOrigin + lightSample.mDirection * EPS_RAY,
@@ -318,16 +326,19 @@ public:
                 if(!bsdf.IsValid())
                     break;
 
-                // Update MIS constants
+                // Update the MIS quantities before storing them at the vertex.
+                // These updates follow the initialization in GenerateLightSample() or
+                // BounceSample(), and together implement equations [tech. rep. (31)-(33)]
+		// or [tech. rep. (34)-(36)], respectively.
                 {
-                    // Infinite lights use MIS based on solid angle instead of
-                    // area, so we do not want distance there
+                    // Infinite lights use MIS handled via solid angle integration,
+                    // so do not divide by the distance for such lights [tech. rep. Section 5.1]
                     if(lightSample.mPathLength > 1 || lightSample.mIsFiniteLight == 1)
                         lightSample.dVCM *= Mis(Sqr(isect.dist));
 
-                    lightSample.dVCM   /= Mis(std::abs(bsdf.CosThetaFix()));
-                    lightSample.dVC /= Mis(std::abs(bsdf.CosThetaFix()));
-                    lightSample.dVM /= Mis(std::abs(bsdf.CosThetaFix()));
+                    lightSample.dVCM /= Mis(std::abs(bsdf.CosThetaFix()));
+                    lightSample.dVC  /= Mis(std::abs(bsdf.CosThetaFix()));
+                    lightSample.dVM  /= Mis(std::abs(bsdf.CosThetaFix()));
                 }
 
                 // Store vertex, unless BSDF is purely specular, which prevents
@@ -340,9 +351,9 @@ public:
                     lightVertex.mPathLength = lightSample.mPathLength;
                     lightVertex.mBsdf       = bsdf;
 
-                    lightVertex.dVCM   = lightSample.dVCM;
-                    lightVertex.dVC = lightSample.dVC;
-                    lightVertex.dVM = lightSample.dVM;
+                    lightVertex.dVCM = lightSample.dVCM;
+                    lightVertex.dVC  = lightSample.dVC;
+                    lightVertex.dVM  = lightSample.dVM;
 
                     mLightVertices.push_back(lightVertex);
                 }
@@ -354,12 +365,11 @@ public:
                         ConnectToCamera(lightSample, hitPoint, bsdf);
                 }
 
-                // We will now extend by the bounce (1) and then
-                // we need 1 more segment to reach camera.
-                // If that is too long, quit
+                // Terminate if the path would become too long after scattering
                 if(lightSample.mPathLength + 2 > mMaxPathLength)
                     break;
 
+                // Continue random walk
                 if(!BounceSample(bsdf, hitPoint, lightSample))
                     break;
             }
@@ -371,7 +381,7 @@ public:
         // Build hash grid
         //////////////////////////////////////////////////////////////////////////
 
-        // Only build grid when merging (VCM, BPM, and Ppm)
+        // Only build grid when merging (VCM, BPM, and PPM)
         if(mUseVM)
         {
             // The number of cells is somewhat arbitrary, but seems to work ok
@@ -383,7 +393,7 @@ public:
         // Generate camera paths
         //////////////////////////////////////////////////////////////////////////
 
-        // Light tracing does not use any camera vertices at all
+        // Unless rendering with traditional light tracing
         for(int pathIdx = 0; (pathIdx < pathCount) && (!mLightTraceOnly); ++pathIdx)
         {
             PathElement cameraSample;
@@ -394,7 +404,7 @@ public:
             // Trace camera path
             for(;; ++cameraSample.mPathLength)
             {
-                // We offset ray origin instead of setting tmin due to numeric
+                // Offset ray origin instead of setting tmin due to numeric
                 // issues in ray-sphere intersection. The isect.dist has to be
                 // extended by this EPS_RAY after hit point is determined
                 Ray ray(cameraSample.mOrigin + cameraSample.mDirection * EPS_RAY,
@@ -424,14 +434,18 @@ public:
                 if(!bsdf.IsValid())
                     break;
 
-                // Update MIS constants
-                cameraSample.dVCM   *= Mis(Sqr(isect.dist));
-                cameraSample.dVCM   /= Mis(std::abs(bsdf.CosThetaFix()));
-                cameraSample.dVC /= Mis(std::abs(bsdf.CosThetaFix()));
-                cameraSample.dVM /= Mis(std::abs(bsdf.CosThetaFix()));
+                // Update the MIS quantities, following the initialization in
+		// GenerateLightSample() or BounceSample(). Implement equations
+		// [tech. rep. (31)-(33)] or [tech. rep. (34)-(36)], respectively.
+                {
+                    cameraSample.dVCM *= Mis(Sqr(isect.dist));
+                    cameraSample.dVCM /= Mis(std::abs(bsdf.CosThetaFix()));
+                    cameraSample.dVC  /= Mis(std::abs(bsdf.CosThetaFix()));
+                    cameraSample.dVM  /= Mis(std::abs(bsdf.CosThetaFix()));
+                }
 
-                // directly hit some light
-                // lights do not reflect light, so we stop after this
+                // Light source has been hit; terminate afterwards, since
+                // our light sources do not have reflective properties
                 if(isect.lightID >= 0)
                 {
                     const AbstractLight *light = mScene.GetLightPtr(isect.lightID);
@@ -445,12 +459,12 @@ public:
                     break;
                 }
 
-                // Everything else needs at least one more path segment
+                // Terminate if eye sub-path is too long for connections or merging
                 if(cameraSample.mPathLength >= mMaxPathLength)
                     break;
 
                 ////////////////////////////////////////////////////////////////
-                // Vertex connection: connect to lights
+                // Vertex connection: Connect to a light source
                 if(!bsdf.IsDelta() && mUseVC)
                 {
                     if(cameraSample.mPathLength + 1>= mMinPathLength)
@@ -461,27 +475,27 @@ public:
                 }
 
                 ////////////////////////////////////////////////////////////////
-                // Vertex connection: connect to light vertices
+                // Vertex connection: Connect to light vertices
                 if(!bsdf.IsDelta() && mUseVC)
                 {
-                    // Each light path is assigned to one eye path, as in
-                    // traditional BPT. This gives range in which are the light
-                    // vertices corresponding to the current eye path.
-                    // It is also possible to connect to vertices
-                    // from any light path, but MIS should be revisited.
+                    // For VC, each light sub-path is assigned to a particular eye
+                    // sub-path, as in traditional BPT. It is also possible to
+                    // connect to vertices from any light path, but MIS should
+                    // be revisited.
                     const Vec2i range(
                         (pathIdx == 0) ? 0 : mPathEnds[pathIdx-1],
                         mPathEnds[pathIdx]);
 
-                    for(int i=range.x; i < range.y; i++)
+                    for(int i = range.x; i < range.y; i++)
                     {
                         const LightVertex &lightVertex = mLightVertices[i];
+
                         if(lightVertex.mPathLength + 1 +
                            cameraSample.mPathLength < mMinPathLength)
                             continue;
 
-                        // light vertices are stored in increasing path length
-                        // order, once we go above the max path length, we can
+                        // Light vertices are stored in increasing path length
+                        // order; once we go above the max path length, we can
                         // skip the rest
                         if(lightVertex.mPathLength + 1 +
                            cameraSample.mPathLength > mMaxPathLength)
@@ -493,7 +507,7 @@ public:
                 }
 
                 ////////////////////////////////////////////////////////////////
-                // Vertex merging: merge with light vertices
+                // Vertex merging: Merge with light vertices
                 if(!bsdf.IsDelta() && mUseVM)
                 {
                     RangeQuery query(*this, hitPoint, bsdf, cameraSample);
@@ -501,8 +515,7 @@ public:
                     color += cameraSample.mThroughput * mVmNormalization * query.GetContrib();
 
                     // PPM merges only on first non-specular bounce
-                    if(mPpm)
-                        break;
+                    if(mPpm) break;
                 }
 
                 if(!BounceSample(bsdf, hitPoint, cameraSample))
@@ -533,7 +546,7 @@ private:
         const int   aPixelIndex,
         PathElement &oCameraSample)
     {
-        const Camera &camera    = mScene.mCamera;
+        const Camera &camera = mScene.mCamera;
         const int resX = int(camera.mResolution.x);
         const int resY = int(camera.mResolution.y);
 
@@ -544,11 +557,19 @@ private:
         // Jitter pixel position
         const Vec2f sample = Vec2f(float(x), float(y)) + mRng.GetVec2f();
 
-        // Generate primary ray and find its pdf
-        const Ray   primaryRay = camera.GenerateRay(sample);
-        const float cosTheta   = Dot(camera.mForward, primaryRay.dir);
-        const float cameraPdfW = 1.f / (cosTheta * cosTheta * cosTheta *
-            camera.mPixelArea * mScreenPixelCount);
+        // Generate ray
+        const Ray primaryRay = camera.GenerateRay(sample);
+
+        // Pdf for sampling image plane position; uniform within the pixel in our case
+        const float imagePlanePdf = 1.f / camera.mPixelArea;
+
+        // Pdf conversion factor from area on image plane to solid angle on ray
+        const float cosAtCamera   = Dot(camera.mForward, primaryRay.dir);
+        const float imageToSolidAngleFactor =
+            1.f / (cosAtCamera * cosAtCamera * cosAtCamera);
+
+        // Solid angle pdf for camera ray
+        const float cameraPdfW = imagePlanePdf * imageToSolidAngleFactor;
 
         oCameraSample.mOrigin       = primaryRay.org;
         oCameraSample.mDirection    = primaryRay.dir;
@@ -557,15 +578,17 @@ private:
         oCameraSample.mPathLength   = 1;
         oCameraSample.mSpecularPath = 1;
 
-        oCameraSample.dVCM            = Mis(1.f / cameraPdfW);
-        oCameraSample.dVC          = 0;
-        oCameraSample.dVM          = 0;
+        // Eye sub-path MIS quantities. Implements [tech. rep. (31)-(33)] partially.
+        // The evaluation is completed after tracing the camera ray in the eye sub-path loop.
+        oCameraSample.dVCM = Mis(mLightPathCount / cameraPdfW);
+        oCameraSample.dVC  = 0;
+        oCameraSample.dVM  = 0;
 
         return sample;
     }
 
-    // Returns (unweighted) radiance when ray hits a light source.
-    // Can be used for both Background and Area lights.
+    // Returns the radiance of a light source when hit by a random ray,
+    // multiplied by MIS weight. Can be used for both Background and Area lights.
     //
     // For Background lights:
     //    Has to be called BEFORE updating the MIS quantities.
@@ -590,7 +613,7 @@ private:
         if(radiance.IsZero())
             return Vec3f(0);
 
-        // If we see background directly from camera, no weighting is required
+        // If we see light source directly from camera, no weighting is required
         if(aCameraSample.mPathLength == 1)
             return radiance;
 
@@ -603,15 +626,22 @@ private:
         directPdfA   *= lightPickProb;
         emissionPdfW *= lightPickProb;
 
+        // Partial eye sub-path MIS weight [tech. rep. (43)].
+        // Some part of it has been already computed in BounceSample().
         // If the last hit was specular, then dVCM == 0.
         const float wCamera = Mis(directPdfA) * aCameraSample.dVCM +
             Mis(emissionPdfW) * aCameraSample.dVC;
 
+        // Partial light sub-path weight is 0 [tech. rep. (42)].
+
+        // Full path MIS weight [tech. rep. (37)].
         const float misWeight = 1.f / (1.f + wCamera);
+        
         return misWeight * radiance;
     }
 
-    // Connects camera sample to randomly chosen sample, returns (unweighted) radiance.
+    // Connects camera vertex to randomly chosen light point.
+    // Returns emitted radiance multiplied by path MIS weight.
     // Has to be called AFTER updating the MIS quantities.
     Vec3f DirectIllumination(
         const PathElement &aCameraSample,
@@ -634,7 +664,7 @@ private:
             rndPosSamples, directionToLight, distance, directPdfW,
             &emissionPdfW, &cosAtLight);
 
-        // if radiance == 0, other values are undefined, so have to early exit
+        // If radiance == 0, other values are undefined, so have to early exit
         if(radiance.IsZero())
             return Vec3f(0);
 
@@ -666,9 +696,14 @@ private:
         // Also note that we multiply by lightPickProb only for wLight,
         // as it cancels out in wCamera
 
-        const float wLight  = Mis(bsdfDirPdfW / (lightPickProb * directPdfW));
+        // Partial light sub-path MIS weight [tech. rep. (44)]
+        const float wLight = Mis(bsdfDirPdfW / (lightPickProb * directPdfW));
+
+        // Partial eye sub-path MIS weight [tech. rep. (45)]
         const float wCamera = Mis(emissionPdfW * cosToLight / (directPdfW * cosAtLight)) * (
             mMisVmWeightFactor + aCameraSample.dVCM + aCameraSample.dVC * Mis(bsdfRevPdfW));
+
+        // Full path MIS weight [tech. rep. (37)]
         const float misWeight = 1.f / (wLight + 1.f + wCamera);
 
         const Vec3f contrib =
@@ -680,9 +715,9 @@ private:
         return contrib;
     }
 
-    // Connects camera and light sample. Result is not multiplied by throughputs.
-    // Has to be called AFTER updating MIS constants. 'direction' is FROM
-    // camera TO light vertex
+    // Connects an eye and a light vertex. Result multiplied by MIS weight, but
+    // not multiplied by vertex throughputs. Has to be called AFTER updating MIS
+    // constants. 'direction' is FROM eye TO light vertex.
     Vec3f ConnectVertices(
         const LightVertex &aLightVertex,
         const CameraBSDF  &aCameraBsdf,
@@ -732,12 +767,15 @@ private:
         const float cameraBsdfDirPdfA = PdfWtoA(cameraBsdfDirPdfW, distance, cosLight);
         const float lightBsdfDirPdfA  = PdfWtoA(lightBsdfDirPdfW,  distance, cosCamera);
 
-        // MIS weights
+        // Partial light sub-path MIS weight [tech. rep. (40)]
         const float wLight = Mis(cameraBsdfDirPdfA) * (
             mMisVmWeightFactor + aLightVertex.dVCM + aLightVertex.dVC * Mis(lightBsdfRevPdfW));
+
+        // Partial eye sub-path MIS weight [tech. rep. (41)]
         const float wCamera = Mis(lightBsdfDirPdfA) * (
             mMisVmWeightFactor + aCameraSample.dVCM + aCameraSample.dVC * Mis(cameraBsdfRevPdfW));
 
+        // Full path MIS weight [tech. rep. (37)]
         const float misWeight = 1.f / (wLight + 1.f + wCamera);
 
         const Vec3f contrib = (misWeight * geometryTerm) * cameraBsdfFactor * lightBsdfFactor;
@@ -777,19 +815,24 @@ private:
         oLightSample.mPathLength    = 1;
         oLightSample.mIsFiniteLight = light->IsFinite() ? 1 : 0;
 
-        oLightSample.dVCM = Mis(directPdfW / emissionPdfW);
-
-        if(!light->IsDelta())
+        // Light sub-path MIS quantities. Implements [tech. rep. (31)-(33)] partially.
+        // The evaluation is completed after tracing the emission ray in the light sub-path loop.
+        // Delta lights are handled as well [tech. rep. (48)-(50)].
         {
-            const float usedCosLight = light->IsFinite() ? cosLight : 1.f;
-            oLightSample.dVC = Mis(usedCosLight / emissionPdfW);
-        }
-        else
-        {
-            oLightSample.dVC = 0.f;
-        }
+            oLightSample.dVCM = Mis(directPdfW / emissionPdfW);
 
-        oLightSample.dVM = oLightSample.dVC * mMisVcWeightFactor;
+            if(!light->IsDelta())
+            {
+                const float usedCosLight = light->IsFinite() ? cosLight : 1.f;
+                oLightSample.dVC = Mis(usedCosLight / emissionPdfW);
+            }
+            else
+            {
+                oLightSample.dVC = 0.f;
+            }
+
+            oLightSample.dVM = oLightSample.dVC * mMisVcWeightFactor;
+        }
     }
 
     // Computes contribution of light sample to camera by splatting is onto the
@@ -813,8 +856,8 @@ private:
 
         // Compute distance and normalize direction to camera
         const float distEye2 = directionToCamera.LenSqr();
-        const float distance            = std::sqrt(distEye2);
-        directionToCamera  /= distance;
+        const float distance = std::sqrt(distEye2);
+        directionToCamera   /= distance;
 
         // Get the BSDF
         float cosToCamera, bsdfDirPdfW, bsdfRevPdfW;
@@ -826,17 +869,29 @@ private:
 
         bsdfRevPdfW *= aBsdf.ContinuationProb();
 
-        // PDF of ray from camera hitting here (w.r.t. real resolution)
+        // Pdf for sampling image plane position; uniform within the pixel in our case
+        const float imagePlanePdf = 1.f / camera.mPixelArea;
+        
+        // Pdf conversion factor from area on image plane to solid angle on ray
         const float cosAtCamera = Dot(camera.mForward, -directionToCamera);
-        const float cameraPdfW = 1.f / (cosAtCamera * cosAtCamera * cosAtCamera *
-            camera.mPixelArea);
+        const float imageToSolidAngleFactor =
+            1.f / (cosAtCamera * cosAtCamera * cosAtCamera);
+
+        // Solid angle pdf for camera ray
+        const float cameraPdfW = imagePlanePdf * imageToSolidAngleFactor;
+
+        // Area pdf of surface point aHitpoint sampled from the camera
         const float cameraPdfA = PdfWtoA(cameraPdfW, distance, cosToCamera);
 
-        // MIS weights, we need cameraPdfA w.r.t. normalized device coordinate,
-        // so we divide by (resolution.x * resolution.y)
-        const float wLight = Mis(cameraPdfA / mScreenPixelCount) * (
+        // Partial light sub-path weight [tech. rep. (46)]. Note the division by
+        // mLightPathCount, which is the number of samples this technique uses.
+        // This division also appears a few lines below in the framebuffer accumulation.
+        const float wLight = Mis(cameraPdfA / mLightPathCount) * (
             mMisVmWeightFactor + aLightSample.dVCM + aLightSample.dVC * Mis(bsdfRevPdfW));
 
+        // Partial eye sub-path weight is 0 [tech. rep. (47)]
+
+        // Full path MIS weight [tech. rep. (37)]. No MIS for traditional light tracing.
         const float misWeight = mLightTraceOnly ? 1.f : (1.f / (wLight + 1.f));
 
         const float fluxToRadianceFactor = cameraPdfA;
@@ -872,7 +927,7 @@ private:
 
         // If we sampled specular event, then the reverse probability
         // cannot be evaluated, but we know it is exactly the same as
-        // direct probability, so just set it. If non-specular event happened,
+        // forward probability, so just set it. If non-specular event happened,
         // we evaluate the pdf
         float bsdfRevPdfW = bsdfDirPdfW;
         if((sampledEvent & LightBSDF::kSpecular) == 0)
@@ -886,21 +941,22 @@ private:
         bsdfDirPdfW *= contProb;
         bsdfRevPdfW *= contProb;
 
-        // New MIS weights
+        // Sub-path MIS quantities for the next vertex. Only partial - the
+        // evaluation is completed when the actual hit point is known,
+        // i.e. after tracing the ray, in the sub-path loop.
+
         if(sampledEvent & LightBSDF::kSpecular)
         {
+            // Specular scattering case [tech. rep. (53)-(55)] (partially, as noted above)
             aoPathSample.dVCM = 0.f;
-
-            aoPathSample.dVC *=
-                Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
-
-            aoPathSample.dVM *=
-                Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
+            aoPathSample.dVC *= Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
+            aoPathSample.dVM *= Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
 
             aoPathSample.mSpecularPath &= 1;
         }
         else
         {
+            // Implements [tech. rep. (34)-(36)] (partially, as noted above)
             aoPathSample.dVC = Mis(cosThetaOut / bsdfDirPdfW) * (
                 aoPathSample.dVC * Mis(bsdfRevPdfW) +
                 aoPathSample.dVCM + mMisVmWeightFactor);
