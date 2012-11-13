@@ -329,7 +329,7 @@ public:
                 // Update the MIS quantities before storing them at the vertex.
                 // These updates follow the initialization in GenerateLightSample() or
                 // BounceSample(), and together implement equations [tech. rep. (31)-(33)]
-		// or [tech. rep. (34)-(36)], respectively.
+                // or [tech. rep. (34)-(36)], respectively.
                 {
                     // Infinite lights use MIS handled via solid angle integration,
                     // so do not divide by the distance for such lights [tech. rep. Section 5.1]
@@ -435,8 +435,8 @@ public:
                     break;
 
                 // Update the MIS quantities, following the initialization in
-		// GenerateLightSample() or BounceSample(). Implement equations
-		// [tech. rep. (31)-(33)] or [tech. rep. (34)-(36)], respectively.
+                // GenerateLightSample() or BounceSample(). Implement equations
+                // [tech. rep. (31)-(33)] or [tech. rep. (34)-(36)], respectively.
                 {
                     cameraSample.dVCM *= Mis(Sqr(isect.dist));
                     cameraSample.dVCM /= Mis(std::abs(bsdf.CosThetaFix()));
@@ -560,16 +560,16 @@ private:
         // Generate ray
         const Ray primaryRay = camera.GenerateRay(sample);
 
-        // Pdf for sampling image plane position; uniform within the pixel in our case
-        const float imagePlanePdf = 1.f / camera.mPixelArea;
+        // Compute pdf conversion factor from area on image plane to solid angle on ray
+        const float cosAtCamera = Dot(camera.mForward, primaryRay.dir);
+        const float imagePointToCameraDist = camera.mImagePlaneDist / cosAtCamera;
+        const float imageToSolidAngleFactor = Sqr(imagePointToCameraDist) / cosAtCamera;
 
-        // Pdf conversion factor from area on image plane to solid angle on ray
-        const float cosAtCamera   = Dot(camera.mForward, primaryRay.dir);
-        const float imageToSolidAngleFactor =
-            1.f / (cosAtCamera * cosAtCamera * cosAtCamera);
-
-        // Solid angle pdf for camera ray
-        const float cameraPdfW = imagePlanePdf * imageToSolidAngleFactor;
+        // We put the virtual image plane at such a distance from the camera origin
+        // that the pixel area is one and thus the image plane sampling pdf is 1.
+        // The solid angle ray pdf is then equal to the conversion factor from
+        // image plane area density to ray solid angle density
+        const float cameraPdfW = imageToSolidAngleFactor;
 
         oCameraSample.mOrigin       = primaryRay.org;
         oCameraSample.mDirection    = primaryRay.dir;
@@ -869,19 +869,17 @@ private:
 
         bsdfRevPdfW *= aBsdf.ContinuationProb();
 
-        // Pdf for sampling image plane position; uniform within the pixel in our case
-        const float imagePlanePdf = 1.f / camera.mPixelArea;
-        
-        // Pdf conversion factor from area on image plane to solid angle on ray
+        // Compute pdf conversion factor from area on image plane to solid angle on ray
         const float cosAtCamera = Dot(camera.mForward, -directionToCamera);
-        const float imageToSolidAngleFactor =
-            1.f / (cosAtCamera * cosAtCamera * cosAtCamera);
+        const float imagePointToCameraDist = camera.mImagePlaneDist / cosAtCamera;
+        const float imageToSolidAngleFactor = Sqr(imagePointToCameraDist) / cosAtCamera;
+        const float imageToSurfaceFactor = imageToSolidAngleFactor * std::abs(cosToCamera) / Sqr(distance);
 
-        // Solid angle pdf for camera ray
-        const float cameraPdfW = imagePlanePdf * imageToSolidAngleFactor;
-
-        // Area pdf of surface point aHitpoint sampled from the camera
-        const float cameraPdfA = PdfWtoA(cameraPdfW, distance, cosToCamera);
+        // We put the virtual image plane at such a distance from the camera origin
+        // that the pixel area is one and thus the image plane sampling pdf is 1.
+        // The area pdf of aHitpoint as sampled from the camera is then equal to
+        // the conversion factor from image plane area density to surface area density
+        const float cameraPdfA = imageToSurfaceFactor;
 
         // Partial light sub-path weight [tech. rep. (46)]. Note the division by
         // mLightPathCount, which is the number of samples this technique uses.
@@ -894,16 +892,21 @@ private:
         // Full path MIS weight [tech. rep. (37)]. No MIS for traditional light tracing.
         const float misWeight = mLightTraceOnly ? 1.f : (1.f / (wLight + 1.f));
 
-        const float fluxToRadianceFactor = cameraPdfA;
-        const Vec3f contrib = misWeight * fluxToRadianceFactor * bsdfFactor;
+        const float surfaceToImageFactor = 1.f / imageToSurfaceFactor;
+
+        // We divide the contribution by surfaceToImageFactor to convert the (already
+        // divided) pdf from surface area to image plane area, w.r.t. which the
+        // pixel integral is actually defined. We also divide by the number of samples
+        // this technique makes, which is equal to the number of light sub-paths
+        const Vec3f contrib = misWeight * aLightSample.mThroughput * bsdfFactor /
+            (mLightPathCount * surfaceToImageFactor);
 
         if(!contrib.IsZero())
         {
             if(mScene.Occluded(aHitpoint, directionToCamera, distance))
                 return;
 
-            mFramebuffer.AddColor(imagePos,
-                contrib * aLightSample.mThroughput / mLightPathCount);
+            mFramebuffer.AddColor(imagePos, contrib);
         }
     }
 

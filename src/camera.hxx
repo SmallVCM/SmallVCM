@@ -72,7 +72,7 @@ public:
             Mat4f::Scale(Vec3f(2.f / aResolution.x, 2.f / aResolution.y, 0));
 
         const float tanHalfAngle = std::tan(aHorizontalFOV * PI_F / 360.f);
-        mPixelArea = 4.f * Sqr(tanHalfAngle) / Sqr(aResolution.x);
+        mImagePlaneDist = aResolution.x / (2.f * tanHalfAngle);
     }
 
     int RasterToIndex(const Vec2f &aPixelCoords) const
@@ -123,7 +123,7 @@ public:
     Vec2f mResolution;
     Mat4f mRasterToWorld;
     Mat4f mWorldToRaster;
-    float mPixelArea;
+    float mImagePlaneDist;
 };
 
 #endif //__CAMERA_HXX__
