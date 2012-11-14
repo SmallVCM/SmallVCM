@@ -172,7 +172,7 @@ public:
                     }
                 }
 
-                // bounce
+                // continue random walk
                 {
                     Vec3f rndTriplet = mRng.GetVec3f();
                     float pdf, cosThetaOut;
