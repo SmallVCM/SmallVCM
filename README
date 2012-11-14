@@ -129,10 +129,10 @@ in three stages:
 
 PathVertex (also PathElement variant and typedefs CameraVertex and LightVertex)
 is the basic structure describing the state of a random walk. The only unusual
-members are d0, d1vc, d1vm, which are used for iterative MIS weight computation:
-  d0    used for both connections (bpt, vcm) and merging (bpm, vcm)
-  d1vc  used for connections (bpt, vcm)
-  d1vm  used for merging (bpm, vcm)
+members are dVCM, dVC, dVM, which are used for iterative MIS weight computation:
+  dVCM  used for both connections (bpt, vcm) and merging (bpm, vcm)
+  dVC   used for connections (bpt, vcm)
+  dVM   used for merging (bpm, vcm)
   
 Note: All bidirectional algorithms sample the same number of light and camera
 sub-paths per iteration, which is the number of pixels in the image. 
@@ -153,7 +153,7 @@ sub-paths per iteration, which is the number of pixels in the image.
 
 * Bidirectional photon mapping (bpm)
   An extension to ppm, terminates camera sub-paths stochastically (unlike ppm)
-  and performs merging at all non-specular vertices. MIS is used (d0 and d1vm)
+  and performs merging at all non-specular vertices. MIS is used (dVCM and dVM)
   to weight the different possible ways of constructing the same path by merging
   at any (non-specular) interior path vertex.
 
@@ -162,7 +162,7 @@ sub-paths per iteration, which is the number of pixels in the image.
   the camera (as in light tracing) and then stored (without a hash grid). Next,
   the camera sub-paths are traced, connecting each non-specular vertex to a
   light source and to all non-specular vertices of the light sub-path
-  corresponding to the current pixel. MIS is used (d0, d1vc).
+  corresponding to the current pixel. MIS is used (dVCM, dVC).
 
 * Vertex connection and merging (vcm)
   Effectively a combination of bidirectional photon mapping and bidirectional
@@ -170,7 +170,7 @@ sub-paths per iteration, which is the number of pixels in the image.
   vertices, and also builds a hash grid over them. In the camera sub-path
   tracing, each vertex is connected to a light source, to the vertices of the
   corresponding light sub-path, and also merged with the nearby vertices of all
-  light sub-paths. MIS is used (d0, d1vm, d1vc).
+  light sub-paths. MIS is used (dVCM, dVM, dVC).
 
 ================================================================================
 4) FEATURES and LIMITATIONS
