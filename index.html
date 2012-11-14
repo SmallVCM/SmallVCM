@@ -182,19 +182,19 @@ stages:</p>
 <li>Camera sub-path tracing (all but <code>lt</code>)</li>
 </ol><p><code>PathVertex</code> (also <code>PathElement</code> variant and typedefs <code>CameraVertex</code> and <code>LightVertex</code>)
 is the basic structure describing the state of a random walk. The only unusual
-members are <code>d0</code>, <code>d1vc</code>, <code>d1vm</code>, which are used for iterative MIS weight computation:</p>
+members are <code>dVCM</code>, <code>dVC</code>, <code>dVM</code>, which are used for iterative MIS weight computation:</p>
 
 <table>
 <tr>
-<td>d0</td>
+<td>dVCM</td>
 <td>used for both connections (bpt, vcm) and merging (bpm, vcm)</td>
 </tr>
 <tr>
-<td>d1vc</td>
+<td>dVC</td>
 <td>used for connections (bpt, vcm)</td>
 </tr>
 <tr>
-<td>d1vm</td>
+<td>dVM</td>
 <td>used for merging (bpm, vcm)</td>
 </tr>
 </table><p><em>Note:</em> All bidirectional algorithms sample the same number of light and camera
@@ -217,7 +217,7 @@ on the path are specular.</li>
 <li>
 <strong>Bidirectional photon mapping (<code>bpm</code>)</strong> is an extension to <code>ppm</code>, which terminates
 camera sub-paths stochastically (unlike <code>ppm</code>)
-and performs merging at all non-specular vertices. MIS is used (<code>d0</code> and <code>d1vm</code>)
+and performs merging at all non-specular vertices. MIS is used (<code>dVCM</code> and <code>dVM</code>)
 to weight the different possible ways of constructing the same path by merging
 at any (non-specular) interior path vertex.</li>
 <li>
@@ -226,7 +226,7 @@ Light sub-paths are traced, their non-specular vertices are first connected to
 the camera (as in light tracing) and then stored (without a hash grid). Next,
 the camera sub-paths are traced, connecting each non-specular vertex to a
 light source and to all non-specular vertices of the light sub-path
-corresponding to the current pixel. MIS is used (<code>d0</code>, <code>d1vc</code>).</li>
+corresponding to the current pixel. MIS is used (<code>dVCM</code>, <code>dVC</code>).</li>
 <li>
 <strong>Vertex connection and merging (<code>vcm</code>)</strong>
 is effectively a combination of bidirectional photon mapping and bidirectional
@@ -234,7 +234,7 @@ path tracing. Light sub-path tracing projects and stores the non-specular
 vertices, and also builds a hash grid over them. In the camera sub-path
 tracing, each vertex is connected to a light source, to the vertices of the
 corresponding light sub-path, and also merged with the nearby vertices of all
-light sub-paths. MIS is used (<code>d0</code>, <code>d1vm</code>, <code>d1vc</code>).</li>
+light sub-paths. MIS is used (<code>dVCM</code>, <code>dVM</code>, <code>dVC</code>).</li>
 </ul><h3>Features and Limitations</h3>
 
 <p>The renderer was originally intended to be a compact reference implementation, 
