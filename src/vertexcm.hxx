@@ -645,7 +645,6 @@ private:
         emissionPdfW *= lightPickProb;
 
         // Partial eye sub-path MIS weight [tech. rep. (43)].
-        // Some part of it has been already computed in SampleScattering().
         // If the last hit was specular, then dVCM == 0.
         const float wCamera = Mis(directPdfA) * aCameraState.dVCM +
             Mis(emissionPdfW) * aCameraState.dVC;
