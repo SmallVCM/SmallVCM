@@ -54,7 +54,7 @@ public:
             Dot(left, aPosition),
             Dot(-forward, aPosition));
 
-        Mat4f worldToCamera = Mat4f::Indetity();
+        Mat4f worldToCamera = Mat4f::Identity();
         worldToCamera.SetRow(0, up,       -pos.x);
         worldToCamera.SetRow(1, left,     -pos.y);
         worldToCamera.SetRow(2, -forward, -pos.z);

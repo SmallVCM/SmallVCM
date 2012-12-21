@@ -224,7 +224,7 @@ public:
 
     static Mat4f Zero() { Mat4f res(0); return res; }
 
-    static Mat4f Indetity()
+    static Mat4f Identity()
     {
         Mat4f res(0);
         for(int i=0; i<4; i++) res.Get(i,i) = 1.f;
@@ -233,7 +233,7 @@ public:
 
     static Mat4f Scale(const Vec3f& aScale)
     {
-        Mat4f res = Mat4f::Indetity();
+        Mat4f res = Mat4f::Identity();
         for(int i=0; i<3; i++) res.Get(i,i) = aScale.Get(i);
         res.Get(3,3) = 1;
         return res;
@@ -241,7 +241,7 @@ public:
 
     static Mat4f Translate(const Vec3f& aScale)
     {
-        Mat4f res = Mat4f::Indetity();
+        Mat4f res = Mat4f::Identity();
         for(int i=0; i<3; i++) res.Get(i,3) = aScale.Get(i);
         res.Get(3,3) = 1;
         return res;
@@ -408,7 +408,7 @@ Mat4f Invert(const Mat4f& aMatrix)
     det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
 
     if (det == 0)
-        return Mat4f::Indetity();
+        return Mat4f::Identity();
 
     det = 1.f / det;
 
