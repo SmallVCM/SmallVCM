@@ -700,6 +700,17 @@ private:
 
         bsdfRevPdfW *= continuationProbability;
 
+        // wLight = ratio of area pdfs
+        // both area pdfs are with respect to the same shading point,
+        // therefore their distance^2 and cosine terms cancel out and we write
+        // wLight = ratio of solid angle pdfs
+
+        // Also note that we multiply by lightPickProb only for wLight,
+        // as it cancels out in wCamera
+
+        // Partial light sub-path MIS weight [tech. rep. (44)]
+        const float wLight = Mis(bsdfDirPdfW / (lightPickProb * directPdfW));
+
         // What we ultimately want to do is
         //    ratio = emissionPdfA / directPdfA
         // What we have is
@@ -709,12 +720,6 @@ private:
         //    directPdfA   = directPdfW * cosAtLight / dist^2
         //    ratio = (emissionPdfW * cosToLight / dist^2) / (directPdfW * cosAtLight / dist^2)
         //    ratio = (emissionPdfW * cosToLight) / (directPdfW * cosAtLight)
-
-        // Also note that we multiply by lightPickProb only for wLight,
-        // as it cancels out in wCamera
-
-        // Partial light sub-path MIS weight [tech. rep. (44)]
-        const float wLight = Mis(bsdfDirPdfW / (lightPickProb * directPdfW));
 
         // Partial eye sub-path MIS weight [tech. rep. (45)]
         const float wCamera = Mis(emissionPdfW * cosToLight / (directPdfW * cosAtLight)) * (
