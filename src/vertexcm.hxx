@@ -700,28 +700,28 @@ private:
 
         bsdfRevPdfW *= continuationProbability;
 
-        // wLight = ratio of area pdfs
-        // both area pdfs are with respect to the same shading point,
-        // therefore their distance^2 and cosine terms cancel out and we write
-        // wLight = ratio of solid angle pdfs
-
-        // Also note that we multiply by lightPickProb only for wLight,
-        // as it cancels out in wCamera
-
-        // Partial light sub-path MIS weight [tech. rep. (44)]
+        // Partial light sub-path MIS weight [tech. rep. (44)].
+        // Note that wLight is a ratio of area pdfs. But since both are on the
+        // light source, their distance^2 and cosine terms cancel out.
+        // Therefore we can write wLight as a ratio of solid angle pdfs,
+        // both expressed w.r.t. the same shading point.
         const float wLight = Mis(bsdfDirPdfW / (lightPickProb * directPdfW));
 
-        // What we ultimately want to do is
-        //    ratio = emissionPdfA / directPdfA
-        // What we have is
-        //    emissionPdfW, and directPdfW = directPdfA * dist^2 / cosAtLight
-        // Expanding we get
+        // Partial eye sub-path MIS weight [tech. rep. (45)].
+        //
+        // In front of the sum in the parenthesis we have Mis(ratio), where
+        //    ratio = emissionPdfA / directPdfA,
+        // with emissionPdfA being the product of the pdfs for choosing the
+        // point on the light source and sampling the outgoing direction.
+        // What we are given by the light source instead are emissionPdfW
+        // and directPdfW. Converting to area pdfs and plugging into ratio:
         //    emissionPdfA = emissionPdfW * cosToLight / dist^2
         //    directPdfA   = directPdfW * cosAtLight / dist^2
         //    ratio = (emissionPdfW * cosToLight / dist^2) / (directPdfW * cosAtLight / dist^2)
         //    ratio = (emissionPdfW * cosToLight) / (directPdfW * cosAtLight)
-
-        // Partial eye sub-path MIS weight [tech. rep. (45)]
+        //
+        // Also note that both emissionPdfW and directPdfW should be
+        // multiplied by lightPickProb, so it cancels out.
         const float wCamera = Mis(emissionPdfW * cosToLight / (directPdfW * cosAtLight)) * (
             mMisVmWeightFactor + aCameraState.dVCM + aCameraState.dVC * Mis(bsdfRevPdfW));
 
