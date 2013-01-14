@@ -1,0 +1,14 @@
+# This is under MIT licence
+# Also, I am not at all proud of this makefile, feel free to make better
+
+all:
+	c++ -o smallvcm ./src/smallvcm.cxx -O3 -std=c++0x -stdlib=libc++ -DNO_OMP
+
+old_rng:
+	c++ -o smallvcm ./src/smallvcm.cxx -O3 -DLEGACY_RNG -DNO_OMP
+
+clean:
+	rm smallvcm
+
+unreport:
+	rm *.bmp index.html
