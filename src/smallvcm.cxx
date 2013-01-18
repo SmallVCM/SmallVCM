@@ -279,7 +279,7 @@ int main(int argc, const char *argv[])
 #ifndef NO_OMP
         config.mNumThreads = std::max(1, omp_get_num_procs());
 #else
-	config.mNumThreads = 1;
+        config.mNumThreads = 1;
 #endif
 
     if(config.mFullReport)
