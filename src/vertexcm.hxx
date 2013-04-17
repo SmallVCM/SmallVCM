@@ -27,6 +27,7 @@
 
 #include <vector>
 #include <cmath>
+#include <cassert>
 #include "renderer.hxx"
 #include "bsdf.hxx"
 #include "rng.hxx"
@@ -975,8 +976,11 @@ private:
         {
             // Specular scattering case [tech. rep. (53)-(55)] (partially, as noted above)
             aoState.dVCM = 0.f;
-            aoState.dVC *= Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
-            aoState.dVM *= Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
+            //aoState.dVC *= Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
+            //aoState.dVM *= Mis(cosThetaOut / bsdfDirPdfW) * Mis(bsdfRevPdfW);
+            assert(bsdfDirPdfW == bsdfRevPdfW);
+            aoState.dVC *= Mis(cosThetaOut);
+            aoState.dVM *= Mis(cosThetaOut);
 
             aoState.mSpecularPath &= 1;
         }
