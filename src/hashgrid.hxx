@@ -55,8 +55,8 @@ public:
             const Vec3f &pos = aParticles[i].GetPosition();
             for(int j=0; j<3; j++)
             {
-                mBBoxMax = std::max(mBBoxMax.Get(j), pos.Get(j));
-                mBBoxMin = std::min(mBBoxMin.Get(j), pos.Get(j));
+                mBBoxMax.Get(j) = std::max(mBBoxMax.Get(j), pos.Get(j));
+                mBBoxMin.Get(j) = std::min(mBBoxMin.Get(j), pos.Get(j));
             }
         }
 
