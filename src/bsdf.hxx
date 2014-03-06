@@ -522,7 +522,7 @@ private:
 
     float AlbedoRefract(const Material& aMaterial) const
     {
-        return 1.f;
+        return aMaterial.mIOR > 0.f ? 1.f : 0.f;
     }
 
     void GetComponentProbabilities(
