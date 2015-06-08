@@ -174,7 +174,7 @@ public:
         std::ofstream bmp(aFilename, std::ios::binary);
         BmpHeader header;
         bmp.write("BM", 2);
-        header.mFileSize   = uint(sizeof(BmpHeader) + 2) + mResX * mResX * 3;
+        header.mFileSize   = uint(sizeof(BmpHeader) + 2) + mResX * mResY * 3;
         header.mReserved01 = 0;
         header.mDataOffset = uint(sizeof(BmpHeader) + 2);
         header.mHeaderSize = 40;

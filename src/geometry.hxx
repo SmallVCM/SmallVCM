@@ -143,7 +143,7 @@ public:
         {
             const float distance = Dot(mNormal, ao) / Dot(mNormal, aRay.dir);
 
-            if((distance > aRay.tmin) & (distance < oResult.dist))
+            if((distance > aRay.tmin) && (distance < oResult.dist))
             {
                 oResult.normal = mNormal;
                 oResult.matID  = matID;
