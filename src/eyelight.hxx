@@ -27,7 +27,9 @@
 
 #include <vector>
 #include <cmath>
+#ifndef NO_OMP
 #include <omp.h>
+#endif
 #include "renderer.hxx"
 #include "rng.hxx"
 
