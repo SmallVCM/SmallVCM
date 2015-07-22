@@ -571,7 +571,7 @@ private:
 
         // Determine pixel (x, y)
         const int x = aPixelIndex % resX;
-        const int y = aPixelIndex / resX;
+        const int y = aPixelIndex / resY;
 
         // Jitter pixel position
         const Vec2f sample = Vec2f(float(x), float(y)) + mRng.GetVec2f();
