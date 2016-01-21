@@ -28,6 +28,7 @@
 #include <vector>
 #include <cmath>
 #include "math.hxx"
+#include "utils.hxx"
 
 struct SceneSphere
 {
@@ -151,7 +152,7 @@ public:
             return Vec3f(0.f);
         }
 
-        oDirectPdfW = mInvArea * distSqr / cosNormalDir;
+        oDirectPdfW = PdfAtoW(mInvArea, oDistance, cosNormalDir);
 
         if(oCosAtLight)
             *oCosAtLight = cosNormalDir;
