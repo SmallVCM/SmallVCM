@@ -43,6 +43,9 @@ class AbstractLight
 {
 public:
 
+    virtual ~AbstractLight()
+    {}
+
     /* \brief Illuminates a given point in the scene.
      *
      * Given a point and two random samples (e.g., for position on area lights),
