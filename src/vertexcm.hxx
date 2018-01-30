@@ -826,13 +826,13 @@ private:
 
         const AbstractLight *light = mScene.GetLightPtr(lightID);
 
-        float emissionPdfW, directPdfW, cosLight;
+        float emissionPdfW, directPdfA, cosLight;
         oLightState.mThroughput = light->Emit(mScene.mSceneSphere, rndDirSamples, rndPosSamples,
             oLightState.mOrigin, oLightState.mDirection,
-            emissionPdfW, &directPdfW, &cosLight);
+            emissionPdfW, &directPdfA, &cosLight);
 
         emissionPdfW *= lightPickProb;
-        directPdfW   *= lightPickProb;
+        directPdfA   *= lightPickProb;
 
         oLightState.mThroughput    /= emissionPdfW;
         oLightState.mPathLength    = 1;
@@ -842,7 +842,7 @@ private:
         // The evaluation is completed after tracing the emission ray in the light sub-path loop.
         // Delta lights are handled as well [tech. rep. (48)-(50)].
         {
-            oLightState.dVCM = Mis(directPdfW / emissionPdfW);
+            oLightState.dVCM = Mis(directPdfA / emissionPdfW);
 
             if(!light->IsDelta())
             {
