@@ -567,11 +567,10 @@ private:
     {
         const Camera &camera = mScene.mCamera;
         const int resX = int(camera.mResolution.x);
-        const int resY = int(camera.mResolution.y);
 
         // Determine pixel (x, y)
         const int x = aPixelIndex % resX;
-        const int y = aPixelIndex / resY;
+        const int y = aPixelIndex / resX;
 
         // Jitter pixel position
         const Vec2f sample = Vec2f(float(x), float(y)) + mRng.GetVec2f();
